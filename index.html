@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harppia CRP Operacional</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #090d16; color: #f1f5f9; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    .dragging { opacity: 0.4; transform: scale(0.98); }
+    .drop-zone-active { background-color: rgba(56, 189, 248, 0.08); border-color: #38bdf8 !important; }
+  </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+  <!-- ECRÃ DE LOGIN E CONFIGURAÇÃO -->
+  <div id="authScreen" class="fixed inset-0 z-50 bg-[#090d16] flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-8 shadow-2xl">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center font-bold text-slate-950 text-xl">H</div>
+        <div>
+          <h1 class="text-xl font-bold text-white">Harppia CRP</h1>
+          <p class="text-xs text-slate-400">Esteira Operacional • Clínicas & Saúde</p>
+        </div>
+      </div>
+
+      <div class="space-y-4 mb-6">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">URL do Google Apps Script (Web App)</label>
+          <input id="cfgScriptUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Google OAuth Client ID (Para Login dos 4 Utilizadores)</label>
+          <input id="cfgClientId" type="text" placeholder="123456-abc.apps.googleusercontent.com" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none">
+        </div>
+        <button onclick="saveConfigAndInitGoogle()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold py-2.5 rounded-lg transition">
+          Guardar Configuração & Carregar Botão Google
+        </button>
+      </div>
+
+      <div id="googleBtnContainer" class="flex justify-center my-4 min-h-[44px]"></div>
+
+      <div class="relative flex py-3 items-center">
+        <div class="flex-grow border-t border-slate-800"></div>
+        <span class="flex-shrink mx-3 text-slate-500 text-xs">ou testar interface agora</span>
+        <div class="flex-grow border-t border-slate-800"></div>
+      </div>
+
+      <button onclick="enterLocalDemoMode()" class="w-full bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-400 text-sm font-medium py-2.5 rounded-lg transition">
+        Entrar em Modo Local (LocalStorage)
+      </button>
+      <p id="authError" class="text-xs text-rose-400 mt-3 text-center hidden"></p>
+    </div>
+  </div>
+
+  <!-- TOPBAR -->
+  <header class="h-16 border-b border-slate-800/80 bg-slate-900/70 backdrop-blur px-6 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center font-bold text-slate-950">H</div>
+        <div>
+          <span class="font-bold text-white tracking-tight">Harppia CRP</span>
+          <span id="connBadge" class="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Online</span>
+        </div>
+      </div>
+
+      <nav class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+        <button onclick="switchView('kanban')" id="tabKanban" class="px-3 py-1.5 rounded-md text-xs font-medium bg-sky-500 text-slate-950 transition">Kanban (9 Fases)</button>
+        <button onclick="switchView('table')" id="tabTable" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-white transition">Tabela & Filtros</button>
+        <button onclick="switchView('calendar')" id="tabCalendar" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-white transition">Calendário</button>
+      </nav>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <input id="globalSearch" oninput="renderActiveView()" type="text" placeholder="Pesquisar médico, nicho..." class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500 w-56">
+      <button onclick="openNewClientModal()" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs px-3.5 py-2 rounded-lg transition flex items-center gap-1.5">
+        <span>+ Novo Cliente</span>
+      </button>
+      <button onclick="syncWithSheets()" id="btnSync" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg border border-slate-700 transition">
+        Sincronizar
+      </button>
+      <div class="text-right pl-2 border-l border-slate-800">
+        <div id="userNameDisplay" class="text-xs font-medium text-white">Utilizador</div>
+        <button onclick="logout()" class="text-[10px] text-slate-400 hover:text-rose-400">Terminar sessão</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- BARRA DE INDICADORES DE ESTEIRA -->
+  <section class="bg-slate-900/40 border-b border-slate-800/60 px-6 py-2.5 flex items-center justify-between text-xs shrink-0">
+    <div class="flex items-center gap-6">
+      <div><span class="text-slate-400">Total na Esteira:</span> <strong id="kpiTotal" class="text-white ml-1">0</strong></div>
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span><span class="text-slate-400">0-6d (Regular):</span> <strong id="kpiGreen" class="text-emerald-400">0</strong></div>
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-slate-400">7-14d (Padrão):</span> <strong id="kpiYellow" class="text-amber-400">0</strong></div>
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-orange-500"></span><span class="text-slate-400">15-30d (Atenção):</span> <strong id="kpiOrange" class="text-orange-400">0</strong></div>
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500"></span><span class="text-slate-400">31+d (Crítico):</span> <strong id="kpiRed" class="text-rose-400">0</strong></div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-slate-400">Filtrar Setor da Próxima Tarefa:</span>
+      <select id="deptFilter" onchange="renderActiveView()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200">
+        <option value="">Todos os Setores</option>
+        <option value="Atendimento">Atendimento</option>
+        <option value="Design">Design</option>
+        <option value="Copywriting">Copywriting</option>
+        <option value="Webdesigner">Webdesigner</option>
+        <option value="Tráfego">Tráfego</option>
+        <option value="CS">CS</option>
+        <option value="Comercial">Comercial</option>
+        <option value="Cliente">Cliente</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- ÁREA PRINCIPAL -->
+  <main class="flex-1 overflow-hidden relative">
+    <!-- VISTA 1: KANBAN -->
+    <div id="viewKanban" class="h-full overflow-x-auto overflow-y-hidden p-6 flex gap-4"></div>
+
+    <!-- VISTA 2: TABELA COM FILTROS DE TOPO -->
+    <div id="viewTable" class="h-full overflow-auto p-6 hidden">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-950 text-slate-400 border-b border-slate-800">
+              <th class="p-3">Profissional / Clínica</th>
+              <th class="p-3">Especialidade (Nicho)</th>
+              <th class="p-3">Fase Atual</th>
+              <th class="p-3">Tempo de Esteira</th>
+              <th class="p-3">Próxima Subtarefa Pendente</th>
+              <th class="p-3">Setor Responsável</th>
+              <th class="p-3">Progresso da Fase</th>
+              <th class="p-3">Links Rápidos</th>
+            </tr>
+            <tr class="bg-slate-900/90 border-b border-slate-800">
+              <th class="p-2"><input id="fltName" oninput="renderTable()" placeholder="Filtrar nome..." class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white"></th>
+              <th class="p-2"><input id="fltNiche" oninput="renderTable()" placeholder="Filtrar nicho..." class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white"></th>
+              <th class="p-2">
+                <select id="fltPhase" onchange="renderTable()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white">
+                  <option value="">Todas</option>
+                  <option value="1">01. Questionário</option>
+                  <option value="2">02. Reunião Onboarding</option>
+                  <option value="3">03. Fotos</option>
+                  <option value="4">04. Planejamento Site</option>
+                  <option value="5">05. Intermediária</option>
+                  <option value="6">06. Site</option>
+                  <option value="7">07. Campanha</option>
+                  <option value="8">08. Acompanhamento</option>
+                  <option value="9">09. Concluído</option>
+                </select>
+              </th>
+              <th class="p-2">
+                <select id="fltSemaforo" onchange="renderTable()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white">
+                  <option value="">Todos</option>
+                  <option value="green">Verde (0-6d)</option>
+                  <option value="yellow">Amarelo (7-14d)</option>
+                  <option value="orange">Laranja (15-30d)</option>
+                  <option value="red">Vermelho (31+d)</option>
+                </select>
+              </th>
+              <th class="p-2" colspan="4"></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-800/60"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VISTA 3: CALENDÁRIO -->
+    <div id="viewCalendar" class="h-full overflow-auto p-6 hidden">
+      <div class="max-w-5xl mx-auto">
+        <h2 class="text-sm font-bold text-white mb-4">Agenda Operacional: Reuniões de Onboarding, Prazos de Subtarefas & Check-ins (4/7 Meses)</h2>
+        <div id="calendarList" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- GAVETA DO CLIENTE (CLIENT DRAWER) -->
+  <div id="clientDrawerOverlay" onclick="closeDrawer()" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden"></div>
+  <aside id="clientDrawer" class="fixed top-0 right-0 h-full w-full max-w-2xl bg-slate-900 border-l border-slate-800 z-50 transform translate-x-full transition-transform duration-200 flex flex-col">
+    <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-2">
+          <h2 id="drwName" class="text-lg font-bold text-white">Nome do Cliente</h2>
+          <span id="drwDaysBadge" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full">0 dias na esteira</span>
+        </div>
+        <p id="drwSub" class="text-xs text-slate-400 mt-0.5"></p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="deleteCurrentClient()" class="text-xs text-rose-400 hover:bg-rose-500/10 px-2.5 py-1.5 rounded-lg border border-rose-500/20">Excluir</button>
+        <button onclick="closeDrawer()" class="text-slate-400 hover:text-white text-xl px-2">✕</button>
+      </div>
+    </div>
+
+    <!-- Abas da Gaveta -->
+    <div class="flex border-b border-slate-800 bg-slate-950 px-5 gap-4 text-xs">
+      <button onclick="switchDrawerTab('tasks')" id="dtab_tasks" class="py-3 border-b-2 border-sky-500 text-sky-400 font-semibold">Subtarefas (54)</button>
+      <button onclick="switchDrawerTab('info')" id="dtab_info" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-white">Informações & Links</button>
+      <button onclick="switchDrawerTab('notes')" id="dtab_notes" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-white">Anotações</button>
+      <button onclick="switchDrawerTab('logs')" id="dtab_logs" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-white">Linha do Tempo</button>
+    </div>
+
+    <!-- Conteúdo da Gaveta -->
+    <div class="flex-1 overflow-y-auto p-5">
+      <!-- ABA 1: SUBTAREFAS -->
+      <div id="dcontent_tasks" class="space-y-4">
+        <div class="flex items-center justify-between gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">Ver Fase:</span>
+            <select id="drwPhaseFilter" onchange="renderDrawerTasks()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"></select>
+          </div>
+          <button onclick="promptCustomTask()" class="text-xs bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3 py-1.5 rounded-lg">+ Nova Subtarefa</button>
+        </div>
+        <div id="drwTaskList" class="space-y-2"></div>
+      </div>
+
+      <!-- ABA 2: INFORMAÇÕES GERAIS -->
+      <div id="dcontent_info" class="space-y-4 hidden">
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div><label class="text-slate-400 block mb-1">Nome Completo</label><input id="inf_name" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div><label class="text-slate-400 block mb-1">Especialidade (Nicho)</label><input id="inf_niche" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div><label class="text-slate-400 block mb-1">E-mail</label><input id="inf_email" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div><label class="text-slate-400 block mb-1">WhatsApp (com DDD)</label><input id="inf_phone" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div><label class="text-slate-400 block mb-1">CPF / CNPJ</label><input id="inf_document" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div><label class="text-slate-400 block mb-1">Fase Atual da Esteira (1 a 9)</label><input id="inf_status" type="number" min="1" max="9" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div><label class="text-slate-400 block mb-1">Data do Pagamento (Marco Zero)</label><input id="inf_paymentDate" type="date" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div><label class="text-slate-400 block mb-1">Reunião de Onboarding</label><input id="inf_onboardingMeetingDate" type="datetime-local" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div><label class="text-slate-400 block mb-1">Data do 1º Paciente Gerado</label><input id="inf_firstSaleDate" type="date" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div><label class="text-slate-400 block mb-1">Próximo Check-in CS (4/7 Meses)</label><input id="inf_nextCheckinDate" type="date" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div class="col-span-2"><label class="text-slate-400 block mb-1">URL do Formulário de Briefing</label><input id="inf_formUrl" type="url" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div class="col-span-2"><label class="text-slate-400 block mb-1">URL da Pasta no Google Drive (Fotos/Ativos)</label><input id="inf_driveUrl" type="url" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div class="col-span-2"><label class="text-slate-400 block mb-1">URL do Site / Landing Page</label><input id="inf_websiteUrl" type="url" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+          <div class="col-span-2"><label class="text-slate-400 block mb-1">URL da Conta Google Ads</label><input id="inf_adsUrl" type="url" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+        </div>
+        <button onclick="saveClientInfoForm()" class="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs py-2.5 rounded-lg">Guardar Alterações do Cliente</button>
+      </div>
+
+      <!-- ABA 3: ANOTAÇÕES -->
+      <div id="dcontent_notes" class="space-y-3 hidden">
+        <textarea id="inf_notes" rows="12" placeholder="Registe observações operacionais, preferências de cores, histórico de alinhamentos..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-sky-500"></textarea>
+        <button onclick="saveClientInfoForm()" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs px-4 py-2 rounded-lg">Guardar Bloco de Notas</button>
+      </div>
+
+      <!-- ABA 4: LINHA DO TEMPO -->
+      <div id="dcontent_logs" class="space-y-2 hidden"></div>
+    </div>
+  </aside>
+
+  <!-- MODAL NOVO CLIENTE -->
+  <div id="newClientModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6">
+      <h3 class="text-base font-bold text-white mb-4">Cadastrar Novo Profissional na Esteira</h3>
+      <div class="grid grid-cols-2 gap-3 text-xs">
+        <div class="col-span-2"><label class="text-slate-400 block mb-1">Nome do Profissional / Clínica *</label><input id="nc_name" placeholder="Ex: Dra. Camila Almeida" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+        <div><label class="text-slate-400 block mb-1">Especialidade (Nicho) *</label><input id="nc_niche" placeholder="Ex: Psicologia Clínica & TCC" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+        <div><label class="text-slate-400 block mb-1">WhatsApp</label><input id="nc_phone" placeholder="5511999999999" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+        <div><label class="text-slate-400 block mb-1">E-mail</label><input id="nc_email" type="email" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+        <div><label class="text-slate-400 block mb-1">Data do Pagamento (Início Esteira)</label><input id="nc_paymentDate" type="date" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+        <div class="col-span-2"><label class="text-slate-400 block mb-1">Link da Pasta Google Drive (Opcional)</label><input id="nc_driveUrl" type="url" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white"></div>
+      </div>
+      <div class="flex justify-end gap-2 mt-6">
+        <button onclick="closeNewClientModal()" class="px-4 py-2 rounded-lg text-xs text-slate-400 hover:text-white">Cancelar</button>
+        <button onclick="createClient()" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs px-4 py-2 rounded-lg">Criar Cliente + 54 Subtarefas</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================================
+    // DEFINIÇÕES DAS 9 FASES MACRO E 54 SUBTAREFAS PADRÃO HARPPIA
+    // ============================================================================
+    const PHASES = [
+      { id: 1, short: '01. Questionário', full: 'Onboarding Inicial', leader: 'Atendimento' },
+      { id: 2, short: '02. Reunião Onboarding', full: 'Onboarding & Alinhamento', leader: 'Atendimento' },
+      { id: 3, short: '03. Fotos', full: 'Fotos & Design', leader: 'Design' },
+      { id: 4, short: '04. Planejamento Site', full: 'Copywriting & Planejamento', leader: 'Copywriting' },
+      { id: 5, short: '05. Intermediária', full: 'Suporte e Ferramentas de Vendas', leader: 'Atendimento' },
+      { id: 6, short: '06. Site', full: 'Produção do Site', leader: 'Webdesigner' },
+      { id: 7, short: '07. Campanha', full: 'Campanha de Tráfego', leader: 'Tráfego' },
+      { id: 8, short: '08. Acompanhamento', full: 'Acompanhamento 4/7 Meses', leader: 'CS' },
+      { id: 9, short: '09. Concluído', full: 'Sucesso & Renovação', leader: 'Comercial' }
+    ];
+
+    const DEFAULT_TASKS_TEMPLATE = [
+      [1, 'Enviar link do questionário de boas-vindas e kit lev. inicial (Bio, Domínio e cor, Depoimentos)', 'Atendimento', '15 min', 'Disponibilizar o formulário padrão no WhatsApp com instruções. Via automação Meta.'],
+      [1, 'Cobrar preenchimento do formulário', 'Atendimento', '10 min', 'Follow-up caso o cliente não tenha respondido em até 48 horas.'],
+      [1, 'Recebimento questionário', 'Cliente', '1-3 dias úteis', 'Aguardar retorno e preenchimento completo pelo profissional.'],
+      [1, 'Validar e aprovar respostas recebidas', 'Atendimento', '60 min', 'Conferir informações essenciais. Enviar confirmação. Criar pasta e fotos (contemplar campo de e-mail).'],
+      [1, 'Envio Domínio e cor', 'Cliente', '1-3 dias úteis', 'Aguardar definição de domínio e cores pelo cliente.'],
+      [1, 'Disponibilidade do domínio', 'Atendimento', '10 min', 'Checar disponibilidade no Registro.br / Whois. Enviar confirmação.'],
+      [1, 'Cor site - Fora do padrão', 'Atendimento', '30 min', 'Enviar confirmação. Fazer teste de cor e enviar para aprovação do cliente.'],
+      [1, 'Teste Cor - Aprovação', 'Cliente', '1-3 dias úteis', 'Aguardar aprovação do teste de cores pelo cliente.'],
+      [1, 'Envio BIO', 'Cliente', '1-3 dias úteis', 'Atendimento: Envio de confirmação de recebimento da Bio.'],
+      [2, 'Agendar reunião de onboarding com data/hora', 'Atendimento', '15 min', 'Alinhar agenda com o cliente e registrar a data e horário no sistema.'],
+      [2, 'Realizar reunião e alinhar expectativas', 'Atendimento', '60 min', 'Conduzir a sessão de boas-vindas, definir prazos da esteira e coletar diretrizes estratégicas.'],
+      [3, 'Enviar e-mail com drive das fotos', 'Atendimento', '20 min', 'Criar pasta no Google Drive, liberar acesso e enviar e-mail com instruções.'],
+      [3, 'Enviar guia de direcionamento de fotos', 'Atendimento', '15 min', 'Compartilhar o PDF/manual de poses, iluminação e vestimenta para fotos clínicas.'],
+      [3, 'Enviar fotos originais e códigos de vestimenta', 'Cliente', '1-5 dias úteis', 'Aguardar envio das fotos originais e códigos de vestimenta pelo cliente.'],
+      [3, 'Confirmação recebimento', 'Atendimento', '30 min', 'Checagem das fotos se estão dentro da especificação. Envio de confirmação.'],
+      [3, 'Envio equipe IA', 'Atendimento', '20 min', 'Liberar acesso ao drive e repassar links de fotos e códigos à equipe de IA.'],
+      [3, 'Receber fotos originais / Gerar fotos em IA', 'Design', '1-2 dias úteis', 'Gerar ensaio fotográfico realista via IA e enviar para a equipe de atendimento.'],
+      [3, 'Análise e seleção de fotos', 'Atendimento', '3 a 4h', 'Fazer recorte profissional, análise e seleção de fotos e solicitar ok formal do cliente.'],
+      [3, 'Enviar para aprovação', 'Atendimento', '15 min', 'Liberar acesso e enviar link e orientações para o cliente.'],
+      [3, 'Aprovação ou alteração', 'Cliente', '1-3 dias úteis', 'Aprovação (escolher 3 fotos) ou indicar cenários preferidos e apontar críticas.'],
+      [3, 'Envio equipe IA (Ajustes)', 'Atendimento', '20 min', 'Apontar as críticas e identificar as 3 fotos que o cliente mais gostou.'],
+      [3, 'Gerar novas fotos em IA (Ajustes)', 'Design', '1-2 dias úteis', 'Gerar novo ensaio fotográfico realista via IA e reenviar ao atendimento.'],
+      [3, 'Análise e seleção de novas fotos', 'Atendimento', '3 a 4h', 'Fazer recorte profissional, seleção e solicitar ok formal do cliente.'],
+      [3, 'Enviar fotos reajustadas para aprovação', 'Atendimento', '15 min', 'Liberar acesso e enviar link ao cliente.'],
+      [3, 'Aprovação final das fotos', 'Cliente', '1-3 dias úteis', 'Identificar as 3 fotos finais escolhidas para produção do site.'],
+      [4, 'Enviar Depoimentos', 'Cliente', '1-5 dias úteis', 'Aguardar envio dos depoimentos pelo cliente. Envio de confirmação de recebimento.'],
+      [4, 'Escrever base copy da Landing Page', 'Copywriting', '3 horas', 'Agrupar informações base, orientações, headline, logo e fotos Canva, apresentar doc.'],
+      [4, 'Elaborar estrutura de conteúdo / Wireframe', 'Copywriting', '90 min', 'Definir seções: Hero, Sobre, Tratamentos, Depoimentos, FAQ e CTA. Padrão Harppia.'],
+      [4, 'Escrever copy da Landing Page', 'Copywriting', '120 min', 'Redigir textos persuasivos e éticos focados na conversão de pacientes da saúde.'],
+      [5, 'Enviar Roteiros de venda', 'Atendimento', '15 min', '1ª semana. Inicia 1 dia útil após envio dos dados base. Via automação Meta.'],
+      [5, 'Enviar orientações do link de pgto', 'Atendimento', '15 min', '2ª semana. Via automação Meta.'],
+      [5, 'Envio dos links de pgto', 'Cliente', '1-5 dias úteis', 'Aguardar envio dos links de pagamento pelo cliente.'],
+      [5, 'Testes do link de pgto', 'Atendimento', '30 min', 'Checagem de campos e parcelamento/valores. OBS: Às vezes o cliente não quer usar.'],
+      [5, 'Aprovação ou alteração do link de pgto', 'Atendimento', '30 min', 'Aprovação ou Recusa - Orientações e suporte ao cliente.'],
+      [5, 'Criação de login e senha Plataforma Formulário Paciente', 'Atendimento', '30 min', 'Criação de login/senha. Teste acesso e link paciente (Geral, Adolescentes ou Casal).'],
+      [5, 'Enviar acesso Plataforma Formulário Paciente', 'Atendimento', '30 min', '3ª semana. Orientações via Meta. Envio login/senha no WhatsApp particular.'],
+      [6, 'Criar layout da Landing Page / Site', 'Webdesigner', '240 min', 'Desenvolver página moderna, responsiva, ultra rápida e com alto padrão visual.'],
+      [6, 'Configurar botões de WhatsApp e formulários', 'Webdesigner', '45 min', 'Integrar tags UTM, mensagens personalizadas de início de conversa e conversões.'],
+      [6, 'Configurar domínio e certificado SSL', 'Webdesigner', '30 min', 'Apontar DNS (Cloudflare/Hostinger) e garantir HTTPS seguro e ativo.'],
+      [6, 'Validações Interna', 'Comercial', '30 min', 'Validação interna de qualidade antes da apresentação ao cliente.'],
+      [6, 'Apresentar site pronto para o cliente', 'Atendimento', '30 min', 'Gravar vídeo explicativo (Loom) ou agendar call rápida para validação da página.'],
+      [6, 'Listar ajustes solicitados', 'Atendimento', '20 min', 'Registrar eventuais alterações de texto, imagem ou disposição pedidas pelo cliente.'],
+      [6, 'Aplicar alterações e obter aprovação final', 'Webdesigner', '60 min', 'Executar os ajustes finos e obter autorização formal de publicação.'],
+      [6, 'Aprovação final do site', 'Cliente', '1-3 dias úteis', 'Aguardar aprovação final formal do cliente.'],
+      [7, 'Agendar reunião cliente Google ADS', 'Comercial', '20 min', 'Agendar alinhamento de campanha com o cliente.'],
+      [7, 'Solicitar/Configurar acessos do Google Ads', 'Tráfego', '40 min', 'Vincular MCC da assessoria à conta do cliente ou criar nova conta estruturada.'],
+      [7, 'Criar anúncios, palavras-chave e orçamento', 'Tráfego', '120 min', 'Pesquisar termos de busca de alta intenção de pacientes, criar criativos e lances.'],
+      [7, 'Publicar e ativar campanhas', 'Tráfego', '45 min', 'Validar tags de conversão do Google Ads e veicular. Informar cliente no grupo.'],
+      [7, 'Acompanhar e controlar crédito Google ADS', 'Tráfego', '30 min', 'Monitorar saldo de créditos e faturamento da conta de anúncios.'],
+      [8, 'Agendar check-ins periódicos de 4 e 7 meses', 'CS', '20 min', 'Programar marcos de acompanhamento de longo prazo e retenção no calendário.'],
+      [8, 'Enviar relatórios mensais de desempenho', 'Tráfego', '60 min', 'Gerar dashboard de cliques, leads no WhatsApp, custo por paciente e ROI.'],
+      [8, 'Negativar palavras e otimizar orçamento', 'Tráfego', '45 min', 'Refinar termos de busca semanalmente para maximizar a conversão de pacientes.'],
+      [9, 'Coletar depoimento / avaliação de satisfação', 'Comercial', '30 min', 'Enviar pesquisa NPS e solicitar depoimento em vídeo ou texto para o portfólio.'],
+      [9, 'Apresentar proposta de renovação/manutenção', 'Comercial', '45 min', 'Oferecer plano de assessoria contínua de tráfego, SEO e suporte ao site.']
+    ];
+
+    let state = {
+      mode: 'local', // 'sheets' ou 'local'
+      scriptUrl: localStorage.getItem('harppia_script_url') || '',
+      clientId: localStorage.getItem('harppia_client_id') || '',
+      idToken: sessionStorage.getItem('harppia_id_token') || '',
+      user: { name: 'Equipa Harppia', email: 'local@harppia.com' },
+      clients: [],
+      logs: [],
+      activeView: 'kanban',
+      openClientId: null
+    };
+
+    // ============================================================================
+    // ALGORITMO DO TEMPO DE ESTEIRA & SEMÁFORO DE PRAZOS (SECÇÃO 5.1 DO MANUAL)
+    // ============================================================================
+    function getTreadmillInfo(paymentDateStr) {
+      const baseDate = paymentDateStr ? new Date(paymentDateStr + 'T00:00:00') : new Date();
+      const now = new Date();
+      const days = Math.max(0, Math.floor((now - baseDate) / 86400000));
+      const label = days === 0 ? '1º dia na esteira' : `${days} dias na esteira`;
+
+      if (days <= 6) {
+        return { days, key: 'green', label, badgeClass: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30', dot: 'bg-emerald-400' };
+      } else if (days <= 14) {
+        return { days, key: 'yellow', label, badgeClass: 'bg-amber-500/15 text-amber-300 border border-amber-500/30', dot: 'bg-amber-400' };
+      } else if (days <= 30) {
+        return { days, key: 'orange', label, badgeClass: 'bg-orange-500/15 text-orange-400 border border-orange-500/30', dot: 'bg-orange-500' };
+      } else {
+        return { days, key: 'red', label, badgeClass: 'bg-rose-500/15 text-rose-400 border border-rose-500/30', dot: 'bg-rose-500' };
+      }
+    }
+
+    function build54Tasks(clientId) {
+      return DEFAULT_TASKS_TEMPLATE.map((t, i) => ({
+        id: `${clientId}_t${i + 1}`,
+        clientId,
+        phase: t[0],
+        title: t[1],
+        department: t[2],
+        estimateLabel: t[3],
+        description: t[4],
+        status: 'Pendente',
+        dueDate: '',
+        dueTime: ''
+      }));
+    }
+
+    // ============================================================================
+    // INICIALIZAÇÃO E AUTENTICAÇÃO GOOGLE
+    // ============================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('cfgScriptUrl').value = state.scriptUrl;
+      document.getElementById('cfgClientId').value = state.clientId;
+      document.getElementById('nc_paymentDate').value = new Date().toISOString().split('T')[0];
+
+      const phaseSelect = document.getElementById('drwPhaseFilter');
+      phaseSelect.innerHTML = `<option value="ALL">Todas as 9 Fases (54 subtarefas)</option>` +
+        PHASES.map(p => `<option value="${p.id}">Fase ${p.short}</option>`).join('');
+
+      if (state.clientId) initGoogleSignIn();
+    });
+
+    function saveConfigAndInitGoogle() {
+      state.scriptUrl = document.getElementById('cfgScriptUrl').value.trim();
+      state.clientId = document.getElementById('cfgClientId').value.trim();
+      localStorage.setItem('harppia_script_url', state.scriptUrl);
+      localStorage.setItem('harppia_client_id', state.clientId);
+      initGoogleSignIn();
+    }
+
+    function initGoogleSignIn() {
+      if (!window.google || !state.clientId) return;
+      google.accounts.id.initialize({
+        client_id: state.clientId,
+        callback: handleGoogleCredential
+      });
+      google.accounts.id.renderButton(
+        document.getElementById('googleBtnContainer'),
+        { theme: 'filled_blue', size: 'large', width: 320, text: 'signin_with' }
+      );
+    }
+
+    async function handleGoogleCredential(response) {
+      state.idToken = response.credential;
+      sessionStorage.setItem('harppia_id_token', state.idToken);
+      state.mode = 'sheets';
+      await syncWithSheets();
+    }
+
+    function enterLocalDemoMode() {
+      state.mode = 'local';
+      document.getElementById('authScreen').classList.add('hidden');
+      document.getElementById('connBadge').textContent = 'Modo Local';
+      document.getElementById('connBadge').className = 'ml-2 text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20';
+
+      const saved = localStorage.getItem('harppia_local_clients');
+      if (saved) {
+        state.clients = JSON.parse(saved);
+        state.logs = JSON.parse(localStorage.getItem('harppia_local_logs') || '[]');
+      } else {
+        const demoId = 'cli_demo_1';
+        state.clients = [{
+          id: demoId,
+          name: 'Dra. Camila Almeida',
+          email: 'contato@dracamila.com.br',
+          phone: '5511999999999',
+          document: '123.456.789-00',
+          niche: 'Psicologia Clínica & TCC',
+          status: 1,
+          paymentDate: new Date(Date.now() - 4 * 86400000).toISOString().split('T')[0],
+          onboardingMeetingDate: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
+          formUrl: '', driveUrl: 'https://drive.google.com', websiteUrl: '', adsUrl: '',
+          firstSaleDate: '', nextCheckinDate: '',
+          notes: 'Cliente prioriza tons pastéis e foco em ansiedade.',
+          tasks: build54Tasks(demoId)
+        }];
+        saveLocalData();
+      }
+      renderActiveView();
+    }
+
+    function saveLocalData() {
+      if (state.mode === 'local') {
+        localStorage.setItem('harppia_local_clients', JSON.stringify(state.clients));
+        localStorage.setItem('harppia_local_logs', JSON.stringify(state.logs));
+      }
+    }
+
+    async function apiCall(payload) {
+      if (state.mode === 'local') return { ok: true };
+      const res = await fetch(state.scriptUrl, {
+        method: 'POST',
+        body: JSON.stringify({ ...payload, idToken: state.idToken })
+      });
+      return await res.json();
+    }
+
+    async function syncWithSheets() {
+      if (state.mode === 'local') { renderActiveView(); return; }
+      const errEl = document.getElementById('authError');
+      errEl.classList.add('hidden');
+      try {
+        const data = await apiCall({ action: 'GET_ALL' });
+        if (!data.ok) throw new Error(data.error);
+        state.user = data.user;
+        state.clients = data.clients;
+        state.logs = data.logs || [];
+        document.getElementById('userNameDisplay').textContent = `${state.user.name} (${state.user.department})`;
+        document.getElementById('authScreen').classList.add('hidden');
+        renderActiveView();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem('harppia_id_token');
+      location.reload();
+    }
+
+    // ============================================================================
+    // RENDERIZAÇÃO GLOBAL, KPIs E KANBAN (9 COLUNAS)
+    // ============================================================================
+    function renderActiveView() {
+      updateKPIs();
+      if (state.activeView === 'kanban') renderKanban();
+      if (state.activeView === 'table') renderTable();
+      if (state.activeView === 'calendar') renderCalendar();
+    }
+
+    function updateKPIs() {
+      let counts = { green: 0, yellow: 0, orange: 0, red: 0 };
+      state.clients.forEach(c => {
+        const info = getTreadmillInfo(c.paymentDate);
+        counts[info.key]++;
+      });
+      document.getElementById('kpiTotal').textContent = state.clients.length;
+      document.getElementById('kpiGreen').textContent = counts.green;
+      document.getElementById('kpiYellow').textContent = counts.yellow;
+      document.getElementById('kpiOrange').textContent = counts.orange;
+      document.getElementById('kpiRed').textContent = counts.red;
+    }
+
+    function getFilteredClients() {
+      const q = document.getElementById('globalSearch').value.toLowerCase().trim();
+      const dept = document.getElementById('deptFilter').value;
+      return state.clients.filter(c => {
+        const matchQ = !q || c.name.toLowerCase().includes(q) || (c.niche || '').toLowerCase().includes(q);
+        if (!matchQ) return false;
+        if (!dept) return true;
+        const nextTask = (c.tasks || []).find(t => t.phase === Number(c.status) && t.status !== 'Concluída');
+        return nextTask && nextTask.department === dept;
+      });
+    }
+
+    function renderKanban() {
+      const container = document.getElementById('viewKanban');
+      const filtered = getFilteredClients();
+
+      container.innerHTML = PHASES.map(phase => {
+        const cards = filtered.filter(c => Number(c.status) === phase.id);
+        return `
+          <div class="w-80 shrink-0 flex flex-col bg-slate-900/70 border border-slate-800/90 rounded-2xl overflow-hidden"
+               ondragover="event.preventDefault(); this.classList.add('drop-zone-active')"
+               ondragleave="this.classList.remove('drop-zone-active')"
+               ondrop="handleDrop(event, ${phase.id}); this.classList.remove('drop-zone-active')">
+            <div class="p-3.5 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+              <div>
+                <h3 class="text-xs font-bold text-white">${phase.short}</h3>
+                <p class="text-[10px] text-slate-400">Líder: ${phase.leader}</p>
+              </div>
+              <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">${cards.length}</span>
+            </div>
+            <div class="flex-1 overflow-y-auto p-3 space-y-3">
+              ${cards.map(c => renderKanbanCard(c)).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderKanbanCard(client) {
+      const tm = getTreadmillInfo(client.paymentDate);
+      const phaseTasks = (client.tasks || []).filter(t => Number(t.phase) === Number(client.status));
+      const doneCount = phaseTasks.filter(t => t.status === 'Concluída').length;
+      const pct = phaseTasks.length ? Math.round((doneCount / phaseTasks.length) * 100) : 0;
+      const nextTask = phaseTasks.find(t => t.status !== 'Concluída');
+
+      const cleanPhone = (client.phone || '').replace(/\D/g, '');
+      return `
+        <div draggable="true"
+             ondragstart="event.dataTransfer.setData('text/plain', '${client.id}'); this.classList.add('dragging')"
+             ondragend="this.classList.remove('dragging')"
+             onclick="openDrawer('${client.id}')"
+             class="bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-3.5 cursor-pointer transition shadow-sm space-y-2.5">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <h4 class="text-xs font-bold text-white leading-snug">${client.name}</h4>
+              <p class="text-[11px] text-sky-400">${client.niche || 'Especialidade não definida'}</p>
+            </div>
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${tm.badgeClass}">${tm.label}</span>
+          </div>
+
+          ${nextTask ? `
+            <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-400">${nextTask.department}</span>
+                <span class="text-[10px] text-slate-400">${nextTask.estimateLabel || ''}</span>
+              </div>
+              <p class="text-[11px] text-slate-200 line-clamp-2">${nextTask.title}</p>
+            </div>
+          ` : `<div class="text-[11px] text-emerald-400 bg-emerald-500/10 p-2 rounded-lg">✓ Todas as tarefas da fase concluídas</div>`}
+
+          <div>
+            <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+              <span>Progresso da Fase ${client.status}</span>
+              <span class="font-semibold text-slate-200">${doneCount}/${phaseTasks.length} (${pct}%)</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div class="h-full bg-sky-500 transition-all" style="width:${pct}%"></div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-1 border-t border-slate-900 text-[11px]" onclick="event.stopPropagation()">
+            <div class="flex gap-2">
+              ${cleanPhone ? `<a href="https://wa.me/${cleanPhone}" target="_blank" class="text-emerald-400 hover:underline">WhatsApp</a>` : ''}
+              ${client.driveUrl ? `<a href="${client.driveUrl}" target="_blank" class="text-sky-400 hover:underline">Drive</a>` : ''}
+            </div>
+            <span class="text-[10px] text-slate-500">Abrir →</span>
+          </div>
+        </div>
+      `;
+    }
+
+    async function handleDrop(event, newPhaseId) {
+      const clientId = event.dataTransfer.getData('text/plain');
+      const client = state.clients.find(c => c.id === clientId);
+      if (!client || Number(client.status) === Number(newPhaseId)) return;
+
+      const oldPhase = client.status;
+      client.status = Number(newPhaseId);
+      addLocalLog(client.id, 'PHASE_CHANGED', `Movido manualmente da Fase ${oldPhase} para a Fase ${newPhaseId}.`);
+      saveLocalData();
+      renderActiveView();
+      await apiCall({ action: 'SAVE_CLIENT', client, logType: 'PHASE_CHANGED', logMessage: `Fase alterada para ${newPhaseId}` });
+    }
+
+    // ============================================================================
+    // GAVETA DO CLIENTE, SUBTAREFAS E REGRA DE AUTO-ADVANCE COM CONFETES
+    // ============================================================================
+    function openDrawer(clientId) {
+      state.openClientId = clientId;
+      const client = state.clients.find(c => c.id === clientId);
+      if (!client) return;
+
+      const tm = getTreadmillInfo(client.paymentDate);
+      document.getElementById('drwName').textContent = client.name;
+      const badge = document.getElementById('drwDaysBadge');
+      badge.textContent = tm.label;
+      badge.className = `text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${tm.badgeClass}`;
+      document.getElementById('drwSub').textContent = `${client.niche || ''} • Fase Atual: ${PHASES.find(p => p.id === Number(client.status))?.short}`;
+
+      document.getElementById('drwPhaseFilter').value = String(client.status);
+      populateClientInfoForm(client);
+      renderDrawerTasks();
+      renderDrawerLogs();
+
+      document.getElementById('clientDrawerOverlay').classList.remove('hidden');
+      document.getElementById('clientDrawer').classList.remove('translate-x-full');
+    }
+
+    function closeDrawer() {
+      document.getElementById('clientDrawerOverlay').classList.add('hidden');
+      document.getElementById('clientDrawer').classList.add('translate-x-full');
+      state.openClientId = null;
+    }
+
+    function switchDrawerTab(tab) {
+      ['tasks', 'info', 'notes', 'logs'].forEach(t => {
+        document.getElementById('dcontent_' + t).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById('dtab_' + t);
+        btn.className = t === tab
+          ? 'py-3 border-b-2 border-sky-500 text-sky-400 font-semibold'
+          : 'py-3 border-b-2 border-transparent text-slate-400 hover:text-white';
+      });
+    }
+
+    function renderDrawerTasks() {
+      const client = state.clients.find(c => c.id === state.openClientId);
+      if (!client) return;
+      const filterVal = document.getElementById('drwPhaseFilter').value;
+      const tasks = (client.tasks || []).filter(t => filterVal === 'ALL' || Number(t.phase) === Number(filterVal));
+
+      document.getElementById('drwTaskList').innerHTML = tasks.map(t => {
+        const isDone = t.status === 'Concluída';
+        return `
+          <div class="p-3 rounded-xl border ${isDone ? 'bg-slate-950/40 border-slate-800/50 opacity-70' : 'bg-slate-950 border-slate-800'} flex items-start justify-between gap-3">
+            <label class="flex items-start gap-3 cursor-pointer flex-1">
+              <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleTaskStatus('${t.id}', this.checked)" class="mt-1 rounded border-slate-700 text-sky-500 focus:ring-0">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-sky-400">F${t.phase} • ${t.department}</span>
+                  <span class="text-[10px] text-slate-400">${t.estimateLabel || ''}</span>
+                </div>
+                <p class="text-xs font-medium mt-1 ${isDone ? 'line-through text-slate-500' : 'text-white'}">${t.title}</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">${t.description || ''}</p>
+              </div>
+            </label>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <input type="date" value="${t.dueDate || ''}" onchange="updateTaskDueDate('${t.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded px-2 py-1 text-[10px] text-slate-300">
+              <button onclick="removeTask('${t.id}')" class="text-slate-500 hover:text-rose-400 px-1.5 text-xs">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Regra 5.2: Auto-Avanço de Fase com Confetes
+    async function toggleTaskStatus(taskId, checked) {
+      const client = state.clients.find(c => c.id === state.openClientId);
+      if (!client) return;
+      const task = client.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      task.status = checked ? 'Concluída' : 'Pendente';
+      let logMsg = `Subtarefa "${task.title}" marcada como ${task.status}.`;
+      let logType = 'TASK_UPDATED';
+
+      // Verifica se todas as subtarefas da fase atual do cliente foram concluídas
+      const currentPhaseTasks = client.tasks.filter(t => Number(t.phase) === Number(client.status));
+      const allCompleted = currentPhaseTasks.length > 0 && currentPhaseTasks.every(t => t.status === 'Concluída');
+
+      if (allCompleted && Number(client.status) < 9) {
+        client.status = Number(client.status) + 1;
+        logType = 'PHASE_CHANGED';
+        logMsg = `Auto-Avanço: Todas as tarefas concluídas! Cliente avançou para a Fase ${client.status}.`;
+        if (window.confetti) confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+        document.getElementById('drwPhaseFilter').value = String(client.status);
+      }
+
+      addLocalLog(client.id, logType, logMsg);
+      saveLocalData();
+      openDrawer(client.id);
+      renderActiveView();
+      await apiCall({ action: 'SAVE_CLIENT', client, logType, logMessage: logMsg });
+    }
+
+    async function updateTaskDueDate(taskId, dateStr) {
+      const client = state.clients.find(c => c.id === state.openClientId);
+      const task = client?.tasks.find(t => t.id === taskId);
+      if (!task) return;
+      task.dueDate = dateStr;
+      saveLocalData();
+      await apiCall({ action: 'SAVE_CLIENT', client });
+    }
+
+    async function promptCustomTask() {
+      const title = prompt('Título da nova subtarefa:');
+      if (!title) return;
+      const dept = prompt('Setor responsável (Atendimento, Design, Copywriting, Webdesigner, Tráfego, CS, Comercial, Cliente):', 'Atendimento');
+      const client = state.clients.find(c => c.id === state.openClientId);
+      client.tasks.push({
+        id: `${client.id}_custom_${Date.now()}`,
+        clientId: client.id,
+        phase: Number(client.status),
+        title,
+        department: dept || 'Atendimento',
+        estimateLabel: '30 min',
+        description: 'Subtarefa personalizada adicionada manualmente.',
+        status: 'Pendente',
+        dueDate: ''
+      });
+      saveLocalData();
+      renderDrawerTasks();
+      renderActiveView();
+      await apiCall({ action: 'SAVE_CLIENT', client, logType: 'TASK_CREATED', logMessage: `Subtarefa adicionada: ${title}` });
+    }
+
+    async function removeTask(taskId) {
+      const client = state.clients.find(c => c.id === state.openClientId);
+      client.tasks = client.tasks.filter(t => t.id !== taskId);
+      saveLocalData();
+      renderDrawerTasks();
+      renderActiveView();
+      await apiCall({ action: 'SAVE_CLIENT', client });
+    }
+
+    function populateClientInfoForm(c) {
+      ['name', 'niche', 'email', 'phone', 'document', 'status', 'paymentDate', 'onboardingMeetingDate', 'firstSaleDate', 'nextCheckinDate', 'formUrl', 'driveUrl', 'websiteUrl', 'adsUrl', 'notes'].forEach(f => {
+        const el = document.getElementById('inf_' + f);
+        if (el) el.value = c[f] || '';
+      });
+    }
+
+    async function saveClientInfoForm() {
+      const client = state.clients.find(c => c.id === state.openClientId);
+      if (!client) return;
+      ['name', 'niche', 'email', 'phone', 'document', 'status', 'paymentDate', 'onboardingMeetingDate', 'firstSaleDate', 'nextCheckinDate', 'formUrl', 'driveUrl', 'websiteUrl', 'adsUrl', 'notes'].forEach(f => {
+        const el = document.getElementById('inf_' + f);
+        if (el) client[f] = f === 'status' ? Number(el.value) : el.value;
+      });
+      addLocalLog(client.id, 'CLIENT_UPDATED', 'Dados cadastrais e links atualizados.');
+      saveLocalData();
+      openDrawer(client.id);
+      renderActiveView();
+      await apiCall({ action: 'SAVE_CLIENT', client, logType: 'CLIENT_UPDATED', logMessage: 'Cadastro atualizado.' });
+    }
+
+    function addLocalLog(clientId, type, message) {
+      state.logs.unshift({
+        id: 'log_' + Date.now(),
+        clientId,
+        timestamp: new Date().toISOString(),
+        userEmail: state.user.email,
+        type,
+        message
+      });
+    }
+
+    function renderDrawerLogs() {
+      const clientLogs = state.logs.filter(l => l.clientId === state.openClientId);
+      document.getElementById('dcontent_logs').innerHTML = clientLogs.length ? clientLogs.map(l => `
+        <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs">
+          <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+            <span class="font-semibold text-sky-400">${l.type}</span>
+            <span>${new Date(l.timestamp).toLocaleString('pt-BR')} • ${l.userEmail}</span>
+          </div>
+          <p class="text-slate-200">${l.message}</p>
+        </div>
+      `).join('') : `<p class="text-xs text-slate-500">Sem registos de atividade para este cliente.</p>`;
+    }
+
+    // ============================================================================
+    // TABELA COM FILTROS E CALENDÁRIO
+    // ============================================================================
+    function renderTable() {
+      const fName = document.getElementById('fltName').value.toLowerCase();
+      const fNiche = document.getElementById('fltNiche').value.toLowerCase();
+      const fPhase = document.getElementById('fltPhase').value;
+      const fSem = document.getElementById('fltSemaforo').value;
+
+      const rows = getFilteredClients().filter(c => {
+        const tm = getTreadmillInfo(c.paymentDate);
+        if (fName && !c.name.toLowerCase().includes(fName)) return false;
+        if (fNiche && !(c.niche || '').toLowerCase().includes(fNiche)) return false;
+        if (fPhase && String(c.status) !== fPhase) return false;
+        if (fSem && tm.key !== fSem) return false;
+        return true;
+      });
+
+      document.getElementById('tableBody').innerHTML = rows.map(c => {
+        const tm = getTreadmillInfo(c.paymentDate);
+        const phaseTasks = (c.tasks || []).filter(t => Number(t.phase) === Number(c.status));
+        const done = phaseTasks.filter(t => t.status === 'Concluída').length;
+        const pct = phaseTasks.length ? Math.round((done / phaseTasks.length) * 100) : 0;
+        const nextTask = phaseTasks.find(t => t.status !== 'Concluída');
+        const phaseObj = PHASES.find(p => p.id === Number(c.status));
+
+        return `
+          <tr onclick="openDrawer('${c.id}')" class="hover:bg-slate-800/40 cursor-pointer transition">
+            <td class="p-3 font-semibold text-white">${c.name}</td>
+            <td class="p-3 text-slate-300">${c.niche || '-'}</td>
+            <td class="p-3"><span class="px-2 py-1 rounded bg-slate-800 text-sky-400 font-medium">${phaseObj ? phaseObj.short : c.status}</span></td>
+            <td class="p-3"><span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${tm.badgeClass}">${tm.label}</span></td>
+            <td class="p-3 text-slate-200">${nextTask ? nextTask.title : 'Fase Concluída'}</td>
+            <td class="p-3 text-slate-400">${nextTask ? nextTask.department : '-'}</td>
+            <td class="p-3 text-slate-300">${done}/${phaseTasks.length} (${pct}%)</td>
+            <td class="p-3 space-x-2" onclick="event.stopPropagation()">
+              ${c.driveUrl ? `<a href="${c.driveUrl}" target="_blank" class="text-sky-400 hover:underline">Drive</a>` : ''}
+              ${c.websiteUrl ? `<a href="${c.websiteUrl}" target="_blank" class="text-emerald-400 hover:underline">Site</a>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderCalendar() {
+      const events = [];
+      state.clients.forEach(c => {
+        if (c.onboardingMeetingDate) {
+          events.push({ date: c.onboardingMeetingDate, type: 'Reunião Onboarding', client: c.name, clientId: c.id, color: 'border-sky-500 bg-sky-500/10' });
+        }
+        if (c.nextCheckinDate) {
+          events.push({ date: c.nextCheckinDate, type: 'Check-in CS (4/7 Meses)', client: c.name, clientId: c.id, color: 'border-purple-500 bg-purple-500/10' });
+        }
+        (c.tasks || []).forEach(t => {
+          if (t.dueDate && t.status !== 'Concluída') {
+            events.push({ date: t.dueDate, type: `Prazo (${t.department}): ${t.title}`, client: c.name, clientId: c.id, color: 'border-amber-500 bg-amber-500/10' });
+          }
+        });
+      });
+
+      events.sort((a, b) => new Date(a.date) - new Date(b.date));
+      document.getElementById('calendarList').innerHTML = events.length ? events.map(ev => `
+        <div onclick="openDrawer('${ev.clientId}')" class="p-4 rounded-xl border-l-4 ${ev.color} border border-slate-800 cursor-pointer hover:bg-slate-900 transition">
+          <div class="text-[11px] font-bold text-slate-300">${ev.date.replace('T', ' às ')}</div>
+          <div class="text-xs font-bold text-white mt-1">${ev.client}</div>
+          <div class="text-xs text-slate-400 mt-0.5">${ev.type}</div>
+        </div>
+      `).join('') : `<p class="text-xs text-slate-500">Nenhum evento ou prazo agendado.</p>`;
+    }
+
+    function switchView(view) {
+      state.activeView = view;
+      ['kanban', 'table', 'calendar'].forEach(v => {
+        document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1)).classList.toggle('hidden', v !== view);
+        const tab = document.getElementById('tab' + v.charAt(0).toUpperCase() + v.slice(1));
+        tab.className = v === view
+          ? 'px-3 py-1.5 rounded-md text-xs font-medium bg-sky-500 text-slate-950 transition'
+          : 'px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-white transition';
+      });
+      renderActiveView();
+    }
+
+    // ============================================================================
+    // CRIAR E EXCLUIR CLIENTE
+    // ============================================================================
+    function openNewClientModal() { document.getElementById('newClientModal').classList.remove('hidden'); }
+    function closeNewClientModal() { document.getElementById('newClientModal').classList.add('hidden'); }
+
+    async function createClient() {
+      const name = document.getElementById('nc_name').value.trim();
+      if (!name) return alert('Informe o nome do profissional.');
+      const newId = 'cli_' + Date.now();
+      const newClient = {
+        id: newId,
+        name,
+        niche: document.getElementById('nc_niche').value.trim(),
+        phone: document.getElementById('nc_phone').value.trim(),
+        email: document.getElementById('nc_email').value.trim(),
+        paymentDate: document.getElementById('nc_paymentDate').value || new Date().toISOString().split('T')[0],
+        driveUrl: document.getElementById('nc_driveUrl').value.trim(),
+        document: '', status: 1, onboardingMeetingDate: '', formUrl: '', websiteUrl: '', adsUrl: '',
+        firstSaleDate: '', nextCheckinDate: '', notes: '',
+        tasks: build54Tasks(newId)
+      };
+
+      state.clients.unshift(newClient);
+      addLocalLog(newId, 'CLIENT_CREATED', 'Cliente cadastrado com 54 subtarefas padrão.');
+      saveLocalData();
+      closeNewClientModal();
+      renderActiveView();
+
+      if (state.mode === 'sheets') {
+        await apiCall({ action: 'CREATE_CLIENT', client: newClient });
+        await syncWithSheets();
+      }
+    }
+
+    async function deleteCurrentClient() {
+      if (!confirm('Deseja realmente excluir este cliente e todas as 54 subtarefas?')) return;
+      const id = state.openClientId;
+      state.clients = state.clients.filter(c => c.id !== id);
+      saveLocalData();
+      closeDrawer();
+      renderActiveView();
+      await apiCall({ action: 'DELETE_CLIENT', clientId: id });
+    }
+  </script>
+</body>
+</html>
