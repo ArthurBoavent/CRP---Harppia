@@ -52,7 +52,9 @@
   <!-- Canvas Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <!-- Google Identity Services (GIS) Oficial -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Firebase App & Auth SDKs (Compat v10 para ambiente browser estático) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 
   <style>
     /* Estilização moderna de scrollbar */
@@ -176,7 +178,7 @@
       <div id="loginSettingsPanel" class="hidden text-left bg-slate-950 p-4 rounded-2xl border border-slate-800 mb-5 space-y-3 fade-in text-xs">
         <div class="flex items-center justify-between border-b border-slate-800 pb-2">
           <span class="font-bold text-white flex items-center gap-1.5 text-xs">
-            <i data-lucide="sliders" class="w-3.5 h-3.5 text-sky-400"></i> Conexões do Sistema
+            <i data-lucide="sliders" class="w-3.5 h-3.5 text-sky-400"></i> Conexão com Planilha
           </span>
           <button onclick="toggleLoginSettings()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
         </div>
@@ -184,13 +186,9 @@
           <label class="block text-slate-300 font-medium mb-1">URL Google Apps Script (Web App):</label>
           <input type="url" id="loginSettingApiUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white text-[11px] focus:outline-none focus:border-sky-500">
         </div>
-        <div>
-          <label class="block text-slate-300 font-medium mb-1">Google OAuth Client ID:</label>
-          <input type="text" id="loginSettingClientId" placeholder="xxxxxxxxxxxx-xxxxxxxx.apps.googleusercontent.com" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white text-[11px] focus:outline-none focus:border-sky-500">
-        </div>
         <div class="pt-1 flex justify-end">
           <button onclick="saveLoginConnectionSettings()" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs flex items-center gap-1 transition cursor-pointer">
-            <i data-lucide="check" class="w-3.5 h-3.5"></i> Salvar & Recarregar
+            <i data-lucide="check" class="w-3.5 h-3.5"></i> Salvar Conexão
           </button>
         </div>
       </div>
@@ -201,18 +199,18 @@
         <span id="loginErrorMsgText">Login ou senha incorretos!</span>
       </div>
 
-      <!-- FORMULÁRIO PRINCIPAL DE ACESSO (IMEDIATAMENTE APÓS TÍTULO) -->
+      <!-- FORMULÁRIO PRINCIPAL DE ACESSO (AUTENTICAÇÃO FIREBASE) -->
       <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-3.5 text-left">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Usuário / Login</label>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">E-mail de Acesso</label>
           <div class="relative">
-            <i data-lucide="user" class="w-4 h-4 absolute left-3 top-3 text-slate-500"></i>
-            <input type="text" id="loginUsername" required autocomplete="username" placeholder="Digite seu usuário ou e-mail" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 transition">
+            <i data-lucide="mail" class="w-4 h-4 absolute left-3 top-3 text-slate-500"></i>
+            <input type="email" id="loginUsername" required autocomplete="email" placeholder="seu-email@exemplo.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 transition">
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Senha de Acesso</label>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Palavra-passe / Senha</label>
           <div class="relative">
             <i data-lucide="lock" class="w-4 h-4 absolute left-3 top-3 text-slate-500"></i>
             <input type="password" id="loginPassword" required autocomplete="current-password" placeholder="Digite sua senha" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 transition">
@@ -222,9 +220,13 @@
           </div>
         </div>
 
-        <button type="submit" class="w-full mt-2 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-sky-600/25 active:scale-[0.98] cursor-pointer">
-          <i data-lucide="log-in" class="w-4 h-4"></i>
-          <span>Entrar no Sistema</span>
+        <button type="submit" id="btnLoginSubmit" class="w-full mt-2 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-sky-600/25 active:scale-[0.98] cursor-pointer">
+          <i id="btnLoginSubmitIcon" data-lucide="log-in" class="w-4 h-4"></i>
+          <svg id="btnLoginSubmitSpinner" class="hidden animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span id="btnLoginSubmitText">Entrar no Sistema</span>
         </button>
       </form>
 
@@ -671,38 +673,37 @@
       <div id="config-content-integrations" class="space-y-4 hidden">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          <!-- CARD A: GOOGLE OAUTH 2.0 / IDENTITY SERVICES -->
+          <!-- CARD A: AUTENTICAÇÃO FIREBASE (PRODUÇÃO) -->
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
             <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
-              <span class="text-xl">🌐</span>
+              <span class="text-xl">🔥</span>
               <div>
-                <h3 class="text-sm font-bold text-white">Google Identity Services (OAuth 2.0)</h3>
-                <p class="text-[11px] text-slate-400">Login corporativo oficial com conta Google</p>
+                <h3 class="text-sm font-bold text-white">Firebase Authentication</h3>
+                <p class="text-[11px] text-slate-400">Autenticação oficial por E-mail e Senha (Produção)</p>
               </div>
             </div>
 
             <div class="space-y-3 text-xs">
-              <div>
-                <label class="block text-slate-300 font-semibold mb-1">Google OAuth Client ID</label>
-                <input type="text" id="configGoogleClientId" placeholder="xxxxxxxxxxxx-xxxxxxxx.apps.googleusercontent.com" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
-              </div>
-
-              <div class="flex items-center gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800">
-                <input type="checkbox" id="configEnableGoogleLogin" class="w-4 h-4 rounded text-sky-600 focus:ring-0 cursor-pointer">
-                <label for="configEnableGoogleLogin" class="text-slate-300 font-medium cursor-pointer">
-                  Habilitar botão oficial do Google na tela de login
-                </label>
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-400">Status do Serviço:</span>
+                  <span class="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Ativo & Conectado
+                  </span>
+                </div>
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="text-slate-400">Projeto Firebase:</span>
+                  <span class="text-white font-mono">harppia-27c9d</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="text-slate-400">Auth Domain:</span>
+                  <span class="text-slate-300 font-mono">harppia-27c9d.firebaseapp.com</span>
+                </div>
               </div>
 
               <div class="p-3 rounded-xl bg-sky-950/30 border border-sky-800/50 text-[11px] text-sky-300 leading-relaxed space-y-1">
-                <p class="font-semibold text-sky-200">💡 Como funciona o login do Google:</p>
-                <p>O token JWT é decodificado com segurança no navegador. O sistema identifica o e-mail Google autenticado e <strong>aplica automaticamente as permissões cadastradas para aquele membro</strong>!</p>
-              </div>
-
-              <div class="flex justify-end pt-1">
-                <button onclick="saveGoogleConfig()" class="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs transition flex items-center gap-1.5 shadow-sm">
-                  <i data-lucide="save" class="w-3.5 h-3.5"></i> Salvar OAuth Client ID
-                </button>
+                <p class="font-semibold text-sky-200">🔒 Segurança & Persistência de Sessão:</p>
+                <p>As credenciais são autenticadas de forma segura e criptografada via Firebase Auth. A sessão é persistida no navegador e sincronizada em tempo real.</p>
               </div>
             </div>
           </div>
@@ -1221,11 +1222,11 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Login / Usuário *</label>
-            <input type="text" id="modalUserUsername" placeholder="Ex: trafego ou 1234" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
+            <input type="text" id="modalUserUsername" placeholder="Ex: rodrigo@harppia.com.br" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
           </div>
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Senha de Acesso *</label>
-            <input type="text" id="modalUserPassword" placeholder="Ex: 4321 ou senha123" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
+            <input type="text" id="modalUserPassword" placeholder="Definida no Firebase Auth" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
           </div>
         </div>
 
@@ -1433,461 +1434,7 @@
   <!-- ========================================================================= -->
   <script>
     /**
-     * ESTRUTURA DAS 9 FASES MACRO DA HARPPIA
-     */
-    const PHASES = [
-      { id: 1, name: "1. Questionário", dept: "Atendimento & Onboarding", color: "sky" },
-      { id: 2, name: "2. Reunião Onboarding", dept: "Atendimento & Estratégia", color: "indigo" },
-      { id: 3, name: "3. Fotos", dept: "Design & Fotos IA", color: "fuchsia" },
-      { id: 4, name: "4. Planejamento Site", dept: "Copywriting & Planejamento", color: "amber" },
-      { id: 5, name: "5. Intermediária", dept: "Suporte & Vendas", color: "teal" },
-      { id: 6, name: "6. Site", dept: "Webdesigner & Produção", color: "blue" },
-      { id: 7, name: "7. Campanha", dept: "Gestão de Tráfego & Ads", color: "rose" },
-      { id: 8, name: "8. Acompanhamento", dept: "CS & Retenção (4 e 7 Meses)", color: "purple" },
-      { id: 9, name: "9. Concluído", dept: "Sucesso & Renovação", color: "emerald" }
-    ];
-
-    /**
-     * 54 SUBTAREFAS BASE COM SETOR E RESPONSÁVEL SUGERIDO
-     */
-    const DEFAULT_TASKS_TEMPLATE = [
-      // FASE 1: Questionário (9 tarefas)
-      { phase: 1, title: "Enviar link do questionário de boas-vindas e kit lev. inicial (Bio, Domínio e cor, Depoimentos)", department: "Atendimento", defaultAssignee: "usr_atend", description: "Disponibilizar o formulário padrão no WhatsApp com instruções. Via automação Meta." },
-      { phase: 1, title: "Cobrar preenchimento do formulário", department: "Atendimento", defaultAssignee: "usr_atend", description: "Follow-up caso o cliente não tenha respondido em até 48 horas." },
-      { phase: 1, title: "Recebimento questionário", department: "Cliente", defaultAssignee: "", description: "Aguardar retorno e preenchimento completo pelo profissional (1 a 3 dias úteis)." },
-      { phase: 1, title: "Validar e aprovar respostas recebidas", department: "Atendimento", defaultAssignee: "usr_atend", description: "Conferir informações essenciais. Enviar confirmação. Criar pasta e fotos (contemplar campo de e-mail)." },
-      { phase: 1, title: "Envio Domínio e cor", department: "Cliente", defaultAssignee: "", description: "Aguardar definição de domínio e cores pelo cliente (1 a 3 dias úteis)." },
-      { phase: 1, title: "Disponibilidade do domínio", department: "Atendimento", defaultAssignee: "usr_atend", description: "Checar disponibilidade no Registro.br / Whois. Enviar confirmação." },
-      { phase: 1, title: "Cor site – Fora do padrão", department: "Atendimento", defaultAssignee: "usr_atend", description: "Enviar confirmação. Fazer teste de cor e enviar para aprovação do cliente." },
-      { phase: 1, title: "Teste Cor - Aprovação", department: "Cliente", defaultAssignee: "", description: "Aguardar aprovação do teste de cores pelo cliente (1 a 3 dias úteis)." },
-      { phase: 1, title: "Envio BIO", department: "Cliente", defaultAssignee: "", description: "Atendimento: Envio de confirmação de recebimento da Bio." },
-
-      // FASE 2: Reunião Onboarding (2 tarefas)
-      { phase: 2, title: "Agendar reunião de onboarding com data/hora", department: "Atendimento", defaultAssignee: "usr_atend", description: "Alinhar agenda com o cliente e registrar a data e horário no sistema." },
-      { phase: 2, title: "Realizar reunião e alinhar expectativas", department: "Atendimento", defaultAssignee: "usr_atend", description: "Conduzir a sessão de boas-vindas, definir prazos da esteira e coletar diretrizes estratégicas." },
-
-      // FASE 3: Fotos (14 tarefas)
-      { phase: 3, title: "Enviar e-mail para envio das fotos", department: "Atendimento", defaultAssignee: "usr_atend", description: "Liberar acesso para envio e encaminhar e-mail com instruções." },
-      { phase: 3, title: "Enviar guia de direcionamento de fotos", department: "Atendimento", defaultAssignee: "usr_atend", description: "Compartilhar o PDF/manual de poses, iluminação e vestimenta para fotos clínicas." },
-      { phase: 3, title: "Enviar fotos originais e códigos de vestimenta", department: "Cliente", defaultAssignee: "", description: "Aguardar envio das fotos originais e códigos de vestimenta pelo cliente (1 a 5 dias úteis)." },
-      { phase: 3, title: "Confirmação recebimento", department: "Atendimento", defaultAssignee: "usr_atend", description: "Checagem das fotos se estão dentro da especificação. Envio de confirmação." },
-      { phase: 3, title: "Envio equipe IA", department: "Atendimento", defaultAssignee: "usr_atend", description: "Repassar links de fotos e códigos à equipe de IA." },
-      { phase: 3, title: "Receber fotos originais / Gerar fotos em IA", department: "Design", defaultAssignee: "usr_design", description: "Gerar ensaio fotográfico realista via IA e enviar para a equipe de atendimento." },
-      { phase: 3, title: "Análise e seleção de fotos", department: "Atendimento", defaultAssignee: "usr_atend", description: "Fazer recorte profissional, análise e seleção de fotos e solicitar ok formal do cliente (3 a 4h)." },
-      { phase: 3, title: "Enviar para aprovação", department: "Atendimento", defaultAssignee: "usr_atend", description: "Enviar orientações para o cliente aprovar o ensaio." },
-      { phase: 3, title: "Aprovação ou alteração", department: "Cliente", defaultAssignee: "", description: "Aprovação (escolher 3 fotos) ou indicar cenários preferidos e apontar críticas." },
-      { phase: 3, title: "Envio equipe IA (Ajustes)", department: "Atendimento", defaultAssignee: "usr_atend", description: "Apontar as críticas e identificar as 3 fotos que o cliente mais gostou." },
-      { phase: 3, title: "Gerar novas fotos em IA (Ajustes)", department: "Design", defaultAssignee: "usr_design", description: "Gerar novo ensaio fotográfico realista via IA e reenviar ao atendimento." },
-      { phase: 3, title: "Análise e seleção de novas fotos", department: "Atendimento", defaultAssignee: "usr_atend", description: "Fazer recorte profissional, seleção e solicitar ok formal do cliente." },
-      { phase: 3, title: "Enviar fotos reajustadas para aprovação", department: "Atendimento", defaultAssignee: "usr_atend", description: "Enviar link ao cliente para nova avaliação." },
-      { phase: 3, title: "Aprovação final das fotos", department: "Cliente", defaultAssignee: "", description: "Identificar as 3 fotos finais escolhidas para produção do site." },
-
-      // FASE 4: Planejamento Site (4 tarefas)
-      { phase: 4, title: "Enviar Depoimentos", department: "Cliente", defaultAssignee: "", description: "Aguardar envio dos depoimentos pelo cliente. Envio de confirmação de recebimento." },
-      { phase: 4, title: "Escrever base copy da Landing Page", department: "Copywriting", defaultAssignee: "usr_copy", description: "Agrupar informações base, orientações, headline, logo e referências, apresentar doc." },
-      { phase: 4, title: "Elaborar estrutura de conteúdo / Wireframe", department: "Copywriting", defaultAssignee: "usr_copy", description: "Definir seções: Hero, Sobre, Tratamentos, Depoimentos, FAQ e CTA. Padrão Harppia." },
-      { phase: 4, title: "Escrever copy da Landing Page", department: "Copywriting", defaultAssignee: "usr_copy", description: "Redigir textos persuasivos e éticos focados na conversão de pacientes da saúde." },
-
-      // FASE 5: Intermediária (7 tarefas)
-      { phase: 5, title: "Enviar Roteiros de venda", department: "Atendimento", defaultAssignee: "usr_atend", description: "1ª semana. Inicia 1 dia útil após envio dos dados base. Via automação Meta." },
-      { phase: 5, title: "Enviar orientações do link de pgto", department: "Atendimento", defaultAssignee: "usr_atend", description: "2ª semana. Via automação Meta." },
-      { phase: 5, title: "Envio dos links de pgto", department: "Cliente", defaultAssignee: "", description: "Aguardar envio dos links de pagamento pelo cliente." },
-      { phase: 5, title: "Testes do link de pgto", department: "Atendimento", defaultAssignee: "usr_atend", description: "Checagem de campos e parcelamento/valores. OBS: Às vezes o cliente não quer usar." },
-      { phase: 5, title: "Aprovação ou alteração do link de pgto", department: "Atendimento", defaultAssignee: "usr_atend", description: "Aprovação ou Recusa – Orientações e suporte ao cliente." },
-      { phase: 5, title: "Criação de login e senha Plataforma Formulário Paciente", department: "Atendimento", defaultAssignee: "usr_atend", description: "Criação de login/senha. Teste acesso e link paciente (Geral, Adolescentes ou Casal)." },
-      { phase: 5, title: "Enviar acesso Plataforma Formulário Paciente", department: "Atendimento", defaultAssignee: "usr_atend", description: "3ª semana. Orientações via Meta. Envio login/senha no WhatsApp particular." },
-
-      // FASE 6: Site (8 tarefas)
-      { phase: 6, title: "Criar layout da Landing Page / Site", department: "Webdesigner", defaultAssignee: "usr_admin", description: "Desenvolver página moderna, responsiva, ultra rápida e com alto padrão visual." },
-      { phase: 6, title: "Configurar botões de WhatsApp e formulários", department: "Webdesigner", defaultAssignee: "usr_admin", description: "Integrar tags UTM, mensagens personalizadas de início de conversa e conversões." },
-      { phase: 6, title: "Configurar domínio e certificado SSL", department: "Webdesigner", defaultAssignee: "usr_admin", description: "Apontar DNS (Cloudflare/Hostinger) e garantir HTTPS seguro e ativo." },
-      { phase: 6, title: "Validações Interna", department: "Comercial", defaultAssignee: "usr_admin", description: "Validação interna de qualidade antes da apresentação ao cliente." },
-      { phase: 6, title: "Apresentar site pronto para o cliente", department: "Atendimento", defaultAssignee: "usr_atend", description: "Gravar vídeo explicativo (Loom) ou agendar call rápida para validação da página." },
-      { phase: 6, title: "Listar ajustes solicitados", department: "Atendimento", defaultAssignee: "usr_atend", description: "Registrar eventuais alterações de texto, imagem ou disposição pedidas pelo cliente." },
-      { phase: 6, title: "Aplicar alterações e obter aprovação final", department: "Webdesigner", defaultAssignee: "usr_admin", description: "Executar os ajustes finos e obter autorização formal de publicação." },
-      { phase: 6, title: "Aprovação final do site", department: "Cliente", defaultAssignee: "", description: "Aguardar aprovação final formal do cliente." },
-
-      // FASE 7: Campanha (5 tarefas)
-      { phase: 7, title: "Agendar reunião cliente Google ADS", department: "Comercial", defaultAssignee: "usr_admin", description: "Agendar alinhamento de campanha com o cliente." },
-      { phase: 7, title: "Solicitar/Configurar acessos do Google Ads", department: "Tráfego", defaultAssignee: "usr_trafego", description: "Vincular acessos à conta de anúncios do cliente ou criar nova estrutura." },
-      { phase: 7, title: "Criar anúncios, palavras-chave e orçamento", department: "Tráfego", defaultAssignee: "usr_trafego", description: "Pesquisar termos de busca de alta intenção de pacientes, criar criativos e lances." },
-      { phase: 7, title: "Publicar e ativar campanhas", department: "Tráfego", defaultAssignee: "usr_trafego", description: "Validar tags de conversão do Google Ads e veicular. Informar cliente no grupo." },
-      { phase: 7, title: "Acompanhar e controlar crédito Google ADS", department: "Tráfego", defaultAssignee: "usr_trafego", description: "Monitorar saldo de créditos e faturamento da conta de anúncios." },
-
-      // FASE 8: Acompanhamento (3 tarefas)
-      { phase: 8, title: "Agendar check-ins periódicos de 4 e 7 meses", department: "CS", defaultAssignee: "usr_atend", description: "Programar marcos de acompanhamento de longo prazo e retenção no calendário." },
-      { phase: 8, title: "Enviar relatórios mensais de desempenho", department: "Tráfego", defaultAssignee: "usr_trafego", description: "Gerar dashboard de cliques, leads no WhatsApp, custo por paciente e ROI." },
-      { phase: 8, title: "Negativar palavras e otimizar orçamento", department: "Tráfego", defaultAssignee: "usr_trafego", description: "Refinar termos de busca semanalmente para maximizar a conversão de pacientes." },
-
-      // FASE 9: Concluído (2 tarefas)
-      { phase: 9, title: "Coletar depoimento / avaliação de satisfação", department: "Comercial", defaultAssignee: "usr_admin", description: "Enviar pesquisa NPS e solicitar depoimento em vídeo ou texto para o portfólio." },
-      { phase: 9, title: "Apresentar proposta de renovação/manutenção", department: "Comercial", defaultAssignee: "usr_admin", description: "Oferecer plano de assessoria contínua de tráfego, SEO e suporte ao site." }
-    ];
-
-    /**
-     * USUÁRIOS INICIAIS DO SISTEMA (RBAC)
-     */
-    const DEFAULT_SYSTEM_USERS = [
-      {
-        id: "usr_admin",
-        name: "Arthur Rodrigues",
-        username: "1234",
-        password: "4321",
-        googleEmail: "admin@harppia.com.br",
-        role: "admin",
-        roleLabel: "Coordenação Geral (Admin)",
-        avatar: "AR",
-        permissions: {
-          isAdmin: true,
-          canCreateClients: true,
-          canEditClients: true,
-          canDeleteClients: true,
-          canAdvancePhases: true,
-          canManageTasks: true,
-          canAccessConfig: true,
-          allowedDepts: ["*"]
-        }
-      },
-      {
-        id: "usr_atend",
-        name: "Beatriz Lins",
-        username: "atendimento",
-        password: "123",
-        googleEmail: "atendimento@harppia.com.br",
-        role: "atendimento",
-        roleLabel: "Atendimento & Onboarding",
-        avatar: "BL",
-        permissions: {
-          isAdmin: false,
-          canCreateClients: true,
-          canEditClients: true,
-          canDeleteClients: false,
-          canAdvancePhases: true,
-          canManageTasks: false,
-          canAccessConfig: false,
-          allowedDepts: ["Atendimento", "Cliente", "CS"]
-        }
-      },
-      {
-        id: "usr_design",
-        name: "Carlos Eduardo",
-        username: "design",
-        password: "123",
-        googleEmail: "design@harppia.com.br",
-        role: "design",
-        roleLabel: "Design & Fotos IA",
-        avatar: "CE",
-        permissions: {
-          isAdmin: false,
-          canCreateClients: false,
-          canEditClients: false,
-          canDeleteClients: false,
-          canAdvancePhases: false,
-          canManageTasks: false,
-          canAccessConfig: false,
-          allowedDepts: ["Design"]
-        }
-      },
-      {
-        id: "usr_copy",
-        name: "Juliana Santos",
-        username: "copy",
-        password: "123",
-        googleEmail: "copy@harppia.com.br",
-        role: "copywriting",
-        roleLabel: "Copywriting & Conteúdo",
-        avatar: "JS",
-        permissions: {
-          isAdmin: false,
-          canCreateClients: false,
-          canEditClients: false,
-          canDeleteClients: false,
-          canAdvancePhases: false,
-          canManageTasks: false,
-          canAccessConfig: false,
-          allowedDepts: ["Copywriting"]
-        }
-      },
-      {
-        id: "usr_trafego",
-        name: "Rodrigo Mendes",
-        username: "trafego",
-        password: "123",
-        googleEmail: "trafego@harppia.com.br",
-        role: "trafego",
-        roleLabel: "Gestão de Tráfego & Ads",
-        avatar: "RM",
-        permissions: {
-          isAdmin: false,
-          canCreateClients: false,
-          canEditClients: true,
-          canDeleteClients: false,
-          canAdvancePhases: false,
-          canManageTasks: false,
-          canAccessConfig: false,
-          allowedDepts: ["Tráfego"]
-        }
-      }
-    ];
-
-    /**
-     * ESTADO GLOBAL DA APLICAÇÃO
-     */
-    let state = {
-      apiUrl: localStorage.getItem("harppia_api_url") || "",
-      googleClientId: localStorage.getItem("harppia_google_client_id") || "",
-      enableGoogleLogin: localStorage.getItem("harppia_enable_google_login") !== "false",
-      users: JSON.parse(localStorage.getItem("harppia_system_users") || JSON.stringify(DEFAULT_SYSTEM_USERS)),
-      taskDefaults: JSON.parse(localStorage.getItem("harppia_task_defaults") || "{}"),
-      currentUser: null,
-      clients: [],
-      tasks: [],
-      logs: [],
-      currentView: "kanban",
-      currentConfigSubTab: "users",
-      selectedClientId: null,
-      kanbanFilterSemaforo: "all",
-      kanbanFilterAssignee: "all",
-      kanbanFilterWaitingClient: false
-    };
-
-    /**
-     * HELPERS DE DELEGAÇÃO E RESPONSÁVEIS
-     */
-    function getAssigneeUser(assigneeIdOrName) {
-      if (!assigneeIdOrName) return null;
-      return state.users.find(u => u.id === assigneeIdOrName || u.name === assigneeIdOrName || u.username === assigneeIdOrName);
-    }
-
-    function getAssigneeShortName(assigneeIdOrName) {
-      const u = getAssigneeUser(assigneeIdOrName);
-      if (u) return u.name.split(" ")[0];
-      if (assigneeIdOrName === "Cliente") return "Cliente";
-      return assigneeIdOrName || "Não Atribuído";
-    }
-
-    function getAssigneeInitials(assigneeIdOrName) {
-      const u = getAssigneeUser(assigneeIdOrName);
-      if (u) {
-        if (u.avatar) return u.avatar;
-        const parts = u.name.trim().split(" ");
-        return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase();
-      }
-      return "—";
-    }
-
-    function getAssigneeColor(assigneeIdOrName) {
-      const u = getAssigneeUser(assigneeIdOrName);
-      if (!u) return "bg-slate-800 text-slate-400 border-slate-700";
-      switch (u.role) {
-        case "admin": return "bg-sky-950 text-sky-400 border-sky-800";
-        case "atendimento": return "bg-blue-950 text-blue-400 border-blue-800";
-        case "design": return "bg-fuchsia-950 text-fuchsia-400 border-fuchsia-800";
-        case "copywriting": return "bg-amber-950 text-amber-400 border-amber-800";
-        case "trafego": return "bg-rose-950 text-rose-400 border-rose-800";
-        default: return "bg-indigo-950 text-indigo-400 border-indigo-800";
-      }
-    }
-
-    function getAssigneeSelectStyle(assigneeIdOrName) {
-      const u = getAssigneeUser(assigneeIdOrName);
-      if (!u) return "border-slate-800 text-slate-400";
-      switch (u.role) {
-        case "admin": return "border-sky-800 text-sky-300";
-        case "atendimento": return "border-blue-800 text-blue-300";
-        case "design": return "border-fuchsia-800 text-fuchsia-300";
-        case "copywriting": return "border-amber-800 text-amber-300";
-        case "trafego": return "border-rose-800 text-rose-300";
-        default: return "border-indigo-800 text-indigo-300";
-      }
-    }
-
-    /**
-     * HELPERS OPERACIONAIS DE FILTROS DO KANBAN & CARGA DE TRABALHO
-     */
-    function getNextPendingTask(client) {
-      if (!client || !state.tasks) return null;
-      return state.tasks.find(t => t.clientId === client.id && Number(t.phase) === Number(client.status) && t.status !== "Concluída") || null;
-    }
-
-    function populateAssigneeFilterOptions() {
-      const select = document.getElementById("kanbanFilterAssigneeSelect");
-      if (!select) return;
-
-      const myName = state.currentUser ? state.currentUser.name.split(" ")[0] : "Eu";
-      const expectedCount = 2 + state.users.length + 1;
-
-      if (select.options.length !== expectedCount) {
-        let html = `
-          <option value="all">Todos os Membros</option>
-          <option value="my_actions">⚡ Minhas Ações (${myName})</option>
-        `;
-        state.users.forEach(u => {
-          html += `<option value="${u.id}">${u.name} (${u.roleLabel || u.role})</option>`;
-        });
-        html += `<option value="unassigned">⚠️ Não Atribuído</option>`;
-        select.innerHTML = html;
-      }
-      select.value = state.kanbanFilterAssignee || "all";
-    }
-
-    function handleAssigneeFilterChange(val) {
-      state.kanbanFilterAssignee = val;
-      renderKanban();
-    }
-
-    function setKanbanAssigneeFilter(assigneeId) {
-      if (state.kanbanFilterAssignee === assigneeId) {
-        state.kanbanFilterAssignee = "all";
-      } else {
-        state.kanbanFilterAssignee = assigneeId;
-      }
-      const select = document.getElementById("kanbanFilterAssigneeSelect");
-      if (select) select.value = state.kanbanFilterAssignee;
-      renderKanban();
-    }
-
-    function toggleWaitingClientFilter() {
-      state.kanbanFilterWaitingClient = !state.kanbanFilterWaitingClient;
-      const btn = document.getElementById("btnFilterWaitingClient");
-      if (btn) {
-        if (state.kanbanFilterWaitingClient) {
-          btn.className = "px-2.5 py-1.5 rounded-lg border border-amber-500/60 bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/30 flex items-center gap-1.5 text-xs font-semibold shadow-sm transition";
-        } else {
-          btn.className = "px-2.5 py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-1.5 text-xs font-medium transition";
-        }
-      }
-      renderKanban();
-    }
-
-    function clearAllKanbanFilters() {
-      state.kanbanFilterSemaforo = "all";
-      state.kanbanFilterAssignee = "all";
-      state.kanbanFilterWaitingClient = false;
-
-      const searchInput = document.getElementById("kanbanSearch");
-      if (searchInput) searchInput.value = "";
-
-      const selectAssignee = document.getElementById("kanbanFilterAssigneeSelect");
-      if (selectAssignee) selectAssignee.value = "all";
-
-      const btnWaiting = document.getElementById("btnFilterWaitingClient");
-      if (btnWaiting) {
-        btnWaiting.className = "px-2.5 py-1.5 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-1.5 text-xs font-medium transition";
-      }
-
-      document.querySelectorAll(".semaforo-btn").forEach(btn => {
-        if (btn.getAttribute("data-filter") === "all") {
-          btn.classList.add("bg-slate-800", "text-white");
-        } else {
-          btn.classList.remove("bg-slate-800", "text-white");
-        }
-      });
-
-      renderKanban();
-    }
-
-    function renderWorkloadBar() {
-      const bar = document.getElementById("kanbanWorkloadBar");
-      if (!bar) return;
-
-      const userWorkload = {};
-      state.users.forEach(u => userWorkload[u.id] = 0);
-      let waitingClientCount = 0;
-      let unassignedCount = 0;
-
-      state.clients.forEach(c => {
-        const nextTask = getNextPendingTask(c);
-        if (!nextTask) return;
-
-        const isClient = nextTask.department === "Cliente" || (nextTask.department && nextTask.department.toLowerCase().includes("cliente"));
-        if (isClient) {
-          waitingClientCount++;
-        }
-
-        if (nextTask.assignee) {
-          const u = getAssigneeUser(nextTask.assignee);
-          const uid = u ? u.id : nextTask.assignee;
-          if (userWorkload[uid] !== undefined) {
-            userWorkload[uid]++;
-          } else {
-            userWorkload[uid] = (userWorkload[uid] || 0) + 1;
-          }
-        } else {
-          unassignedCount++;
-        }
-      });
-
-      let html = `
-        <div class="flex items-center gap-1.5 shrink-0 pr-2 border-r border-slate-800 text-[11px] text-slate-400 font-medium">
-          <i data-lucide="activity" class="w-3.5 h-3.5 text-sky-400"></i>
-          <span>Carga da Vez:</span>
-        </div>
-      `;
-
-      state.users.forEach(u => {
-        const count = userWorkload[u.id] || 0;
-        const isActive = state.kanbanFilterAssignee === u.id;
-        const initials = getAssigneeInitials(u.id);
-        const shortName = u.name.split(" ")[0];
-
-        html += `
-          <button onclick="setKanbanAssigneeFilter('${u.id}')"
-                  title="Filtrar clientes onde ${u.name} é o próximo responsável (${count} clientes)"
-                  class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition text-xs shrink-0 cursor-pointer ${isActive ? 'bg-sky-500/20 border-sky-400 text-sky-200 ring-1 ring-sky-500/40 shadow-sm font-semibold' : 'bg-slate-900/90 hover:bg-slate-800 border-slate-800 text-slate-300'}">
-            <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border ${getAssigneeColor(u.id)}">
-              ${initials}
-            </span>
-            <span>${shortName}:</span>
-            <span class="font-bold font-mono ${count > 0 ? (isActive ? 'text-white' : 'text-sky-400') : 'text-slate-500'}">${count}</span>
-          </button>
-        `;
-      });
-
-      // Chip Aguardando Cliente
-      const isClientActive = state.kanbanFilterWaitingClient;
-      html += `
-        <button onclick="toggleWaitingClientFilter()"
-                title="Filtrar clientes aguardando ação do próprio cliente (${waitingClientCount} clientes)"
-                class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition text-xs shrink-0 cursor-pointer ${isClientActive ? 'bg-amber-500/20 border-amber-400 text-amber-200 ring-1 ring-amber-500/40 font-semibold shadow-sm' : 'bg-slate-900/90 hover:bg-slate-800 border-slate-800 text-slate-300'}">
-          <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-amber-950 text-amber-400 border border-amber-800 font-bold">
-            ⏳
-          </span>
-          <span>Cliente:</span>
-          <span class="font-bold font-mono ${waitingClientCount > 0 ? 'text-amber-400' : 'text-slate-500'}">${waitingClientCount}</span>
-        </button>
-      `;
-
-      if (unassignedCount > 0) {
-        const isUnassignedActive = state.kanbanFilterAssignee === "unassigned";
-        html += `
-          <button onclick="setKanbanAssigneeFilter('unassigned')"
-                  title="Filtrar clientes sem responsável na próxima ação (${unassignedCount} clientes)"
-                  class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition text-xs shrink-0 cursor-pointer ${isUnassignedActive ? 'bg-rose-500/20 border-rose-400 text-rose-200 ring-1 ring-rose-500/40 font-semibold shadow-sm' : 'bg-slate-900/90 hover:bg-slate-800 border-slate-800 text-slate-300'}">
-            <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-rose-950 text-rose-400 border border-rose-800 font-bold">
-              !
-            </span>
-            <span>Sem Atribuição:</span>
-            <span class="font-bold font-mono text-rose-400">${unassignedCount}</span>
-          </button>
-        `;
-      }
-
-      const hasAnyFilter = (state.kanbanFilterAssignee && state.kanbanFilterAssignee !== "all") || state.kanbanFilterWaitingClient || (state.kanbanFilterSemaforo && state.kanbanFilterSemaforo !== "all");
-      if (hasAnyFilter) {
-        html += `
-          <button onclick="clearAllKanbanFilters()" title="Limpar todos os filtros rápidos do Kanban" class="ml-auto text-[11px] text-slate-400 hover:text-white flex items-center gap-1 px-2 py-0.5 rounded hover:bg-slate-800 transition shrink-0 cursor-pointer">
-            <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Limpar Filtros
-          </button>
-        `;
-      }
-
-      bar.innerHTML = html;
-      lucide.createIcons();
-    }
-
-    /**
-     * CONTROLE DE ACESSO, LOGIN & PERMISSÕES (RBAC)
+     * CONTROLE DE ACESSO, LOGIN & PERMISSÕES (RBAC) VIA FIREBASE AUTH
      */
     function hasPermission(permKey) {
       if (!state.currentUser) return false;
@@ -1895,188 +1442,228 @@
       return !!(state.currentUser.permissions && state.currentUser.permissions[permKey]);
     }
 
-    function checkAuth() {
-      const isAuth = sessionStorage.getItem("harppia_auth_session") === "true";
-      const storedUser = sessionStorage.getItem("harppia_current_user");
-      const loginScreen = document.getElementById("loginScreen");
-
-      // Inicializa inputs técnicos do login com base no localStorage
-      document.getElementById("loginSettingApiUrl").value = state.apiUrl;
-      document.getElementById("loginSettingClientId").value = state.googleClientId;
-
-      if (isAuth && storedUser) {
-        try {
-          state.currentUser = JSON.parse(storedUser);
-          loginScreen.classList.add("hidden");
-          applyUserUI();
-          initData();
-          return;
-        } catch (e) {}
-      }
-
-      loginScreen.classList.remove("hidden");
-      setupGoogleIdentityServices();
-      document.getElementById("loginUsername").focus();
-    }
-
     /**
-     * INICIALIZAÇÃO DO GOOGLE IDENTITY SERVICES (GIS)
+     * INICIALIZAÇÃO E MONITORIZAÇÃO DO ESTADO DA SESSÃO (FIREBASE)
      */
-    function setupGoogleIdentityServices() {
-      const gBtnContainer = document.getElementById("g_id_signin");
-      if (!gBtnContainer) return; // UI do Google desativada na tela de login (autenticação controlada via Firebase/Local)
-      const gSection = document.getElementById("googleAuthSection");
-      const fallbackNotice = document.getElementById("googleAuthFallbackNotice");
+    function checkAuth() {
+      // Inicializa inputs técnicos da conexão com a planilha
+      const apiInput = document.getElementById("loginSettingApiUrl");
+      if (apiInput) apiInput.value = state.apiUrl;
 
-      if (!state.googleClientId) {
-        gBtnContainer.innerHTML = "";
-        if (fallbackNotice) fallbackNotice.classList.remove("hidden");
+      if (!auth) {
+        console.warn("Firebase Auth não carregado. Exibindo tela de login.");
+        document.getElementById("loginScreen").classList.remove("hidden");
         return;
       }
 
-      if (fallbackNotice) fallbackNotice.classList.add("hidden");
+      // Garante persistência LOCAL da sessão
+      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err => {
+        console.warn("Persistência Firebase Auth aviso:", err);
+      });
 
-      if (window.google && window.google.accounts && window.google.accounts.id) {
-        try {
-          google.accounts.id.initialize({
-            client_id: state.googleClientId,
-            callback: handleGoogleCredentialResponse,
-            auto_select: false,
-            cancel_on_tap_outside: true
-          });
-
-          gBtnContainer.innerHTML = "";
-          google.accounts.id.renderButton(gBtnContainer, {
-            theme: "filled_blue",
-            size: "large",
-            shape: "pill",
-            text: "signin_with",
-            width: 320,
-            logo_alignment: "left"
-          });
-        } catch (err) {
-          console.warn("Falha ao inicializar Google Identity Services:", err);
-        }
-      } else {
-        // Tenta novamente em 500ms caso o script ainda esteja carregando
-        setTimeout(setupGoogleIdentityServices, 500);
-      }
+      // Monitor de estado em tempo real
+      auth.onAuthStateChanged(user => {
+        handleAuthStateChange(user);
+      });
     }
 
     /**
-     * CALLBACK DO GOOGLE LOGIN (DECODIFICAÇÃO JWT & HERANÇA RBAC)
+     * PROCESSADOR DO ESTADO DE AUTENTICAÇÃO DO FIREBASE
      */
-    function handleGoogleCredentialResponse(response) {
-      try {
-        const base64Url = response.credential.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
+    function handleAuthStateChange(user) {
+      const loginScreen = document.getElementById("loginScreen");
 
-        const googleUser = JSON.parse(jsonPayload);
-        const googleEmail = (googleUser.email || "").toLowerCase();
+      if (user) {
+        // Utilizador autenticado no Firebase
+        const email = (user.email || "").toLowerCase();
 
-        // Localizar na lista de usuários autorizados do sistema
-        const found = state.users.find(u => 
-          (u.googleEmail && u.googleEmail.toLowerCase() === googleEmail) ||
-          (u.username && u.username.toLowerCase() === googleEmail)
+        // Localizar na lista de usuários cadastrados do sistema para herdar permissões e setor
+        let found = state.users.find(u => 
+          (u.email && u.email.toLowerCase() === email) ||
+          (u.googleEmail && u.googleEmail.toLowerCase() === email) ||
+          (u.username && u.username.toLowerCase() === email) ||
+          u.id === user.uid
         );
 
-        if (found) {
-          state.currentUser = found;
-          sessionStorage.setItem("harppia_auth_session", "true");
-          sessionStorage.setItem("harppia_current_user", JSON.stringify(found));
+        if (!found) {
+          // Criar perfil padrão para usuário autenticado via Firebase
+          const displayName = user.displayName || (user.email ? user.email.split("@")[0] : "Operador");
+          const initials = displayName.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase() || "HP";
+          found = {
+            id: user.uid,
+            name: displayName,
+            username: user.email,
+            email: user.email,
+            role: "admin",
+            roleLabel: "Coordenação Geral (Admin)",
+            avatar: initials,
+            permissions: {
+              isAdmin: true,
+              canCreateClients: true,
+              canEditClients: true,
+              canDeleteClients: true,
+              canAdvancePhases: true,
+              canManageTasks: true,
+              canAccessConfig: true,
+              allowedDepts: ["*"]
+            }
+          };
+          state.users.unshift(found);
+          localStorage.setItem("harppia_system_users", JSON.stringify(state.users));
+        }
 
-          applyUserUI();
+        state.currentUser = found;
+        sessionStorage.setItem("harppia_auth_session", "true");
+        sessionStorage.setItem("harppia_current_user", JSON.stringify(found));
 
-          const screen = document.getElementById("loginScreen");
-          screen.classList.add("opacity-0", "transition-opacity", "duration-300");
+        applyUserUI();
+
+        if (loginScreen) {
+          loginScreen.classList.add("opacity-0", "transition-opacity", "duration-300");
           setTimeout(() => {
-            screen.classList.add("hidden");
-            screen.classList.remove("opacity-0");
+            loginScreen.classList.add("hidden");
+            loginScreen.classList.remove("opacity-0");
             initData();
-            showToast(`Bem-vindo(a), ${found.name}! Autenticado com Google.`);
+            showToast(`Bem-vindo(a), ${found.name || user.email}!`);
           }, 300);
         } else {
-          const errorMsg = document.getElementById("loginErrorMsg");
-          const errorText = document.getElementById("loginErrorMsgText");
-          errorText.innerHTML = `O e-mail Google <strong>${googleEmail}</strong> não está autorizado. Solicite ao administrador (1234) para cadastrá-lo.`;
-          errorMsg.classList.remove("hidden");
+          initData();
         }
-      } catch (err) {
-        console.error("Erro na validação do token Google:", err);
-        showToast("Falha ao processar token Google. Tente com usuário e senha.");
+      } else {
+        // Sem sessão ativa: direciona para o formulário de login
+        state.currentUser = null;
+        sessionStorage.removeItem("harppia_auth_session");
+        sessionStorage.removeItem("harppia_current_user");
+
+        if (loginScreen) {
+          loginScreen.classList.remove("hidden", "opacity-0");
+        }
+        const emailInput = document.getElementById("loginUsername");
+        if (emailInput) emailInput.focus();
       }
     }
 
     function toggleLoginSettings() {
       const panel = document.getElementById("loginSettingsPanel");
-      panel.classList.toggle("hidden");
+      if (panel) panel.classList.toggle("hidden");
     }
 
     function saveLoginConnectionSettings() {
       const api = document.getElementById("loginSettingApiUrl").value.trim();
-      const cid = document.getElementById("loginSettingClientId").value.trim();
-
       state.apiUrl = api;
-      state.googleClientId = cid;
-
       localStorage.setItem("harppia_api_url", api);
-      localStorage.setItem("harppia_google_client_id", cid);
 
-      // Sincroniza campos da aba de configurações
       const apiTab = document.getElementById("configApiUrlTab");
-      const cidTab = document.getElementById("configGoogleClientId");
       if (apiTab) apiTab.value = api;
-      if (cidTab) cidTab.value = cid;
 
       toggleLoginSettings();
-      setupGoogleIdentityServices();
-      showToast("Configurações de conexão salvas!");
+      showToast("URL da Planilha salva com sucesso!");
     }
 
-    function handleLoginSubmit(event) {
+    /**
+     * SUBMISSÃO DO FORMULÁRIO DE LOGIN VIA FIREBASE AUTH
+     */
+    async function handleLoginSubmit(event) {
       event.preventDefault();
-      const user = document.getElementById("loginUsername").value.trim();
-      const pass = document.getElementById("loginPassword").value.trim();
+      const emailInput = document.getElementById("loginUsername");
+      const passInput = document.getElementById("loginPassword");
+      const submitBtn = document.getElementById("btnLoginSubmit");
+      const btnText = document.getElementById("btnLoginSubmitText");
+      const btnSpinner = document.getElementById("btnLoginSubmitSpinner");
+      const btnIcon = document.getElementById("btnLoginSubmitIcon");
       const errorMsg = document.getElementById("loginErrorMsg");
       const errorText = document.getElementById("loginErrorMsgText");
 
-      // Buscar usuário na lista de usuários cadastrados
-      const found = state.users.find(u => (u.username === user || (u.googleEmail && u.googleEmail.toLowerCase() === user.toLowerCase())) && u.password === pass);
+      const email = emailInput.value.trim();
+      const password = passInput.value.trim();
 
-      if (found) {
-        errorMsg.classList.add("hidden");
-        state.currentUser = found;
-        sessionStorage.setItem("harppia_auth_session", "true");
-        sessionStorage.setItem("harppia_current_user", JSON.stringify(found));
-        
-        applyUserUI();
+      if (!email || !password) {
+        if (errorText) errorText.textContent = "Por favor, introduza o e-mail e a palavra-passe.";
+        if (errorMsg) errorMsg.classList.remove("hidden");
+        return;
+      }
 
-        const screen = document.getElementById("loginScreen");
-        screen.classList.add("opacity-0", "transition-opacity", "duration-300");
-        setTimeout(() => {
-          screen.classList.add("hidden");
-          screen.classList.remove("opacity-0");
-          initData();
-          showToast(`Bem-vindo(a), ${found.name}! (${found.roleLabel})`);
-        }, 300);
-      } else {
-        errorText.textContent = "Login ou senha incorretos!";
-        errorMsg.classList.remove("hidden");
-        document.getElementById("loginPassword").value = "";
-        document.getElementById("loginPassword").focus();
+      if (!auth) {
+        if (errorText) errorText.textContent = "Serviço de autenticação não inicializado. Verifique a sua conexão.";
+        if (errorMsg) errorMsg.classList.remove("hidden");
+        return;
+      }
+
+      // Estado de carregamento na interface
+      if (submitBtn) submitBtn.disabled = true;
+      if (btnText) btnText.textContent = "A autenticar...";
+      if (btnSpinner) btnSpinner.classList.remove("hidden");
+      if (btnIcon) btnIcon.classList.add("hidden");
+      if (errorMsg) errorMsg.classList.add("hidden");
+
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        // onAuthStateChanged cuidará da transição da UI e inicialização dos dados
+      } catch (err) {
+        console.error("Erro na autenticação Firebase:", err);
+        let message = "Falha ao autenticar. Verifique os dados introduzidos.";
+
+        switch (err.code) {
+          case "auth/invalid-email":
+            message = "O formato do e-mail introduzido é inválido.";
+            break;
+          case "auth/user-not-found":
+            message = "Utilizador não encontrado. Verifique o e-mail.";
+            break;
+          case "auth/wrong-password":
+            message = "Palavra-passe incorreta.";
+            break;
+          case "auth/invalid-credential":
+            message = "E-mail ou palavra-passe incorretos.";
+            break;
+          case "auth/user-disabled":
+            message = "Esta conta de utilizador foi desativada.";
+            break;
+          case "auth/too-many-requests":
+            message = "Muitas tentativas falhadas seguidas. Tente novamente mais tarde.";
+            break;
+          case "auth/network-request-failed":
+            message = "Falha de rede. Verifique a sua ligação à internet.";
+            break;
+          default:
+            message = err.message || "Erro inesperado na autenticação.";
+        }
+
+        if (errorText) errorText.textContent = message;
+        if (errorMsg) errorMsg.classList.remove("hidden");
+        if (passInput) {
+          passInput.value = "";
+          passInput.focus();
+        }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+        if (btnText) btnText.textContent = "Entrar no Sistema";
+        if (btnSpinner) btnSpinner.classList.add("hidden");
+        if (btnIcon) btnIcon.classList.remove("hidden");
       }
     }
 
+    /**
+     * APLICAÇÃO DOS DADOS DO UTILIZADOR AUTENTICADO NO CABEÇALHO & RBAC
+     */
     function applyUserUI() {
       if (!state.currentUser) return;
-      document.getElementById("currentUserName").textContent = state.currentUser.name.split(" ")[0];
-      document.getElementById("currentUserRole").textContent = state.currentUser.roleLabel.split(" ")[0];
+      const displayName = state.currentUser.name || (state.currentUser.email ? state.currentUser.email.split("@")[0] : "Operador");
+      const displayRole = state.currentUser.roleLabel || "Operador";
+
+      const nameEl = document.getElementById("currentUserName");
+      if (nameEl) nameEl.textContent = displayName.split(" ")[0];
+
+      const roleEl = document.getElementById("currentUserRole");
+      if (roleEl) roleEl.textContent = displayRole.split(" ")[0];
       
       const avEl = document.getElementById("currentUserAvatar");
-      if (avEl) avEl.textContent = getAssigneeInitials(state.currentUser.id);
+      if (avEl) {
+        const initials = state.currentUser.avatar || 
+                         (state.currentUser.name ? getAssigneeInitials(state.currentUser.id) : null) || 
+                         (state.currentUser.email ? state.currentUser.email.substring(0, 2).toUpperCase() : "HP");
+        avEl.textContent = initials;
+      }
 
       // Trava de criação de cliente
       const btnNew = document.getElementById("btnNewClient");
@@ -2107,6 +1694,7 @@
     function togglePasswordVisibility() {
       const input = document.getElementById("loginPassword");
       const icon = document.getElementById("eyeIcon");
+      if (!input || !icon) return;
       if (input.type === "password") {
         input.type = "text";
         icon.setAttribute("data-lucide", "eye-off");
@@ -2117,16 +1705,25 @@
       lucide.createIcons();
     }
 
-    function handleLogout() {
-      if (confirm("Deseja sair do sistema?")) {
-        sessionStorage.removeItem("harppia_auth_session");
-        sessionStorage.removeItem("harppia_current_user");
-        state.currentUser = null;
-        document.getElementById("loginUsername").value = "";
-        document.getElementById("loginPassword").value = "";
-        document.getElementById("loginErrorMsg").classList.add("hidden");
-        document.getElementById("loginScreen").classList.remove("hidden");
-        setupGoogleIdentityServices();
+    /**
+     * ENCERRAMENTO DE SESSÃO VIA FIREBASE AUTH
+     */
+    async function handleLogout() {
+      if (confirm("Deseja terminar a sessão no sistema?")) {
+        try {
+          if (auth) {
+            await auth.signOut();
+          } else {
+            sessionStorage.removeItem("harppia_auth_session");
+            sessionStorage.removeItem("harppia_current_user");
+            state.currentUser = null;
+            document.getElementById("loginScreen").classList.remove("hidden");
+          }
+          showToast("Sessão terminada com sucesso.");
+        } catch (err) {
+          console.error("Erro ao sair:", err);
+          showToast("Erro ao terminar sessão.");
+        }
       }
     }
 
@@ -3762,12 +3359,7 @@
 
       // Preencher campos de integrações
       const apiTab = document.getElementById("configApiUrlTab");
-      const cidTab = document.getElementById("configGoogleClientId");
-      const chkGoogle = document.getElementById("configEnableGoogleLogin");
-
       if (apiTab) apiTab.value = state.apiUrl;
-      if (cidTab) cidTab.value = state.googleClientId;
-      if (chkGoogle) chkGoogle.checked = state.enableGoogleLogin;
     }
 
     /**
@@ -3809,7 +3401,7 @@
                 <button onclick="editUser('${u.id}')" title="Editar Permissões" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-sky-400">
                   <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
                 </button>
-                ${u.username !== '1234' ? `
+                ${u.id !== 'usr_admin' ? `
                   <button onclick="deleteUser('${u.id}')" title="Excluir Usuário" class="p-1 rounded bg-slate-800 hover:bg-rose-950 hover:text-rose-400 text-slate-500">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                   </button>
@@ -4093,18 +3685,7 @@
      * CONFIGURAÇÕES GOOGLE & PLANILHA
      */
     function saveGoogleConfig() {
-      const cid = document.getElementById("configGoogleClientId").value.trim();
-      const enable = document.getElementById("configEnableGoogleLogin").checked;
-
-      state.googleClientId = cid;
-      state.enableGoogleLogin = enable;
-
-      localStorage.setItem("harppia_google_client_id", cid);
-      localStorage.setItem("harppia_enable_google_login", enable ? "true" : "false");
-
-      document.getElementById("loginSettingClientId").value = cid;
-      setupGoogleIdentityServices();
-      showToast("Configurações do Google OAuth salvas!");
+      showToast("Autenticação gerenciada via Firebase Auth.");
     }
 
     async function saveAndSyncApiUrl() {
