@@ -260,10 +260,16 @@
           <p class="hidden sm:block text-[11px] text-slate-400">Esteira Produtiva para Médicos & Clínicas</p>
         </div>
 
-        <!-- Indicador de Sincronização (Desktop) -->
-        <div class="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-950/80 border border-slate-800/80 text-xs shadow-sm ml-2">
-          <div id="syncStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-          <span id="syncStatusText" class="text-[11px] text-slate-300 font-medium">Modo Local</span>
+        <!-- Indicador de Sincronização e Botão Manual (Desktop) -->
+        <div class="hidden lg:flex items-center gap-2 ml-2">
+          <div class="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-950/80 border border-slate-800/80 text-xs shadow-sm">
+            <div id="syncStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span id="syncStatusText" class="text-[11px] text-slate-300 font-medium">Google Sheets Conectado</span>
+          </div>
+          <button id="btnManualSync" onclick="triggerManualSync()" title="Sincronizar com a Planilha" class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-950/80 hover:bg-slate-800/80 border border-slate-800/80 text-slate-300 hover:text-white text-xs font-medium transition cursor-pointer shadow-sm active:scale-95">
+            <i id="manualSyncIcon" data-lucide="refresh-cw" class="w-3.5 h-3.5 text-sky-400"></i>
+            <span class="text-[11px]">Sincronizar</span>
+          </button>
         </div>
       </div>
 
@@ -361,10 +367,15 @@
         </button>
       </nav>
 
-      <!-- Indicador mobile de sincronização -->
-      <div class="flex lg:hidden items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-950/80 border border-slate-800/80 text-[10px] shadow-sm ml-2 shrink-0">
-        <div id="syncStatusDotMobile" class="w-2 h-2 rounded-full bg-amber-500"></div>
-        <span id="syncStatusTextMobile" class="text-slate-300 font-medium">Local</span>
+      <!-- Indicador mobile de sincronização e Botão Manual -->
+      <div class="flex lg:hidden items-center gap-1.5 ml-2 shrink-0">
+        <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-950/80 border border-slate-800/80 text-[10px] shadow-sm">
+          <div id="syncStatusDotMobile" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+          <span id="syncStatusTextMobile" class="text-slate-300 font-medium">Sheets</span>
+        </div>
+        <button id="btnManualSyncMobile" onclick="triggerManualSync()" title="Sincronizar" class="p-1 rounded-lg bg-slate-950/80 hover:bg-slate-800/80 border border-slate-800/80 text-sky-400 hover:text-white transition cursor-pointer shadow-sm active:scale-95">
+          <i id="manualSyncIconMobile" data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+        </button>
       </div>
     </div>
   </header>
@@ -970,7 +981,7 @@
       <!-- ABA 3: ANOTAÇÕES DO CLIENTE -->
       <div id="drawer-content-notes" class="space-y-3 hidden">
         <label class="text-xs text-slate-400 block">Histórico de alinhamentos, particularidades e preferências clínicas:</label>
-        <textarea id="drawerInputNotes" rows="14" placeholder="Escreva aqui anotações importantes sobre o médico, secretária, preferências visuais..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-sky-500 leading-relaxed"></textarea>
+        <textarea id="drawerInputNotes" rows="14" oninput="handleNotesInput()" placeholder="Escreva aqui anotações importantes sobre o médico, secretária, preferências visuais..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-sky-500 leading-relaxed"></textarea>
         <div class="flex justify-between items-center text-xs">
           <span id="notesSaveStatus" class="text-slate-500 font-mono">Salvo localmente</span>
           <button onclick="saveDrawerNotes()" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs transition flex items-center gap-1.5 shadow-sm">
@@ -1653,11 +1664,14 @@
       }
     ];
 
+    const DEFAULT_SHEETS_URL = "https://script.google.com/macros/s/AKfycbw6F-j49Vb6g1kZ3z2gC_vW1-x9_LqX6pM/exec";
+
     /**
      * ESTADO GLOBAL DA APLICAÇÃO
      */
     let state = {
-      apiUrl: localStorage.getItem("harppia_api_url") || "https://script.google.com/macros/s/AKfycbw6F-j49Vb6g1kZ3z2gC_vW1-x9_LqX6pM/exec",
+      apiUrl: localStorage.getItem("harppia_sheets_url") || localStorage.getItem("harppia_api_url") || DEFAULT_SHEETS_URL,
+      isSyncing: false,
       users: (() => {
         try {
           const stored = localStorage.getItem("harppia_system_users");
@@ -2591,25 +2605,38 @@
       const localLogs = localStorage.getItem("harppia_logs");
 
       if (localClients) {
-        state.clients = JSON.parse(localClients);
-        state.tasks = localTasks ? JSON.parse(localTasks) : [];
-        state.logs = localLogs ? JSON.parse(localLogs) : [];
+        try {
+          state.clients = JSON.parse(localClients);
+          state.tasks = localTasks ? JSON.parse(localTasks) : [];
+          state.logs = localLogs ? JSON.parse(localLogs) : [];
+        } catch(e) {
+          loadSampleDemoData(false);
+        }
       } else {
         loadSampleDemoData(false);
       }
 
+      // Renderização otimista imediata das colunas e cards
       renderAll();
 
       if (state.apiUrl) {
-        await syncDataFromBackend();
+        await syncDataFromBackend(true);
       } else {
         updateSyncIndicator(false, "Modo Local");
       }
     }
 
-    async function syncDataFromBackend() {
-      if (!state.apiUrl) return;
-      updateSyncIndicator(true, "Sincronizando...", "animate-spin text-sky-400");
+    async function syncDataFromBackend(silent = false) {
+      if (!state.apiUrl) {
+        updateSyncIndicator(false, "Modo Local");
+        return;
+      }
+      if (state.isSyncing) return;
+      state.isSyncing = true;
+
+      if (!silent) {
+        updateSyncIndicator(true, "Sincronizando...", "animate-spin text-sky-400");
+      }
       try {
         const res = await fetch(state.apiUrl + "?action=getAll");
         const json = await res.json();
@@ -2619,7 +2646,31 @@
             state.tasks = json.data.tasks || [];
             state.logs = json.data.logs || [];
             persistLocalData();
-            renderAll();
+
+            // Detecta se o usuário está editando a gaveta ativa no momento para não perder o foco/digitação
+            const isEditingDrawer = document.activeElement && (
+              document.activeElement.id === 'drawerInputNotes' ||
+              document.activeElement.id === 'drawerInputName' ||
+              document.activeElement.id === 'drawerInputPhone' ||
+              document.activeElement.id === 'drawerInputEmail' ||
+              document.activeElement.id === 'drawerInputDocument' ||
+              document.activeElement.id === 'drawerInputPaymentDate' ||
+              document.activeElement.id === 'drawerInputFormUrl' ||
+              document.activeElement.id === 'drawerInputWebsiteUrl'
+            );
+
+            renderKanban();
+            renderTable();
+            renderMetrics();
+            if (state.currentView === 'config') renderConfigView();
+
+            if (state.selectedClientId && !isEditingDrawer) {
+              const activeClient = state.clients.find(c => c.id === state.selectedClientId);
+              if (activeClient) {
+                renderDrawerTasks();
+                updateDrawerPriorityUI(activeClient);
+              }
+            }
           }
 
           // Sincronização centralizada da Equipe a partir do Google Sheets
@@ -2627,22 +2678,52 @@
             state.users = json.data.users;
             localStorage.setItem("harppia_system_users", JSON.stringify(state.users));
             renderUsersTable();
-            // Re-aplica permissões do usuário logado contra a nova lista da planilha
             if (auth && auth.currentUser) {
               refreshCurrentUserPermissions(auth.currentUser);
             }
           }
 
           updateSyncIndicator(true, "Google Sheets Conectado");
-          showToast("Dados e equipe sincronizados com a planilha!");
+          if (!silent) {
+            showToast("Sincronizado com a planilha!");
+          }
         } else {
           updateSyncIndicator(false, "Erro ao ler Sheets");
         }
       } catch (e) {
         console.warn("Falha ao sincronizar com Google Sheets:", e);
         updateSyncIndicator(false, "Offline / Verifique URL");
+      } finally {
+        state.isSyncing = false;
       }
     }
+
+    async function triggerManualSync() {
+      const icon = document.getElementById("manualSyncIcon");
+      const iconMobile = document.getElementById("manualSyncIconMobile");
+      if (icon) icon.classList.add("animate-spin");
+      if (iconMobile) iconMobile.classList.add("animate-spin");
+
+      try {
+        await syncDataFromBackend(false);
+      } finally {
+        setTimeout(() => {
+          if (icon) icon.classList.remove("animate-spin");
+          if (iconMobile) iconMobile.classList.remove("animate-spin");
+        }, 600);
+      }
+    }
+
+    // Sincronização Periódica Silenciosa em Segundo Plano (a cada 35 segundos)
+    setInterval(async () => {
+      try {
+        if (typeof auth !== "undefined" && auth && auth.currentUser && !document.hidden && !state.isSyncing && state.apiUrl) {
+          await syncDataFromBackend(true);
+        }
+      } catch (e) {
+        console.warn("Background auto-sync erro:", e);
+      }
+    }, 35000);
 
     function updateSyncIndicator(online, text, spinClass = "") {
       const dot = document.getElementById("syncStatusDot");
@@ -2653,7 +2734,7 @@
       }
       const dotMobile = document.getElementById("syncStatusDotMobile");
       const lblMobile = document.getElementById("syncStatusTextMobile");
-      if (lblMobile) lblMobile.textContent = text;
+      if (lblMobile) lblMobile.textContent = text === "Google Sheets Conectado" ? "Sheets" : text;
       if (dotMobile) {
         dotMobile.className = "w-2 h-2 rounded-full " + (online ? "bg-emerald-500 animate-pulse" : "bg-amber-500") + " " + spinClass;
       }
@@ -2669,6 +2750,7 @@
       persistLocalData();
       if (!state.apiUrl) return { success: true, localOnly: true };
 
+      updateSyncIndicator(true, "Salvando...", "animate-spin text-sky-400");
       try {
         const response = await fetch(state.apiUrl, {
           method: "POST",
@@ -2679,9 +2761,12 @@
             user: state.currentUser ? state.currentUser.name : "Equipe Harppia"
           })
         });
-        return await response.json();
+        const resJson = await response.json();
+        updateSyncIndicator(true, "Google Sheets Conectado");
+        return resJson;
       } catch (err) {
         console.warn("Backend call falhou, mantido localmente:", err);
+        updateSyncIndicator(false, "Erro ao salvar");
         return { success: false, error: err };
       }
     }
@@ -2880,7 +2965,14 @@
                   <i data-lucide="inbox" class="w-5 h-5 text-slate-600 opacity-60"></i>
                   <span>Nenhum cliente nesta fase</span>
                 </div>
-              ` : phaseClients.map(client => renderClientCard(client, phase.id)).join("")}
+              ` : phaseClients.map(client => {
+                try {
+                  return renderClientCard(client, phase.id);
+                } catch(err) {
+                  console.error("Erro ao renderizar card do cliente:", client, err);
+                  return "";
+                }
+              }).join("")}
             </div>
           </div>
         `;
@@ -2902,9 +2994,11 @@
       
       const progressPercent = clientTasks.length > 0 ? Math.round((completedTasks.length / clientTasks.length) * 100) : 0;
 
-      // WhatsApp link
+      // WhatsApp link (grupo ou direto)
       const phoneDigits = (client.phone || "").replace(/\D/g, "");
-      const waLink = phoneDigits ? `https://wa.me/55${phoneDigits}?text=Ol%C3%A1%20${encodeURIComponent(client.name)},%20aqui%20%C3%A9%20da%20equipe%20Harppia!` : "#";
+      const waGroup = (client.whatsappGroup || (client.phone && client.phone.includes("http") ? client.phone : "")).trim();
+      const hasWaLink = Boolean(waGroup || phoneDigits);
+      const waLink = waGroup ? waGroup : (phoneDigits ? `https://wa.me/55${phoneDigits}?text=Ol%C3%A1%20${encodeURIComponent(client.name)},%20aqui%20%C3%A9%20da%20equipe%20Harppia!` : "#");
 
       return `
         <div class="bg-slate-950 border ${isPriority ? 'priority-card' : 'border-slate-800/80 hover:border-sky-500/60'} rounded-xl p-3.5 shadow-sm hover:shadow-md transition cursor-pointer select-none group relative overflow-hidden"
@@ -3537,13 +3631,28 @@
       document.getElementById("drawerInputNotes").value = client.notes || "";
     }
 
-    async function saveDrawerNotes() {
+    let notesDebounceTimer = null;
+    function handleNotesInput() {
+      const statusEl = document.getElementById("notesSaveStatus");
+      if (statusEl) statusEl.textContent = "Digitando...";
+      clearTimeout(notesDebounceTimer);
+      notesDebounceTimer = setTimeout(async () => {
+        await saveDrawerNotes(true);
+      }, 800);
+    }
+
+    async function saveDrawerNotes(silent = false) {
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
 
-      client.notes = document.getElementById("drawerInputNotes").value;
-      document.getElementById("notesSaveStatus").textContent = "Salvo em " + new Date().toLocaleTimeString();
-      showToast("Anotações salvas!");
+      const newNotes = document.getElementById("drawerInputNotes").value;
+      client.notes = newNotes;
+      persistLocalData();
+      const statusEl = document.getElementById("notesSaveStatus");
+      if (statusEl) statusEl.textContent = "Salvo em " + new Date().toLocaleTimeString();
+      if (!silent) {
+        showToast("Anotações salvas!");
+      }
 
       await callBackend("updateClient", { id: client.id, notes: client.notes });
     }
@@ -4419,10 +4528,11 @@
         return;
       }
       const url = document.getElementById("configApiUrlTab").value.trim();
-      state.apiUrl = url;
-      localStorage.setItem("harppia_api_url", url);
+      state.apiUrl = url || DEFAULT_SHEETS_URL;
+      localStorage.setItem("harppia_sheets_url", state.apiUrl);
+      localStorage.setItem("harppia_api_url", state.apiUrl);
       showToast("URL da Planilha salva! Conectando...");
-      await syncDataFromBackend();
+      await syncDataFromBackend(false);
     }
 
     function clearAllDataConfirm() {
