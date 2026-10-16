@@ -267,31 +267,80 @@
         </div>
       </div>
 
-      <!-- Direita: Perfil, Botão Novo Cliente e Sair -->
-      <div class="flex items-center gap-1.5 sm:gap-3">
-        <!-- Badge do Usuário Logado -->
-        <div id="currentUserBadge" class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-950/80 rounded-xl border border-slate-800/80 text-xs shadow-sm">
-          <div id="currentUserAvatar" class="w-6 h-6 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
-            AR
-          </div>
-          <div class="text-left hidden xs:block sm:block">
-            <span id="currentUserName" class="font-semibold text-white text-xs truncate max-w-[80px] sm:max-w-none inline-block">Arthur</span>
-            <span id="currentUserRole" class="hidden sm:inline-block text-[10px] text-sky-400 font-medium ml-1 bg-sky-950/80 px-1.5 py-0.5 rounded border border-sky-800/60">Admin</span>
-          </div>
-        </div>
-
-        <!-- Botão Novo Cliente -->
-        <button id="btnNewClient" onclick="openNewClientModal()" class="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-medium text-xs transition shadow-lg shadow-sky-600/25 active:scale-[0.98] shrink-0 cursor-pointer">
-          <i data-lucide="user-plus" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+      <!-- Canto Superior Direito: Strictly 2 Elementos (+ Novo Cliente e Menu de Perfil) -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- 1. Botão de Ação Destacado: + Novo Cliente -->
+        <button id="btnNewClient" onclick="openNewClientModal()" class="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-semibold text-xs transition shadow-lg shadow-sky-600/25 active:scale-[0.98] shrink-0 cursor-pointer">
+          <i data-lucide="plus" class="w-4 h-4"></i>
           <span class="hidden sm:inline">Novo Cliente</span>
           <span class="sm:hidden text-xs">Novo</span>
         </button>
 
-        <!-- Botão Sair (Logout) -->
-        <button onclick="handleLogout()" title="Sair da Sessão" class="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-rose-950/60 hover:border-rose-800 border border-slate-800 text-xs text-slate-300 hover:text-rose-300 transition shrink-0 cursor-pointer">
-          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-          <span class="hidden sm:inline">Sair</span>
-        </button>
+        <!-- 2. Menu de Perfil (Avatar com foto/iniciais + chevron) -->
+        <div class="relative">
+          <button id="btnProfileMenuTrigger" onclick="toggleProfileDropdown(event)" class="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-950/80 hover:bg-slate-800/80 border border-slate-800/80 transition text-xs shadow-sm cursor-pointer select-none">
+            <div id="currentUserAvatar" class="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm shadow-sky-500/20">
+              AG
+            </div>
+            <div class="text-left hidden md:block">
+              <span id="currentUserName" class="font-semibold text-white text-xs block leading-tight truncate max-w-[110px]">Arthur</span>
+              <span id="currentUserRole" class="text-[10px] text-sky-400 block leading-tight">Admin</span>
+            </div>
+            <i data-lucide="chevron-down" id="profileDropdownChevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"></i>
+          </button>
+
+          <!-- Dropdown Flutuante Suspenso (Dark Glassmorphism) -->
+          <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl p-2 z-50">
+            <!-- Topo: Informações do Usuário Autenticado -->
+            <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/50 mb-1">
+              <div class="flex items-center gap-2.5">
+                <div id="dropdownUserAvatar" class="w-8 h-8 rounded-lg bg-sky-600/30 border border-sky-500/40 text-sky-300 flex items-center justify-center font-bold text-xs shrink-0">
+                  AG
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div id="dropdownUserName" class="font-semibold text-white text-xs truncate">Arthur Gama</div>
+                  <div id="dropdownUserEmail" class="text-[11px] text-slate-400 truncate">admin@harppia.com.br</div>
+                  <div class="mt-1">
+                    <span id="dropdownUserRole" class="inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full bg-sky-950 text-sky-400 border border-sky-800/60">
+                      Coordenação Geral (Admin)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Linha Divisória -->
+            <div class="border-t border-slate-800/80 my-1"></div>
+
+            <!-- Ações do Menu -->
+            <div class="space-y-0.5 text-xs">
+              <button id="menuItemConfig" onclick="openConfigFromMenu('integrations')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition text-left cursor-pointer">
+                <i data-lucide="settings" class="w-4 h-4 text-sky-400"></i>
+                <div class="flex-1">
+                  <span class="font-medium block">Configurações</span>
+                  <span class="text-[10px] text-slate-400 block">Conexão Google Sheets & Sistema</span>
+                </div>
+              </button>
+
+              <button id="menuItemTeam" onclick="openConfigFromMenu('users')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition text-left cursor-pointer">
+                <i data-lucide="users" class="w-4 h-4 text-indigo-400"></i>
+                <div class="flex-1">
+                  <span class="font-medium block">Gerenciar Equipe</span>
+                  <span class="text-[10px] text-slate-400 block">Membros, cargos e permissões</span>
+                </div>
+              </button>
+            </div>
+
+            <!-- Linha Divisória -->
+            <div class="border-t border-slate-800/80 my-1"></div>
+
+            <!-- Desconectar / Sair -->
+            <button onclick="handleLogoutFromMenu()" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 border border-transparent hover:border-rose-900/50 transition text-xs font-medium cursor-pointer">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+              <span>Desconectar / Sair</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -856,8 +905,13 @@
               <input type="text" id="drawerInputNiche" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-white">
             </div>
             <div>
-              <label class="text-[11px] text-slate-400 mb-1 block">WhatsApp (com DDD)</label>
-              <input type="text" id="drawerInputPhone" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-white">
+              <label class="text-[11px] text-slate-400 mb-1 block">Link do Grupo de WhatsApp</label>
+              <div class="flex items-center gap-1.5">
+                <input type="text" id="drawerInputPhone" placeholder="https://chat.whatsapp.com/..." class="flex-1 bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-white text-xs">
+                <button type="button" id="drawerBtnOpenWa" onclick="openClientWhatsAppGroup()" title="Abrir Grupo do WhatsApp" class="p-1.5 rounded bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-800 text-emerald-400 transition cursor-pointer">
+                  <i data-lucide="message-circle" class="w-4 h-4"></i>
+                </button>
+              </div>
             </div>
             <div>
               <label class="text-[11px] text-slate-400 mb-1 block">E-mail</label>
@@ -869,7 +923,13 @@
             </div>
             <div>
               <label class="text-[11px] text-slate-400 mb-1 block">Data de Pagamento (Marco Zero Esteira)</label>
-              <input type="date" id="drawerInputPaymentDate" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-white">
+              <div class="relative flex items-center">
+                <input type="text" id="drawerInputPaymentDate" placeholder="DD/MM/AAAA" maxlength="10" oninput="handleDateInputMask(this)" class="w-full bg-slate-900 border border-slate-800 rounded pl-2.5 pr-8 py-1.5 text-white font-mono text-xs">
+                <input type="date" id="drawerInputPaymentDateNative" onchange="syncNativeDateToText(this, 'drawerInputPaymentDate')" class="absolute opacity-0 pointer-events-none w-0 h-0">
+                <button type="button" onclick="openNativeDatePicker('drawerInputPaymentDateNative', 'drawerInputPaymentDate')" title="Escolher no calendário" class="absolute right-1 text-slate-400 hover:text-sky-400 p-1 rounded hover:bg-slate-800 transition cursor-pointer">
+                  <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
             </div>
             <div>
               <label class="text-[11px] text-slate-400 mb-1 block">Data do 1º Paciente Gerado</label>
@@ -1043,17 +1103,17 @@
           <label class="block text-slate-300 mb-1">Nome do Profissional / Clínica *</label>
           <input type="text" id="newClientName" placeholder="Ex: Dra. Camila Almeida" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-slate-300 mb-1">Especialidade / Nicho *</label>
             <input type="text" id="newClientNiche" placeholder="Ex: Psicologia Clínica & TCC" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
           </div>
           <div>
-            <label class="block text-slate-300 mb-1">WhatsApp (com DDD) *</label>
-            <input type="text" id="newClientPhone" placeholder="Ex: 11999998888" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
+            <label class="block text-slate-300 mb-1">Link do Grupo de WhatsApp</label>
+            <input type="text" id="newClientPhone" placeholder="https://chat.whatsapp.com/..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-slate-300 mb-1">E-mail Principal</label>
             <input type="email" id="newClientEmail" placeholder="contato@clinica.com.br" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
@@ -1065,8 +1125,14 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-slate-300 mb-1">Data do Pagamento (Início da Esteira) *</label>
-            <input type="date" id="newClientPaymentDate" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
+            <label class="block text-slate-300 mb-1">Data de Pagamento (Início da Esteira) *</label>
+            <div class="relative flex items-center">
+              <input type="text" id="newClientPaymentDate" placeholder="DD/MM/AAAA" maxlength="10" oninput="handleDateInputMask(this)" class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-3 pr-10 py-2.5 text-white focus:outline-none focus:border-sky-500 font-mono text-xs">
+              <input type="date" id="newClientPaymentDateNative" onchange="syncNativeDateToText(this, 'newClientPaymentDate')" class="absolute opacity-0 pointer-events-none w-0 h-0">
+              <button type="button" onclick="openNativeDatePicker('newClientPaymentDateNative', 'newClientPaymentDate')" title="Escolher no calendário" class="absolute right-2 text-slate-400 hover:text-sky-400 p-1 rounded hover:bg-slate-800 transition cursor-pointer">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+              </button>
+            </div>
           </div>
           <div class="flex flex-col justify-end">
             <label class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-rose-500/50 cursor-pointer transition select-none">
@@ -1616,6 +1682,163 @@
       kanbanFilterWaitingClient: false
     };
 
+    // =========================================================================
+    // HELPERS: DATA HÍBRIDA & SANITIZAÇÃO DE LINK DO WHATSAPP
+    // =========================================================================
+    function parseDateSafe(dateVal) {
+      if (!dateVal) return null;
+      if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? null : dateVal;
+      const s = String(dateVal).trim();
+      if (!s) return null;
+
+      // Formato brasileiro DD/MM/AAAA
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+        const parts = s.split("/");
+        const d = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const y = parseInt(parts[2], 10);
+        const dt = new Date(y, m, d);
+        return isNaN(dt.getTime()) ? null : dt;
+      }
+
+      // Formato ISO YYYY-MM-DD
+      const dt = new Date(s);
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+
+    function formatDateToBR(dateVal) {
+      const dt = parseDateSafe(dateVal);
+      if (!dt) return "";
+      const d = String(dt.getDate()).padStart(2, "0");
+      const m = String(dt.getMonth() + 1).padStart(2, "0");
+      const y = dt.getFullYear();
+      return `${d}/${m}/${y}`;
+    }
+
+    function handleDateInputMask(input) {
+      let v = input.value.replace(/\D/g, "");
+      if (v.length > 8) v = v.slice(0, 8);
+      if (v.length > 4) {
+        input.value = v.slice(0, 2) + "/" + v.slice(2, 4) + "/" + v.slice(4);
+      } else if (v.length > 2) {
+        input.value = v.slice(0, 2) + "/" + v.slice(2);
+      } else {
+        input.value = v;
+      }
+    }
+
+    function openNativeDatePicker(nativeInputId, textInputId) {
+      const nativeInput = document.getElementById(nativeInputId);
+      const textInput = document.getElementById(textInputId);
+      if (!nativeInput) return;
+
+      if (textInput && textInput.value) {
+        const dt = parseDateSafe(textInput.value);
+        if (dt) {
+          const y = dt.getFullYear();
+          const m = String(dt.getMonth() + 1).padStart(2, "0");
+          const d = String(dt.getDate()).padStart(2, "0");
+          nativeInput.value = `${y}-${m}-${d}`;
+        }
+      }
+
+      if (typeof nativeInput.showPicker === "function") {
+        try {
+          nativeInput.showPicker();
+          return;
+        } catch (e) {}
+      }
+      nativeInput.focus();
+      nativeInput.click();
+    }
+
+    function syncNativeDateToText(nativeInput, textInputId) {
+      const textInput = document.getElementById(textInputId);
+      if (!nativeInput || !textInput || !nativeInput.value) return;
+      const parts = nativeInput.value.split("-");
+      if (parts.length === 3) {
+        textInput.value = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    }
+
+    function formatWhatsAppGroupLink(rawLink) {
+      if (!rawLink) return "";
+      let clean = String(rawLink).trim();
+      if (!clean) return "";
+      if (clean.startsWith("http://") || clean.startsWith("https://")) {
+        return clean;
+      }
+      if (clean.startsWith("chat.whatsapp.com/")) {
+        return "https://" + clean;
+      }
+      // Se inseriu apenas o código final do grupo de convite
+      return "https://chat.whatsapp.com/" + clean;
+    }
+
+    function openClientWhatsAppGroup(link) {
+      const url = link || (document.getElementById("drawerInputPhone") ? document.getElementById("drawerInputPhone").value.trim() : "");
+      const formatted = formatWhatsAppGroupLink(url);
+      if (formatted) {
+        window.open(formatted, "_blank");
+      } else {
+        showToast("Nenhum link de grupo de WhatsApp cadastrado para este cliente.");
+      }
+    }
+
+    // =========================================================================
+    // MENU DROPDOWN DE PERFIL (FLUTUANTE / DARK GLASSMORPHISM)
+    // =========================================================================
+    function toggleProfileDropdown(event) {
+      if (event) event.stopPropagation();
+      const dropdown = document.getElementById("profileDropdownMenu");
+      const chevron = document.getElementById("profileDropdownChevron");
+      if (!dropdown) return;
+      const isHidden = dropdown.classList.contains("hidden");
+      if (isHidden) {
+        dropdown.classList.remove("hidden");
+        if (chevron) chevron.classList.add("rotate-180");
+      } else {
+        dropdown.classList.add("hidden");
+        if (chevron) chevron.classList.remove("rotate-180");
+      }
+    }
+
+    function closeProfileDropdown() {
+      const dropdown = document.getElementById("profileDropdownMenu");
+      const chevron = document.getElementById("profileDropdownChevron");
+      if (dropdown && !dropdown.classList.contains("hidden")) {
+        dropdown.classList.add("hidden");
+        if (chevron) chevron.classList.remove("rotate-180");
+      }
+    }
+
+    function openConfigFromMenu(subTab = "integrations") {
+      closeProfileDropdown();
+      if (!hasPermission("canAccessConfig")) {
+        showToast("Acesso restrito à Coordenação Geral (Admin).");
+        return;
+      }
+      switchView("config");
+      switchConfigSubTab(subTab);
+    }
+
+    function handleLogoutFromMenu() {
+      closeProfileDropdown();
+      handleLogout();
+    }
+
+    // Fechar dropdown de perfil ao clicar fora
+    document.addEventListener("click", function(e) {
+      const dropdown = document.getElementById("profileDropdownMenu");
+      const trigger = document.getElementById("btnProfileMenuTrigger");
+      if (dropdown && !dropdown.classList.contains("hidden")) {
+        if (trigger && (trigger.contains(e.target) || trigger === e.target)) return;
+        if (!dropdown.contains(e.target)) {
+          closeProfileDropdown();
+        }
+      }
+    });
+
     /**
      * HELPERS DE DELEGAÇÃO E RESPONSÁVEIS
      */
@@ -1854,6 +2077,11 @@
     /**
      * CONTROLE DE ACESSO, LOGIN & PERMISSÕES (RBAC) VIA FIREBASE AUTH & GOOGLE SHEETS
      */
+    const PRIMARY_ADMIN_EMAILS = [
+      "admin@harppia.com.br",
+      "arthurgama@harppia.com.br"
+    ];
+
     function hasPermission(permKey) {
       if (!state.currentUser) return false;
       if (state.currentUser.permissions && state.currentUser.permissions.isAdmin) return true;
@@ -1861,57 +2089,7 @@
     }
 
     /**
-     * ATUALIZA E APLICA AS PERMISSÕES DO USUÁRIO LOGADO CRUZANDO COM A EQUIPE DO SHEETS
-     * Regra estrita: Se o e-mail não constar na lista da planilha, aplica perfil restrito (NUNCA Admin).
-     */
-    function refreshCurrentUserPermissions(firebaseUser) {
-      if (!firebaseUser) return;
-      const email = (firebaseUser.email || "").trim().toLowerCase();
-
-      // Localizar o membro na tabela de equipe (sincronizada com o Google Sheets)
-      const member = state.users.find(u => 
-        (u.email && u.email.trim().toLowerCase() === email) ||
-        (u.username && u.username.trim().toLowerCase() === email) ||
-        u.id === firebaseUser.uid
-      );
-
-      if (member) {
-        // Membro cadastrado na planilha: herda cargo e permissões oficiais
-        state.currentUser = member;
-      } else {
-        // E-mail logado NÃO consta na planilha: perfil estritamente de visualizador restrito (NUNCA Admin)
-        const displayName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split("@")[0] : "Operador");
-        const initials = displayName.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase() || "HP";
-        state.currentUser = {
-          id: firebaseUser.uid,
-          name: displayName,
-          username: firebaseUser.email,
-          email: firebaseUser.email,
-          role: "viewer",
-          roleLabel: "Visualizador Restrito",
-          department: "Geral",
-          avatar: initials,
-          status: "Ativo",
-          permissions: {
-            isAdmin: false,
-            canCreateClients: false,
-            canEditClients: false,
-            canDeleteClients: false,
-            canAdvancePhases: false,
-            canManageTasks: false,
-            canAccessConfig: false,
-            allowedDepts: []
-          }
-        };
-      }
-
-      sessionStorage.setItem("harppia_auth_session", "true");
-      sessionStorage.setItem("harppia_current_user", JSON.stringify(state.currentUser));
-      applyUserUI();
-    }
-
-    /**
-     * INICIALIZAÇÃO E MONITORIZAÇÃO DO ESTADO DA SESSÃO (FIREBASE AUTH)
+     * INICIALIZAÇÃO E MONITORIZAÇÃO DO ESTADO DA SESSÃO COM TRAVA DE ALLOWLIST
      */
     function checkAuth() {
       if (!auth) {
@@ -1921,21 +2099,108 @@
         return;
       }
 
-      // Listener reativo em tempo real da sessão Firebase
       auth.onAuthStateChanged(user => {
         handleAuthStateChange(user);
       });
     }
 
     /**
-     * PROCESSADOR DO ESTADO DE AUTENTICAÇÃO
+     * PROCESSADOR DO ESTADO DE AUTENTICAÇÃO COM ALLOWLIST DE MEMBROS ATIVOS
+     * Trava Estrita: Caso o e-mail não conste na lista ativa, executa signOut imediato.
      */
-    function handleAuthStateChange(user) {
+    async function handleAuthStateChange(user) {
       const loginScreen = document.getElementById("loginScreen");
+      const errorMsg = document.getElementById("loginErrorMsg");
+      const errorText = document.getElementById("loginErrorMsgText");
 
       if (user) {
-        // Usuário autenticado com sucesso no Firebase
-        refreshCurrentUserPermissions(user);
+        const email = (user.email || "").trim().toLowerCase();
+        const isPrimaryAdmin = PRIMARY_ADMIN_EMAILS.includes(email);
+
+        // 1. Procurar na lista local de usuários (sincronizada do Google Sheets)
+        let member = state.users.find(u => 
+          (u.email && u.email.trim().toLowerCase() === email) ||
+          (u.username && u.username.trim().toLowerCase() === email) ||
+          u.id === user.uid
+        );
+
+        // 2. Se não encontrou no cache local e não é admin principal, tenta consultar a planilha remota
+        if (!member && !isPrimaryAdmin && state.apiUrl) {
+          try {
+            const res = await fetch(state.apiUrl + "?action=getAll");
+            const json = await res.json();
+            if (json.success && json.data && json.data.users) {
+              state.users = json.data.users;
+              localStorage.setItem("harppia_system_users", JSON.stringify(state.users));
+              member = state.users.find(u => 
+                (u.email && u.email.trim().toLowerCase() === email) ||
+                (u.username && u.username.trim().toLowerCase() === email) ||
+                u.id === user.uid
+              );
+            }
+          } catch (err) {
+            console.warn("Erro ao verificar allowlist remota no Google Sheets:", err);
+          }
+        }
+
+        // 3. Checagem da Trava de Allowlist
+        const isMemberActive = member && String(member.status || "Ativo").toLowerCase() !== "inativo";
+        const isAllowed = isPrimaryAdmin || isMemberActive;
+
+        if (!isAllowed) {
+          console.warn("Acesso bloqueado por Allowlist para o e-mail:", email);
+          await auth.signOut();
+          state.currentUser = null;
+          sessionStorage.removeItem("harppia_auth_session");
+          sessionStorage.removeItem("harppia_current_user");
+
+          if (loginScreen) {
+            loginScreen.classList.remove("hidden", "opacity-0");
+          }
+          if (errorText) {
+            errorText.textContent = "Acesso não autorizado. Este e-mail não está cadastrado ou foi desativado da equipe operacional.";
+          }
+          if (errorMsg) {
+            errorMsg.classList.remove("hidden");
+          }
+          return;
+        }
+
+        // Usuário autorizado e ativo!
+        if (errorMsg) errorMsg.classList.add("hidden");
+
+        if (member) {
+          state.currentUser = member;
+        } else {
+          // Admin principal garantido
+          const displayName = user.displayName || (user.email ? user.email.split("@")[0] : "Arthur Gama");
+          const initials = displayName.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase() || "AG";
+          state.currentUser = {
+            id: user.uid,
+            name: displayName,
+            username: user.email,
+            email: user.email,
+            role: "admin",
+            roleLabel: "Coordenação Geral (Admin)",
+            department: "Geral",
+            avatar: initials,
+            status: "Ativo",
+            permissions: {
+              isAdmin: true,
+              canCreateClients: true,
+              canEditClients: true,
+              canDeleteClients: true,
+              canAdvancePhases: true,
+              canManageTasks: true,
+              canAccessConfig: true,
+              allowedDepts: ["*"]
+            }
+          };
+        }
+
+        sessionStorage.setItem("harppia_auth_session", "true");
+        sessionStorage.setItem("harppia_current_user", JSON.stringify(state.currentUser));
+        applyUserUI();
 
         if (loginScreen) {
           loginScreen.classList.add("opacity-0", "transition-opacity", "duration-300");
@@ -2006,14 +2271,13 @@
       if (errorMsg) errorMsg.classList.add("hidden");
 
       try {
-        // Configurar a persistência de sessão de acordo com a seleção
         const persistenceMode = rememberMe 
           ? firebase.auth.Auth.Persistence.LOCAL 
           : firebase.auth.Auth.Persistence.SESSION;
 
         await auth.setPersistence(persistenceMode);
         await auth.signInWithEmailAndPassword(email, password);
-        // auth.onAuthStateChanged cuidará da transição da UI e inicialização dos dados
+        // onAuthStateChanged cuidará da validação de allowlist e liberação do sistema
       } catch (err) {
         console.error("Erro na autenticação Firebase:", err);
         let message = "Falha ao entrar no sistema. Verifique os dados.";
@@ -2055,30 +2319,45 @@
     }
 
     /**
-     * APLICAÇÃO VISUAL DAS PERMISSÕES (RBAC) NA INTERFACE
+     * APLICAÇÃO VISUAL DAS PERMISSÕES (RBAC) NA INTERFACE E NO MENU DE PERFIL
      */
     function applyUserUI() {
       const u = state.currentUser;
       if (!u) return;
 
-      const userBadge = document.getElementById("headerUserBadge");
-      const userName = document.getElementById("headerUserName");
-      const userRole = document.getElementById("headerUserRole");
-      const userAvatar = document.getElementById("headerUserAvatar");
+      const currentUserName = document.getElementById("currentUserName");
+      const currentUserRole = document.getElementById("currentUserRole");
+      const currentUserAvatar = document.getElementById("currentUserAvatar");
 
-      if (userBadge) userBadge.classList.remove("hidden");
-      if (userName) userName.textContent = u.name || u.email;
-      if (userRole) userRole.textContent = u.roleLabel || u.role;
-      if (userAvatar) userAvatar.textContent = u.avatar || "HP";
+      if (currentUserName) currentUserName.textContent = u.name ? u.name.split(" ")[0] : (u.email ? u.email.split("@")[0] : "Arthur");
+      if (currentUserRole) currentUserRole.textContent = u.roleLabel || u.role;
+      if (currentUserAvatar) currentUserAvatar.textContent = u.avatar || "HP";
 
-      // Aba Configurações: restrita estritamente a administradores
-      const tabConfig = document.getElementById("tab-config");
+      // Atualização no Dropdown de Perfil
+      const dropdownUserName = document.getElementById("dropdownUserName");
+      const dropdownUserEmail = document.getElementById("dropdownUserEmail");
+      const dropdownUserRole = document.getElementById("dropdownUserRole");
+      const dropdownUserAvatar = document.getElementById("dropdownUserAvatar");
+
+      if (dropdownUserName) dropdownUserName.textContent = u.name || u.email;
+      if (dropdownUserEmail) dropdownUserEmail.textContent = u.email || u.username || "";
+      if (dropdownUserRole) dropdownUserRole.textContent = u.roleLabel || u.role;
+      if (dropdownUserAvatar) dropdownUserAvatar.textContent = u.avatar || "HP";
+
+      // Controle de visibilidade das opções administrativas no dropdown
       const canAccessConfig = hasPermission("canAccessConfig");
+      const menuItemConfig = document.getElementById("menuItemConfig");
+      const menuItemTeam = document.getElementById("menuItemTeam");
+
+      if (menuItemConfig) menuItemConfig.style.display = canAccessConfig ? "flex" : "none";
+      if (menuItemTeam) menuItemTeam.style.display = canAccessConfig ? "flex" : "none";
+
+      // Aba Configurações na barra de navegação
+      const tabConfig = document.getElementById("tab-config");
       if (tabConfig) {
         tabConfig.style.display = canAccessConfig ? "flex" : "none";
       }
 
-      // Se o usuário não tiver permissão para ver configurações e estiver nela, redireciona para o kanban
       if (!canAccessConfig && state.currentView === "config") {
         switchView("kanban");
       }
@@ -2109,7 +2388,7 @@
      * LOGOUT OFICIAL VIA FIREBASE AUTH
      */
     function handleLogout() {
-      if (confirm("Deseja sair do sistema?")) {
+      if (confirm("Deseja desconectar e sair do sistema?")) {
         auth.signOut()
           .then(() => {
             showToast("Sessão encerrada com sucesso.");
@@ -2422,7 +2701,17 @@
         };
       }
       
-      const paymentDate = new Date(client.paymentDate);
+      const paymentDate = parseDateSafe(client.paymentDate);
+      if (!paymentDate) {
+        return {
+          days: 0,
+          color: "verde",
+          dotEmoji: "🟢",
+          label: "0 dias",
+          statusText: "0 dias na esteira",
+          badgeClass: "bg-emerald-950 text-emerald-400 border-emerald-800"
+        };
+      }
       const now = new Date();
       const p = new Date(paymentDate.getFullYear(), paymentDate.getMonth(), paymentDate.getDate());
       const n = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -2686,12 +2975,17 @@
           <!-- Botões de Ação Rápida (WhatsApp + Abrir Gaveta) -->
           <div class="flex items-center justify-between pt-2 border-t border-slate-800/60" onclick="event.stopPropagation()">
             <div>
-              ${phoneDigits ? `
-                <a href="${waLink}" target="_blank" title="Abrir WhatsApp" class="p-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900 text-emerald-400 border border-emerald-800/60 transition inline-flex items-center gap-1 text-[11px]">
+              ${hasWaLink ? `
+                <a href="${waLink}" target="_blank" rel="noopener noreferrer" title="Abrir Grupo do WhatsApp" class="p-1.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900 text-emerald-400 border border-emerald-800/60 transition inline-flex items-center gap-1 text-[11px] cursor-pointer">
                   <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
                   <span>WhatsApp</span>
                 </a>
-              ` : ''}
+              ` : `
+                <span title="Sem link de grupo cadastrado" class="p-1.5 rounded-lg bg-slate-900 text-slate-500 border border-slate-800/60 transition inline-flex items-center gap-1 text-[11px] opacity-40 cursor-not-allowed select-none">
+                  <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                  <span>WhatsApp</span>
+                </span>
+              `}
             </div>
             <button onclick="openClientDrawer('${client.id}')" class="text-[11px] text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1">
               Ver tarefas <i data-lucide="chevron-right" class="w-3 h-3"></i>
@@ -3096,7 +3390,7 @@
       document.getElementById("drawerInputPhone").value = client.phone || "";
       document.getElementById("drawerInputEmail").value = client.email || "";
       document.getElementById("drawerInputDocument").value = client.document || "";
-      document.getElementById("drawerInputPaymentDate").value = client.paymentDate ? client.paymentDate.split("T")[0] : "";
+      document.getElementById("drawerInputPaymentDate").value = formatDateToBR(client.paymentDate);
       document.getElementById("drawerInputFirstSaleDate").value = client.firstSaleDate || "";
       document.getElementById("drawerInputNextCheckinDate").value = client.nextCheckinDate || "";
       document.getElementById("drawerInputStatus").value = client.status || 1;
@@ -3115,10 +3409,10 @@
 
       client.name = document.getElementById("drawerInputName").value;
       client.niche = document.getElementById("drawerInputNiche").value;
-      client.phone = document.getElementById("drawerInputPhone").value;
+      client.phone = formatWhatsAppGroupLink(document.getElementById("drawerInputPhone").value.trim());
       client.email = document.getElementById("drawerInputEmail").value;
       client.document = document.getElementById("drawerInputDocument").value;
-      client.paymentDate = document.getElementById("drawerInputPaymentDate").value;
+      client.paymentDate = document.getElementById("drawerInputPaymentDate").value.trim();
       client.firstSaleDate = document.getElementById("drawerInputFirstSaleDate").value;
       client.nextCheckinDate = document.getElementById("drawerInputNextCheckinDate").value;
       client.status = Number(document.getElementById("drawerInputStatus").value);
@@ -3345,7 +3639,7 @@
       document.getElementById("newClientPhone").value = "";
       document.getElementById("newClientEmail").value = "";
       document.getElementById("newClientDocument").value = "";
-      document.getElementById("newClientPaymentDate").value = new Date().toISOString().split("T")[0];
+      document.getElementById("newClientPaymentDate").value = formatDateToBR(new Date());
       if (document.getElementById("newClientPriority")) {
         document.getElementById("newClientPriority").checked = false;
       }
@@ -3360,8 +3654,9 @@
     async function submitNewClient() {
       const name = document.getElementById("newClientName").value.trim();
       const niche = document.getElementById("newClientNiche").value.trim();
-      const phone = document.getElementById("newClientPhone").value.trim();
-      const paymentDate = document.getElementById("newClientPaymentDate").value;
+      const rawPhone = document.getElementById("newClientPhone").value.trim();
+      const phone = formatWhatsAppGroupLink(rawPhone);
+      const paymentDate = document.getElementById("newClientPaymentDate").value.trim();
       const isPriority = document.getElementById("newClientPriority") ? document.getElementById("newClientPriority").checked : false;
 
       if (!name || !niche || !paymentDate) {
