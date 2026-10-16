@@ -135,10 +135,7 @@
   <div id="loginScreen" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-slate-900/95 border border-slate-800/90 rounded-3xl max-w-md w-full p-8 shadow-2xl relative text-center">
       
-      <!-- Botão Discreto de Configurações Técnicas (Engrenagem no Topo Direito) -->
-      <button onclick="toggleLoginSettings()" title="Configurações de Conexão (Google Sheets / OAuth)" class="absolute top-5 right-5 p-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white transition border border-slate-700/50">
-        <i data-lucide="settings-2" class="w-4 h-4"></i>
-      </button>
+      
 
       <!-- Ícone e Identidade Visual Harppia -->
       <div class="w-20 h-20 rounded-2xl bg-slate-900/60 border border-amber-500/30 flex items-center justify-center mx-auto mb-4 p-2 shadow-xl shadow-sky-500/10 ring-1 ring-amber-500/20">
@@ -169,24 +166,7 @@
       <h2 class="text-2xl font-bold tracking-tight text-white mb-1">Harppia CRP</h2>
       <p class="text-xs text-slate-400 mb-6">Esteira Operacional de Produção • Clínicas & Médicos</p>
 
-      <!-- Painel Colapsável de Configurações Técnicas de Conexão -->
-      <div id="loginSettingsPanel" class="hidden text-left bg-slate-950 p-4 rounded-2xl border border-slate-800 mb-5 space-y-3 fade-in text-xs">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-          <span class="font-bold text-white flex items-center gap-1.5 text-xs">
-            <i data-lucide="sliders" class="w-3.5 h-3.5 text-sky-400"></i> Conexão com Google Sheets
-          </span>
-          <button onclick="toggleLoginSettings()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
-        </div>
-        <div>
-          <label class="block text-slate-300 font-medium mb-1">URL Google Apps Script (Web App):</label>
-          <input type="url" id="loginSettingApiUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white text-[11px] focus:outline-none focus:border-sky-500">
-        </div>
-        <div class="pt-1 flex justify-end">
-          <button onclick="saveLoginConnectionSettings()" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs flex items-center gap-1 transition">
-            <i data-lucide="check" class="w-3.5 h-3.5"></i> Salvar & Sincronizar
-          </button>
-        </div>
-      </div>
+      
 
       <!-- Alerta de Erro -->
       <div id="loginErrorMsg" class="hidden mb-4 p-3 rounded-xl bg-rose-950/70 border border-rose-800 text-rose-300 text-xs font-medium flex items-center gap-2 text-left">
@@ -213,6 +193,14 @@
               <i id="eyeIcon" data-lucide="eye" class="w-4 h-4"></i>
             </button>
           </div>
+        </div>
+
+        <!-- Opção Manter Conectado (Persistência Firebase) -->
+        <div class="flex items-center justify-between text-xs pt-0.5">
+          <label class="flex items-center gap-2 text-slate-300 cursor-pointer select-none">
+            <input type="checkbox" id="loginRememberMe" checked class="w-4 h-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-sky-500">
+            <span class="text-xs text-slate-300 font-medium">Manter conectado</span>
+          </label>
         </div>
 
         <button type="submit" id="btnLoginSubmit" class="w-full mt-2 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-sky-600/25 active:scale-[0.98]">
@@ -1196,11 +1184,11 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Login / Usuário *</label>
-            <input type="text" id="modalUserUsername" placeholder="Ex: trafego ou 1234" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
+            <input type="text" id="modalUserUsername" placeholder="Ex: trafego@harppia.com.br" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
           </div>
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Senha de Acesso *</label>
-            <input type="text" id="modalUserPassword" placeholder="Ex: 4321 ou senha123" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
+            <input type="text" id="modalUserPassword" placeholder="Defina a senha de acesso" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-sky-500">
           </div>
         </div>
 
@@ -1864,7 +1852,7 @@
     }
 
     /**
-     * CONTROLE DE ACESSO, LOGIN & PERMISSÕES (RBAC) VIA FIREBASE AUTH
+     * CONTROLE DE ACESSO, LOGIN & PERMISSÕES (RBAC) VIA FIREBASE AUTH & GOOGLE SHEETS
      */
     function hasPermission(permKey) {
       if (!state.currentUser) return false;
@@ -1873,12 +1861,59 @@
     }
 
     /**
+     * ATUALIZA E APLICA AS PERMISSÕES DO USUÁRIO LOGADO CRUZANDO COM A EQUIPE DO SHEETS
+     * Regra estrita: Se o e-mail não constar na lista da planilha, aplica perfil restrito (NUNCA Admin).
+     */
+    function refreshCurrentUserPermissions(firebaseUser) {
+      if (!firebaseUser) return;
+      const email = (firebaseUser.email || "").trim().toLowerCase();
+
+      // Localizar o membro na tabela de equipe (sincronizada com o Google Sheets)
+      const member = state.users.find(u => 
+        (u.email && u.email.trim().toLowerCase() === email) ||
+        (u.username && u.username.trim().toLowerCase() === email) ||
+        u.id === firebaseUser.uid
+      );
+
+      if (member) {
+        // Membro cadastrado na planilha: herda cargo e permissões oficiais
+        state.currentUser = member;
+      } else {
+        // E-mail logado NÃO consta na planilha: perfil estritamente de visualizador restrito (NUNCA Admin)
+        const displayName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split("@")[0] : "Operador");
+        const initials = displayName.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase() || "HP";
+        state.currentUser = {
+          id: firebaseUser.uid,
+          name: displayName,
+          username: firebaseUser.email,
+          email: firebaseUser.email,
+          role: "viewer",
+          roleLabel: "Visualizador Restrito",
+          department: "Geral",
+          avatar: initials,
+          status: "Ativo",
+          permissions: {
+            isAdmin: false,
+            canCreateClients: false,
+            canEditClients: false,
+            canDeleteClients: false,
+            canAdvancePhases: false,
+            canManageTasks: false,
+            canAccessConfig: false,
+            allowedDepts: []
+          }
+        };
+      }
+
+      sessionStorage.setItem("harppia_auth_session", "true");
+      sessionStorage.setItem("harppia_current_user", JSON.stringify(state.currentUser));
+      applyUserUI();
+    }
+
+    /**
      * INICIALIZAÇÃO E MONITORIZAÇÃO DO ESTADO DA SESSÃO (FIREBASE AUTH)
      */
     function checkAuth() {
-      const apiInput = document.getElementById("loginSettingApiUrl");
-      if (apiInput) apiInput.value = state.apiUrl;
-
       if (!auth) {
         console.warn("Firebase Auth não carregado. Exibindo tela de login.");
         const loginScreen = document.getElementById("loginScreen");
@@ -1886,12 +1921,7 @@
         return;
       }
 
-      // Persistência local da sessão
-      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err => {
-        console.warn("Aviso de persistência Firebase Auth:", err);
-      });
-
-      // Listener em tempo real da sessão Firebase
+      // Listener reativo em tempo real da sessão Firebase
       auth.onAuthStateChanged(user => {
         handleAuthStateChange(user);
       });
@@ -1905,47 +1935,7 @@
 
       if (user) {
         // Usuário autenticado com sucesso no Firebase
-        const email = (user.email || "").toLowerCase();
-
-        // Localizar na lista de usuários cadastrados do sistema para herdar permissões e setor
-        let found = state.users.find(u => 
-          (u.email && u.email.toLowerCase() === email) ||
-          (u.username && u.username.toLowerCase() === email) ||
-          u.id === user.uid
-        );
-
-        if (!found) {
-          // Criar perfil padrão para o usuário autenticado via Firebase
-          const displayName = user.displayName || (user.email ? user.email.split("@")[0] : "Operador");
-          const initials = displayName.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase() || "HP";
-          found = {
-            id: user.uid,
-            name: displayName,
-            username: user.email,
-            email: user.email,
-            role: "admin",
-            roleLabel: "Coordenação Geral (Admin)",
-            avatar: initials,
-            permissions: {
-              isAdmin: true,
-              canCreateClients: true,
-              canEditClients: true,
-              canDeleteClients: true,
-              canAdvancePhases: true,
-              canManageTasks: true,
-              canAccessConfig: true,
-              allowedDepts: ["*"]
-            }
-          };
-          state.users.unshift(found);
-          localStorage.setItem("harppia_system_users", JSON.stringify(state.users));
-        }
-
-        state.currentUser = found;
-        sessionStorage.setItem("harppia_auth_session", "true");
-        sessionStorage.setItem("harppia_current_user", JSON.stringify(found));
-
-        applyUserUI();
+        refreshCurrentUserPermissions(user);
 
         if (loginScreen) {
           loginScreen.classList.add("opacity-0", "transition-opacity", "duration-300");
@@ -1953,7 +1943,7 @@
             loginScreen.classList.add("hidden");
             loginScreen.classList.remove("opacity-0");
             initData();
-            showToast(`Bem-vindo(a), ${found.name || user.email}!`);
+            showToast(`Bem-vindo(a), ${state.currentUser.name || user.email}!`);
           }, 300);
         } else {
           initData();
@@ -1977,31 +1967,14 @@
       }
     }
 
-    function toggleLoginSettings() {
-      const panel = document.getElementById("loginSettingsPanel");
-      if (panel) panel.classList.toggle("hidden");
-    }
-
-    function saveLoginConnectionSettings() {
-      const api = document.getElementById("loginSettingApiUrl").value.trim();
-      state.apiUrl = api;
-      localStorage.setItem("harppia_api_url", api);
-
-      const apiTab = document.getElementById("configApiUrlTab");
-      if (apiTab) apiTab.value = api;
-
-      toggleLoginSettings();
-      showToast("URL do Google Apps Script salva com sucesso!");
-    }
-
     /**
-     * SUBMISSÃO DO FORMULÁRIO DE LOGIN VIA FIREBASE AUTH
-     * 100% Delegado para auth.signInWithEmailAndPassword sem validação mockada
+     * SUBMISSÃO DO FORMULÁRIO DE LOGIN COM SUPORTE A PERSISTÊNCIA ("MANTER CONECTADO")
      */
     async function handleLoginSubmit(event) {
       event.preventDefault();
       const emailInput = document.getElementById("loginUsername");
       const passInput = document.getElementById("loginPassword");
+      const rememberChk = document.getElementById("loginRememberMe");
       const submitBtn = document.getElementById("btnLoginSubmit");
       const btnText = document.getElementById("btnLoginSubmitText");
       const btnSpinner = document.getElementById("btnLoginSubmitSpinner");
@@ -2011,6 +1984,7 @@
 
       const email = emailInput ? emailInput.value.trim() : "";
       const password = passInput ? passInput.value.trim() : "";
+      const rememberMe = rememberChk ? rememberChk.checked : true;
 
       if (!email || !password) {
         if (errorText) errorText.textContent = "Por favor, preencha o e-mail e a senha de acesso.";
@@ -2024,7 +1998,7 @@
         return;
       }
 
-      // Estado de carregamento no botão
+      // Estado de carregamento na interface
       if (submitBtn) submitBtn.disabled = true;
       if (btnText) btnText.textContent = "Entrando...";
       if (btnSpinner) btnSpinner.classList.remove("hidden");
@@ -2032,8 +2006,14 @@
       if (errorMsg) errorMsg.classList.add("hidden");
 
       try {
+        // Configurar a persistência de sessão de acordo com a seleção
+        const persistenceMode = rememberMe 
+          ? firebase.auth.Auth.Persistence.LOCAL 
+          : firebase.auth.Auth.Persistence.SESSION;
+
+        await auth.setPersistence(persistenceMode);
         await auth.signInWithEmailAndPassword(email, password);
-        // onAuthStateChanged cuidará da transição da UI e inicialização dos dados
+        // auth.onAuthStateChanged cuidará da transição da UI e inicialização dos dados
       } catch (err) {
         console.error("Erro na autenticação Firebase:", err);
         let message = "Falha ao entrar no sistema. Verifique os dados.";
@@ -2074,6 +2054,9 @@
       }
     }
 
+    /**
+     * APLICAÇÃO VISUAL DAS PERMISSÕES (RBAC) NA INTERFACE
+     */
     function applyUserUI() {
       const u = state.currentUser;
       if (!u) return;
@@ -2088,16 +2071,16 @@
       if (userRole) userRole.textContent = u.roleLabel || u.role;
       if (userAvatar) userAvatar.textContent = u.avatar || "HP";
 
-      // Aba Configurações: trava visual se não for admin
-      const tabConfig = document.getElementById("navTabConfig");
+      // Aba Configurações: restrita estritamente a administradores
+      const tabConfig = document.getElementById("tab-config");
+      const canAccessConfig = hasPermission("canAccessConfig");
       if (tabConfig) {
-        if (!hasPermission("canAccessConfig")) {
-          tabConfig.classList.add("opacity-50");
-          tabConfig.title = "Acesso restrito a administradores";
-        } else {
-          tabConfig.classList.remove("opacity-50");
-          tabConfig.title = "Configurações do sistema";
-        }
+        tabConfig.style.display = canAccessConfig ? "flex" : "none";
+      }
+
+      // Se o usuário não tiver permissão para ver configurações e estiver nela, redireciona para o kanban
+      if (!canAccessConfig && state.currentView === "config") {
+        switchView("kanban");
       }
 
       // Trava de exclusão de cliente
@@ -2359,8 +2342,20 @@
             persistLocalData();
             renderAll();
           }
+
+          // Sincronização centralizada da Equipe a partir do Google Sheets
+          if (json.data.users && Array.isArray(json.data.users) && json.data.users.length > 0) {
+            state.users = json.data.users;
+            localStorage.setItem("harppia_system_users", JSON.stringify(state.users));
+            renderUsersTable();
+            // Re-aplica permissões do usuário logado contra a nova lista da planilha
+            if (auth && auth.currentUser) {
+              refreshCurrentUserPermissions(auth.currentUser);
+            }
+          }
+
           updateSyncIndicator(true, "Google Sheets Conectado");
-          showToast("Dados sincronizados com a planilha!");
+          showToast("Dados e equipe sincronizados com a planilha!");
         } else {
           updateSyncIndicator(false, "Erro ao ler Sheets");
         }
@@ -3804,7 +3799,7 @@
                 <button onclick="editUser('${u.id}')" title="Editar Permissões" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-sky-400">
                   <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
                 </button>
-                ${u.username !== '1234' ? `
+                ${u.id !== 'usr_admin' ? `
                   <button onclick="deleteUser('${u.id}')" title="Excluir Usuário" class="p-1 rounded bg-slate-800 hover:bg-rose-950 hover:text-rose-400 text-slate-500">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                   </button>
@@ -3960,11 +3955,23 @@
     }
 
     function deleteUser(userId) {
-      if (!confirm("Tem certeza que deseja excluir este usuário do sistema?")) return;
+      if (!hasPermission("canAccessConfig")) {
+        showToast("Apenas administradores podem gerenciar a equipe.");
+        return;
+      }
+      if (!confirm("Tem certeza que deseja excluir este membro da equipe?")) return;
+      const targetUser = state.users.find(u => u.id === userId);
       state.users = state.users.filter(u => u.id !== userId);
       localStorage.setItem("harppia_system_users", JSON.stringify(state.users));
       renderUsersTable();
-      showToast("Usuário excluído!");
+      showToast("Membro removido da equipe!");
+
+      // Envia comando de exclusão para o Google Sheets
+      callBackend("deleteUser", { id: userId, email: targetUser ? targetUser.email : "" }).then(res => {
+        if (res && res.success) {
+          showToast("Exclusão sincronizada com o Google Sheets!");
+        }
+      });
     }
 
     function applyRolePresets() {
@@ -4081,7 +4088,14 @@
       localStorage.setItem("harppia_system_users", JSON.stringify(state.users));
       closeUserModal();
       renderUsersTable();
-      showToast(`Membro ${name} salvo com sucesso!`);
+      showToast(`Membro ${name} salvo! Sincronizando com a planilha...`);
+
+      // Envia cadastro/atualização para o Google Sheets via POST
+      callBackend("saveUser", userObj).then(res => {
+        if (res && res.success) {
+          showToast("Equipe sincronizada com o Google Sheets!");
+        }
+      });
     }
 
     /**
@@ -4105,10 +4119,13 @@
     }
 
     async function saveAndSyncApiUrl() {
+      if (!hasPermission("canAccessConfig")) {
+        showToast("Apenas administradores podem configurar a URL da planilha.");
+        return;
+      }
       const url = document.getElementById("configApiUrlTab").value.trim();
       state.apiUrl = url;
       localStorage.setItem("harppia_api_url", url);
-      document.getElementById("loginSettingApiUrl").value = url;
       showToast("URL da Planilha salva! Conectando...");
       await syncDataFromBackend();
     }
