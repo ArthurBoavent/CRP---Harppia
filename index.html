@@ -1653,13 +1653,15 @@
       }
     ];
 
-    const DEFAULT_SHEETS_URL = "https://script.google.com/macros/s/AKfycbw6F-j49Vb6g1kZ3z2gC_vW1-x9_LqX6pM/exec";
+    const DEFAULT_SHEETS_URL = "COLE_AQUI_A_SUA_URL_DA_APP_DA_WEB";
 
     /**
      * ESTADO GLOBAL DA APLICAÇÃO
      */
     let state = {
-      apiUrl: localStorage.getItem("harppia_sheets_url") || localStorage.getItem("harppia_api_url") || DEFAULT_SHEETS_URL,
+      apiUrl: (localStorage.getItem("harppia_sheets_url") && localStorage.getItem("harppia_sheets_url") !== "COLE_AQUI_A_SUA_URL_DA_APP_DA_WEB")
+        ? localStorage.getItem("harppia_sheets_url")
+        : (DEFAULT_SHEETS_URL && DEFAULT_SHEETS_URL !== "COLE_AQUI_A_SUA_URL_DA_APP_DA_WEB" ? DEFAULT_SHEETS_URL : (localStorage.getItem("harppia_api_url") || DEFAULT_SHEETS_URL)),
       isSyncing: false,
       users: (() => {
         try {
@@ -2615,9 +2617,9 @@
       }
     }
 
-    async function syncDataFromBackend(silent = false) {
-      if (!state.apiUrl) {
-        updateSyncIndicator(false, "Modo Local");
+    async function fetchSheetsData(silent = false) {
+      if (!state.apiUrl || state.apiUrl === "COLE_AQUI_A_SUA_URL_DA_APP_DA_WEB") {
+        updateSyncIndicator(false, "Configure a URL da Planilha");
         return;
       }
       if (state.isSyncing) return;
@@ -2627,66 +2629,157 @@
         updateSyncIndicator(true, "Sincronizando...", "animate-spin text-sky-400");
       }
       try {
-        const res = await fetch(state.apiUrl + "?action=getAll");
-        const json = await res.json();
-        if (json.success && json.data) {
-          if (json.data.clients && json.data.clients.length > 0) {
-            state.clients = json.data.clients;
-            state.tasks = json.data.tasks || [];
-            state.logs = json.data.logs || [];
-            persistLocalData();
+        const separator = state.apiUrl.includes("?") ? "&" : "?";
+        const res = await fetch(state.apiUrl + separator + "action=getAll&t=" + Date.now());
+        const data = await res.json();
 
-            // Detecta se o usuário está editando a gaveta ativa no momento para não perder o foco/digitação
-            const isEditingDrawer = document.activeElement && (
-              document.activeElement.id === 'drawerInputNotes' ||
-              document.activeElement.id === 'drawerInputName' ||
-              document.activeElement.id === 'drawerInputPhone' ||
-              document.activeElement.id === 'drawerInputEmail' ||
-              document.activeElement.id === 'drawerInputDocument' ||
-              document.activeElement.id === 'drawerInputPaymentDate' ||
-              document.activeElement.id === 'drawerInputFormUrl' ||
-              document.activeElement.id === 'drawerInputWebsiteUrl'
-            );
+        // 1. Consumo Obrigatório de Clientes
+        const incomingClients = data.clients || (data.data && data.data.clients) || [];
+        if (incomingClients && incomingClients.length > 0) {
+          state.clients = incomingClients;
+          state.tasks = data.tasks || (data.data && data.data.tasks) || [];
+          state.logs = data.logs || (data.data && data.data.logs) || [];
+          persistLocalData();
 
-            renderKanban();
-            renderTable();
-            renderMetrics();
-            if (state.currentView === 'config') renderConfigView();
+          const isEditingDrawer = document.activeElement && (
+            document.activeElement.id === 'drawerInputNotes' ||
+            document.activeElement.id === 'drawerInputName' ||
+            document.activeElement.id === 'drawerInputPhone' ||
+            document.activeElement.id === 'drawerInputEmail' ||
+            document.activeElement.id === 'drawerInputDocument' ||
+            document.activeElement.id === 'drawerInputPaymentDate' ||
+            document.activeElement.id === 'drawerInputFormUrl' ||
+            document.activeElement.id === 'drawerInputWebsiteUrl'
+          );
 
-            if (state.selectedClientId && !isEditingDrawer) {
-              const activeClient = state.clients.find(c => c.id === state.selectedClientId);
-              if (activeClient) {
-                renderDrawerTasks();
-                updateDrawerPriorityUI(activeClient);
-              }
+          renderKanban();
+          renderTable();
+          renderMetrics();
+          if (state.currentView === 'config') renderConfigView();
+
+          if (state.selectedClientId && !isEditingDrawer) {
+            const activeClient = state.clients.find(c => c.id === state.selectedClientId);
+            if (activeClient) {
+              renderDrawerTasks();
+              updateDrawerPriorityUI(activeClient);
             }
           }
-
-          // Sincronização centralizada da Equipe a partir do Google Sheets
-          const incomingTeam = json.team || json.data.team || json.users || json.data.users;
-          if (incomingTeam && Array.isArray(incomingTeam) && incomingTeam.length > 0) {
-            state.users = incomingTeam;
-            localStorage.setItem("harppia_system_users", JSON.stringify(state.users));
-            renderUsersTable();
-            if (auth && auth.currentUser) {
-              refreshCurrentUserPermissions(auth.currentUser);
-            }
-          }
-
-          updateSyncIndicator(true, "Google Sheets Conectado");
-          if (!silent) {
-            showToast("Sincronizado com a planilha!");
-          }
-        } else {
-          updateSyncIndicator(false, "Erro ao ler Sheets");
         }
-      } catch (e) {
-        console.warn("Falha ao sincronizar com Google Sheets:", e);
-        updateSyncIndicator(false, "Offline / Verifique URL");
+
+        // 2. Consumo Obrigatório de Equipe (Substituição estrita na memória e no localStorage)
+        const incomingTeam = data.team || (data.data && data.data.team) || data.users || (data.data && data.data.users);
+        if (incomingTeam && Array.isArray(incomingTeam) && incomingTeam.length > 0) {
+          state.users = incomingTeam.map((m, idx) => {
+            const email = (m.email || m.username || "").trim();
+            const nome = (m.nome || m.name || email.split("@")[0] || "Membro").trim();
+            const cargo = (m.cargo || m.roleLabel || m.role || "Membro").trim();
+            const status = (m.status || "Ativo").trim();
+            const parts = nome.split(" ");
+            const avatar = m.avatar || (parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].slice(0, 2).toUpperCase());
+            const isAdmin = cargo.toLowerCase().includes("admin") || email === "admin@harppia.com" || email === "harppiacrp@gmail.com";
+
+            return {
+              id: m.id || ("usr-" + (idx + 1)),
+              name: nome,
+              nome: nome,
+              email: email,
+              googleEmail: email,
+              username: email,
+              role: cargo,
+              cargo: cargo,
+              roleLabel: cargo,
+              status: status,
+              avatar: avatar,
+              permissions: m.permissions || {
+                isAdmin: isAdmin,
+                canCreateClients: true,
+                canEditClients: true,
+                canDeleteClients: isAdmin,
+                canAdvancePhases: true,
+                canManageTasks: true,
+                canAccessConfig: isAdmin,
+                allowedDepts: ["*"]
+              }
+            };
+          });
+
+          localStorage.setItem("harppia_system_users", JSON.stringify(state.users));
+          renderUsersTable();
+
+          // Trava de segurança imediata pós-sincronização
+          if (auth && auth.currentUser) {
+            const currentEmail = (auth.currentUser.email || "").toLowerCase().trim();
+            const isMasterAdmin = currentEmail === "admin@harppia.com" || currentEmail === "harppiacrp@gmail.com";
+            const found = state.users.find(u => (u.email || u.googleEmail || "").toLowerCase().trim() === currentEmail);
+
+            if (!isMasterAdmin && (!found || String(found.status).toLowerCase() !== "ativo")) {
+              console.warn("Membro inativo ou desativado da equipe operacional. Encerrando sessão...");
+              auth.signOut().then(() => {
+                showLoginError("Acesso não autorizado. Este usuário não está cadastrado na equipe operacional.");
+              });
+              return;
+            }
+          }
+        }
+
+        updateSyncIndicator(true, "Google Sheets Conectado");
+      } catch (err) {
+        console.warn("Erro ao sincronizar com Google Sheets:", err);
+        updateSyncIndicator(false, "Falha de Conexão");
       } finally {
         state.isSyncing = false;
       }
     }
+
+    // Alias e exposição global para fetchSheetsData
+    const syncDataFromBackend = fetchSheetsData;
+    window.fetchSheetsData = fetchSheetsData;
+    window.syncDataFromBackend = fetchSheetsData;
+
+    /**
+     * Envia imediatamente as alterações de Equipe para a planilha Google Sheets
+     */
+    async function sendTeamToSheets(teamList) {
+      if (!state.apiUrl || state.apiUrl === "COLE_AQUI_A_SUA_URL_DA_APP_DA_WEB") {
+        showToast("URL da planilha não configurada. Salvo apenas localmente.");
+        return;
+      }
+
+      const teamArray = (teamList || state.users).map(u => ({
+        email: (u.email || u.googleEmail || u.username || "").trim(),
+        nome: (u.nome || u.name || "").trim(),
+        cargo: (u.cargo || u.roleLabel || u.role || "Membro").trim(),
+        status: (u.status || "Ativo").trim()
+      }));
+
+      updateSyncIndicator(true, "Sincronizando equipe...", "animate-spin text-sky-400");
+      try {
+        const response = await fetch(state.apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "saveTeam",
+            team: teamArray,
+            payload: teamArray,
+            data: { team: teamArray },
+            user: state.currentUser ? state.currentUser.name : "Equipe Harppia"
+          })
+        });
+        const resJson = await response.json();
+        if (resJson && (resJson.status === "success" || resJson.success)) {
+          showToast("Equipe sincronizada com o Google Sheets!");
+          updateSyncIndicator(true, "Google Sheets Conectado");
+        } else {
+          showToast("Aviso: " + (resJson.message || "Não foi possível sincronizar a equipe."));
+        }
+        return resJson;
+      } catch (err) {
+        console.warn("Erro ao salvar equipe no Sheets:", err);
+        updateSyncIndicator(false, "Erro ao salvar equipe");
+        showToast("Erro ao sincronizar equipe com o Google Sheets.");
+      }
+    }
+    window.sendTeamToSheets = sendTeamToSheets;
 
     async function triggerManualSync() {
       const icon = document.getElementById("manualSyncIcon");
@@ -4485,11 +4578,7 @@
       showToast(`Membro ${name} salvo! Sincronizando com a planilha...`);
 
       // Envia cadastro/atualização para o Google Sheets via POST
-      callBackend("saveTeam", state.users).then(res => {
-        if (res && res.success) {
-          showToast("Equipe sincronizada com o Google Sheets!");
-        }
-      });
+      sendTeamToSheets();
     }
 
     /**
