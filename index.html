@@ -93,6 +93,75 @@
       border-color: #0284c7 !important;
       border-style: dashed !important;
     }
+  
+    /* Estilização moderna e calendário suspenso em modo escuro */
+    input[type="date"] {
+      color-scheme: dark;
+      position: relative;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      filter: invert(0.85) brightness(1.2);
+      opacity: 0.85;
+      padding: 4px;
+      border-radius: 6px;
+      transition: opacity 0.2s, transform 0.15s, background-color 0.2s;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
+      transform: scale(1.1);
+      background-color: rgba(14, 165, 233, 0.15);
+    }
+
+  
+    /* =========================================================================
+       OTIMIZAÇÕES MOBILE APP EXPERIENCE & TOUCH TARGETS
+       ========================================================================= */
+    body {
+      overflow-x: hidden;
+      max-width: 100vw;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Prevenção de auto-zoom no iOS em inputs e selects */
+    @media (max-width: 768px) {
+      input, select, textarea {
+        font-size: 16px !important;
+      }
+    }
+
+    /* Rolagem touch suave do Kanban com scroll snap */
+    .kanban-scroll-area {
+      -webkit-overflow-scrolling: touch;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      touch-action: pan-x;
+    }
+
+    .kanban-col {
+      min-width: 320px;
+      width: 320px;
+      scroll-snap-align: start;
+    }
+
+    @media (max-width: 640px) {
+      .kanban-col {
+        min-width: 85vw !important;
+        width: 85vw !important;
+        scroll-snap-align: start;
+      }
+    }
+
+    /* Área mínima de toque de 44x44px para botões rápidos */
+    .touch-target {
+      min-width: 44px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 </head>
@@ -340,10 +409,11 @@
           <i data-lucide="clock" class="w-3.5 h-3.5 text-sky-400 absolute left-2.5 pointer-events-none"></i>
           <select id="filterAgingSelect" onchange="setAgingFilter(this.value)" class="bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer font-medium shadow-inner">
             <option value="all">⏱️ Todos os Prazos</option>
-            <option value="0-6">🟢 0 a 6 dias (Verde)</option>
-            <option value="7-14">🟡 7 a 14 dias (Amarelo)</option>
-            <option value="15-30">🟠 15 a 30 dias (Laranja)</option>
-            <option value="31+">🔴 31+ dias (Vermelho)</option>
+            <option value="0-15">🟢 0 a 15 dias (Início Regular)</option>
+            <option value="16-30">🟡 16 a 30 dias (Prazo Padrão)</option>
+            <option value="31-45">🟠 31 a 45 dias (Atenção)</option>
+            <option value="46-60">🔴 46 a 60 dias (Alerta)</option>
+            <option value="61+">🚨 61+ dias (Crítico)</option>
           </select>
         </div>
 
@@ -352,20 +422,20 @@
           <button type="button" onclick="setAgingFilter('all')" data-aging="all" class="aging-filter-btn px-2.5 py-1 rounded-lg text-[10px] font-semibold transition bg-sky-600 text-white shadow-sm cursor-pointer">
             Todos
           </button>
-          <button type="button" onclick="setAgingFilter('0-7')" data-aging="0-7" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-emerald-400 hover:bg-emerald-950/40 cursor-pointer" title="0 a 7 dias (Recente)">
-            🟢 0-7d
+          <button type="button" onclick="setAgingFilter('0-15')" data-aging="0-15" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-emerald-400 hover:bg-emerald-950/40 cursor-pointer" title="0 a 15 dias (Início Regular)">
+            🟢 0-15d
           </button>
-          <button type="button" onclick="setAgingFilter('8-14')" data-aging="8-14" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-sky-400 hover:bg-sky-950/40 cursor-pointer" title="8 a 14 dias (Atenção)">
-            🔵 8-14d
+          <button type="button" onclick="setAgingFilter('16-30')" data-aging="16-30" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-amber-400 hover:bg-amber-950/40 cursor-pointer" title="16 a 30 dias (Prazo Padrão)">
+            🟡 16-30d
           </button>
-          <button type="button" onclick="setAgingFilter('15-30')" data-aging="15-30" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-amber-400 hover:bg-amber-950/40 cursor-pointer" title="15 a 30 dias (Intermediário)">
-            🟠 15-30d
+          <button type="button" onclick="setAgingFilter('31-45')" data-aging="31-45" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-orange-400 hover:bg-orange-950/40 cursor-pointer" title="31 a 45 dias (Atenção)">
+            🟠 31-45d
           </button>
-          <button type="button" onclick="setAgingFilter('31-45')" data-aging="31-45" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer" title="31 a 45 dias (Alerta)">
-            🔴 31-45d
+          <button type="button" onclick="setAgingFilter('46-60')" data-aging="46-60" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer" title="46 a 60 dias (Alerta)">
+            🔴 46-60d
           </button>
-          <button type="button" onclick="setAgingFilter('46+')" data-aging="46+" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-red-400 hover:bg-red-950/40 cursor-pointer" title="46+ dias (Crítico)">
-            🚨 46+d
+          <button type="button" onclick="setAgingFilter('61+')" data-aging="61+" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-red-400 hover:bg-red-950/40 cursor-pointer" title="61+ dias (Crítico)">
+            🚨 61+d
           </button>
         </div>
 
@@ -430,10 +500,11 @@
           <div class="relative inline-flex items-center">
             <select id="tableFilterAging" onchange="renderTable();" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
               <option value="all">Todos os Prazos</option>
-              <option value="0-6">🟢 0 a 6 dias (Verde)</option>
-              <option value="7-14">🟡 7 a 14 dias (Amarelo)</option>
-              <option value="15-30">🟠 15 a 30 dias (Laranja)</option>
-              <option value="31+">🔴 31+ dias (Vermelho)</option>
+              <option value="0-15">🟢 0 a 15 dias (Início Regular)</option>
+              <option value="16-30">🟡 16 a 30 dias (Prazo Padrão)</option>
+              <option value="31-45">🟠 31 a 45 dias (Atenção)</option>
+              <option value="46-60">🔴 46 a 60 dias (Alerta)</option>
+              <option value="61+">🚨 61+ dias (Crítico)</option>
             </select>
           </div>
 
@@ -728,7 +799,7 @@
         <div>
           <label class="block text-slate-400 mb-1">Link do Grupo de WhatsApp</label>
           <div class="flex gap-2">
-            <input type="url" id="drawerInputWhatsappGroup" placeholder="https://chat.whatsapp.com/..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-sky-500">
+            <input type="text" id="drawerInputWhatsappGroup" placeholder="https://chat.whatsapp.com/..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-sky-500">
             <button type="button" onclick="openDrawerWhatsApp()" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition flex items-center gap-1.5 cursor-pointer">
               <i data-lucide="message-circle" class="w-4 h-4"></i>
               <span>Abrir</span>
@@ -737,12 +808,22 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-slate-400 mb-1">Data de Entrada</label>
-            <input type="date" id="drawerInputEntryDate" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-sky-500">
+            <label class="block text-slate-400 mb-1">Data de Pagamento / Início</label>
+            <div class="relative flex items-center">
+              <input type="date" id="drawerInputEntryDate" onclick="openDatePicker('drawerInputEntryDate')" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 pr-9 text-white focus:outline-none focus:border-sky-500 cursor-pointer text-xs shadow-inner" style="color-scheme: dark;">
+              <button type="button" onclick="openDatePicker('drawerInputEntryDate')" class="absolute right-2.5 p-1 text-slate-400 hover:text-sky-400 transition cursor-pointer" title="Abrir calendário suspenso">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+              </button>
+            </div>
           </div>
           <div>
             <label class="block text-slate-400 mb-1">Prazo Estimado</label>
-            <input type="date" id="drawerInputDeadline" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-sky-500">
+            <div class="relative flex items-center">
+              <input type="date" id="drawerInputDeadline" onclick="openDatePicker('drawerInputDeadline')" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 pr-9 text-white focus:outline-none focus:border-sky-500 cursor-pointer text-xs shadow-inner" style="color-scheme: dark;">
+              <button type="button" onclick="openDatePicker('drawerInputDeadline')" class="absolute right-2.5 p-1 text-slate-400 hover:text-sky-400 transition cursor-pointer" title="Abrir calendário suspenso">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -772,8 +853,8 @@
   <!-- =========================================================================
        MODAL DE CADASTRO: + NOVO CLIENTE (HÍBRIDO COM SUBTAREFAS AUTOMÁTICAS)
        ========================================================================= -->
-  <div id="modalNewClient" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative text-left">
+  <div id="modalNewClient" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
         <h3 class="text-base font-bold text-white flex items-center gap-2">
           <i data-lucide="user-plus" class="w-5 h-5 text-sky-400"></i>
@@ -811,11 +892,21 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block font-medium text-slate-300 mb-1">Data de Pagamento / Início *</label>
-            <input type="date" id="newClientEntryDate" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-sky-500">
+            <div class="relative flex items-center">
+              <input type="date" id="newClientEntryDate" onclick="openDatePicker('newClientEntryDate')" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pr-9 text-white focus:outline-none focus:border-sky-500 cursor-pointer text-xs shadow-inner" style="color-scheme: dark;">
+              <button type="button" onclick="openDatePicker('newClientEntryDate')" class="absolute right-2.5 p-1 text-slate-400 hover:text-sky-400 transition cursor-pointer" title="Abrir calendário suspenso">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+              </button>
+            </div>
           </div>
           <div>
             <label class="block font-medium text-slate-300 mb-1">Prazo Estimado</label>
-            <input type="date" id="newClientDeadline" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-sky-500">
+            <div class="relative flex items-center">
+              <input type="date" id="newClientDeadline" onclick="openDatePicker('newClientDeadline')" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 pr-9 text-white focus:outline-none focus:border-sky-500 cursor-pointer text-xs shadow-inner" style="color-scheme: dark;">
+              <button type="button" onclick="openDatePicker('newClientDeadline')" class="absolute right-2.5 p-1 text-slate-400 hover:text-sky-400 transition cursor-pointer" title="Abrir calendário suspenso">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -960,21 +1051,93 @@
   <!-- =========================================================================
        MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE CLIENTE
        ========================================================================= -->
+  <!-- MODAL DE EXCLUSÃO DE CLIENTE COM DUPLA CONFIRMAÇÃO POR DIGITAÇÃO -->
   <div id="modalDeleteClient" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center">
-      <div class="w-12 h-12 rounded-2xl bg-rose-950/60 border border-rose-800 text-rose-400 mx-auto mb-3 flex items-center justify-center">
-        <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+    <div class="bg-slate-900 border border-rose-900/50 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
+        <div class="w-10 h-10 rounded-2xl bg-rose-950/80 border border-rose-800/80 text-rose-400 flex items-center justify-center shrink-0">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Confirmar Exclusão de Cliente</h3>
+          <span class="text-[11px] text-rose-400 font-medium">Ação irreversível de alto impacto</span>
+        </div>
+        <button type="button" onclick="closeDeleteClientModal()" class="ml-auto p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
       </div>
-      <h3 class="text-base font-bold text-white mb-1">Confirmar Exclusão</h3>
-      <p class="text-xs text-slate-400 mb-5 leading-relaxed">
-        Tem certeza que deseja apagar o registro deste cliente do banco de dados? Esta ação é definitiva e removerá todas as tarefas associadas.
-      </p>
-      <div class="flex gap-2 justify-center">
-        <button onclick="closeDeleteClientModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition cursor-pointer">
+
+      <div class="space-y-3.5 text-xs">
+        <div class="p-3 bg-rose-950/30 border border-rose-900/50 rounded-2xl text-rose-300 leading-relaxed font-medium">
+          ⚠️ <strong>Esta ação apagará permanentemente todos os dados, subtarefas e histórico deste cliente.</strong>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-medium mb-1.5">
+            Para confirmar, digite o nome exato do cliente:
+          </label>
+          <div id="deleteClientTargetName" class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl mb-2 text-white font-bold select-all tracking-wide text-xs">
+            Nome do Cliente
+          </div>
+          <input type="text"
+                 id="inputConfirmDeleteClientName"
+                 oninput="handleConfirmDeleteClientInput(this.value)"
+                 placeholder="Digite o nome exato para habilitar a exclusão"
+                 autocomplete="off"
+                 class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 text-xs shadow-inner">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2.5 pt-4 mt-4 border-t border-slate-800">
+        <button type="button" onclick="closeDeleteClientModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition cursor-pointer text-xs">
           Cancelar
         </button>
-        <button onclick="confirmDeleteClient()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition shadow-lg shadow-rose-600/20 cursor-pointer">
-          Sim, Excluir
+        <button type="button"
+                id="btnConfirmDeleteClient"
+                onclick="confirmDeleteClient()"
+                disabled
+                class="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold transition cursor-pointer text-xs opacity-40 cursor-not-allowed shadow-lg shadow-rose-950/40">
+          Excluir Definitivamente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMAÇÃO DUPLA PARA EXCLUSÃO DE ETAPA DA ESTEIRA -->
+  <div id="modalDeleteStage" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-900/50 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
+        <div class="w-10 h-10 rounded-2xl bg-amber-950/80 border border-amber-800/80 text-amber-400 flex items-center justify-center shrink-0">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Excluir Etapa da Esteira</h3>
+          <span class="text-[11px] text-amber-400 font-medium">Configurações do CRM</span>
+        </div>
+        <button type="button" onclick="closeDeleteStageModal()" class="ml-auto p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <div class="p-3.5 bg-amber-950/30 border border-amber-900/50 rounded-2xl text-amber-300 leading-relaxed font-semibold">
+          ⚠️ Atenção: excluir esta etapa pode afetar clientes que estejam nela no momento.
+        </div>
+
+        <p class="text-slate-300 leading-relaxed">
+          Você tem certeza de que deseja remover a etapa <strong id="deleteStageTargetName" class="text-white"></strong>? Todas as subtarefas padrão configuradas para esta fase serão desvinculadas.
+        </p>
+      </div>
+
+      <div class="flex justify-end gap-2.5 pt-4 mt-4 border-t border-slate-800">
+        <button type="button" onclick="closeDeleteStageModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition cursor-pointer text-xs">
+          Cancelar
+        </button>
+        <button type="button"
+                id="btnConfirmDeleteStage"
+                onclick="executeDeleteStage()"
+                class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold transition cursor-pointer text-xs shadow-lg shadow-rose-600/30">
+          Sim, tenho certeza que desejo remover esta etapa
         </button>
       </div>
     </div>
@@ -1421,7 +1584,14 @@
 
     function getClientAgingInfo(client) {
       if (!client) {
-        return { days: 0, category: "0-6", badgeClass: "bg-emerald-950/80 text-emerald-400 border-emerald-800/80", dotEmoji: "🟢", label: "0 a 6 dias", statusText: "0d" };
+        return {
+          days: 0,
+          category: "0-15",
+          badgeClass: "bg-emerald-950/80 text-emerald-400 border-emerald-800/80",
+          dotEmoji: "🟢",
+          label: "Início Regular (0-15d)",
+          statusText: "Início Regular"
+        };
       }
 
       let dateObj = null;
@@ -1442,42 +1612,48 @@
 
       const now = new Date();
       const diffMs = Math.max(0, now.getTime() - dateObj.getTime());
-      const days = Math.floor(diffMs / 86400000);
+      const dias = Math.floor(diffMs / 86400000);
 
-      let category = "0-6";
+      let category = "0-15";
       let badgeClass = "bg-emerald-950/80 text-emerald-400 border-emerald-800/80";
       let dotEmoji = "🟢";
-      let label = "0 a 6 dias";
-      let statusText = days + "d";
+      let label = "0-15 dias";
+      let statusText = "Início Regular";
 
-      if (days <= 6) {
-        category = "0-6";
+      if (dias <= 15) {
+        category = "0-15";
         badgeClass = "bg-emerald-950/80 text-emerald-400 border-emerald-800/80";
         dotEmoji = "🟢";
-        label = "0 a 6 dias";
-        statusText = days + "d";
-      } else if (days <= 14) {
-        category = "7-14";
+        label = "0 a 15 dias";
+        statusText = "Início Regular";
+      } else if (dias <= 30) {
+        category = "16-30";
         badgeClass = "bg-amber-950/80 text-amber-300 border-amber-800/80";
         dotEmoji = "🟡";
-        label = "7 a 14 dias";
-        statusText = days + "d";
-      } else if (days <= 30) {
-        category = "15-30";
+        label = "16 a 30 dias";
+        statusText = "Prazo Padrão";
+      } else if (dias <= 45) {
+        category = "31-45";
         badgeClass = "bg-orange-950/80 text-orange-400 border-orange-800/80";
         dotEmoji = "🟠";
-        label = "15 a 30 dias";
-        statusText = days + "d";
-      } else {
-        category = "31+";
-        badgeClass = "bg-rose-950/80 text-rose-400 border-rose-800/80";
+        label = "31 a 45 dias";
+        statusText = "Atenção";
+      } else if (dias <= 60) {
+        category = "46-60";
+        badgeClass = "bg-rose-950/80 text-rose-300 border-rose-800/80";
         dotEmoji = "🔴";
-        label = "31+ dias";
-        statusText = days + "d";
+        label = "46 a 60 dias";
+        statusText = "Alerta";
+      } else {
+        category = "61+";
+        badgeClass = "bg-red-950/95 text-red-400 border-red-700 font-bold";
+        dotEmoji = "🚨";
+        label = "61+ dias";
+        statusText = "Crítico";
       }
 
       return {
-        days,
+        days: dias,
         category,
         badgeClass,
         dotEmoji,
@@ -2112,11 +2288,11 @@
 
         const aging = getClientAgingInfo(c);
         if (filterAging !== "all") {
-          if (filterAging === "0-7" && aging.category !== "0-7") return false;
-          if (filterAging === "8-14" && aging.category !== "8-14") return false;
-          if (filterAging === "15-30" && aging.category !== "15-30") return false;
+          if (filterAging === "0-15" && aging.category !== "0-15") return false;
+          if (filterAging === "16-30" && aging.category !== "16-30") return false;
           if (filterAging === "31-45" && aging.category !== "31-45") return false;
-          if (filterAging === "46+" && aging.category !== "46+") return false;
+          if (filterAging === "46-60" && aging.category !== "46-60") return false;
+          if (filterAging === "61+" && aging.category !== "61+") return false;
         }
 
         if (filterAssignee === "my_actions") {
@@ -2186,9 +2362,11 @@
         : (client.phone ? ("https://wa.me/55" + client.phone.replace(/\D/g, '')) : '');
 
       let nextTaskAssigneeName = "";
+      let nextTaskAssigneeInitials = "";
       if (nextTask && nextTask.assignee) {
         const member = state.users.find(u => (u.email || "").toLowerCase() === nextTask.assignee.toLowerCase());
         nextTaskAssigneeName = member?.nome || nextTask.assignee.split("@")[0];
+        nextTaskAssigneeInitials = getInitials(nextTaskAssigneeName);
       }
 
       return `
@@ -2202,52 +2380,63 @@
           ${isPriority ? `
             <div class="mb-2 -mx-3.5 -mt-3.5 px-3 py-1 bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 text-white text-[10px] font-black tracking-wider uppercase flex items-center justify-between priority-badge-blink shadow-md">
               <span class="flex items-center gap-1"><i data-lucide="flame" class="w-3 h-3"></i> PRIORIDADE ALTA</span>
-              <button onclick="event.stopPropagation(); toggleClientPriority('${client.id}', event)" title="Desativar Prioridade" class="hover:bg-rose-700/60 p-0.5 rounded transition cursor-pointer">
-                <i data-lucide="x" class="w-3 h-3"></i>
+              <button onclick="event.stopPropagation(); toggleClientPriority('${client.id}', event)" title="Desativar Prioridade" class="touch-target hover:bg-rose-700/60 p-0.5 rounded transition cursor-pointer">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
               </button>
             </div>
           ` : ''}
 
           <div class="flex items-start justify-between gap-2 mb-2">
             <div class="min-w-0" onclick="event.stopPropagation(); openClientDrawer('${client.id}')">
-              <h4 class="font-bold text-xs text-white truncate hover:text-sky-400 transition cursor-pointer">${escapeHtml(client.name)}</h4>
-              <p class="text-[11px] text-slate-400 truncate">${escapeHtml(client.specialty || 'Geral')}</p>
+              <h4 class="font-bold text-xs text-white truncate hover:text-sky-400 transition cursor-pointer" title="${escapeHtml(client.name)}">${escapeHtml(client.name)}</h4>
+              <p class="text-[11px] text-slate-400 truncate">${escapeHtml(client.specialty || client.niche || client.phone || '')}</p>
             </div>
             
-            <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${aging.badgeClass} flex items-center gap-1" title="${aging.days} dias ativo na esteira (${aging.label})">
+            <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${aging.badgeClass} flex items-center gap-1 shadow-sm" title="${aging.days} dias na esteira (${aging.statusText})">
               <span>${aging.dotEmoji}</span>
-              <span>${aging.statusText}</span>
+              <span>${aging.days}d</span>
+              <span class="opacity-80 hidden sm:inline text-[8px]">(${aging.statusText})</span>
             </span>
           </div>
 
-          <div class="bg-slate-900/80 rounded-xl p-2.5 border border-slate-800/80 mb-2.5 text-[11px]">
-            <div class="flex items-center justify-between text-slate-400 text-[10px] mb-1">
-              <span class="font-semibold text-sky-400">Próxima Ação:</span>
-              <span>${donePhaseTasks.length}/${phaseTasks.length}</span>
+          <!-- Bloco Visual: Próxima Ação com Responsável -->
+          <div class="bg-slate-900/90 rounded-xl p-2.5 border border-slate-800/80 mb-2.5 text-[11px] shadow-inner space-y-1.5">
+            <div class="flex items-center justify-between text-slate-400 text-[10px]">
+              <span class="font-bold text-sky-400 uppercase tracking-wider text-[9px] flex items-center gap-1">
+                <i data-lucide="arrow-right-circle" class="w-3 h-3"></i> Próxima Ação
+              </span>
+              <span class="font-mono text-slate-400 font-semibold">${donePhaseTasks.length}/${phaseTasks.length}</span>
             </div>
-            <p class="text-slate-200 font-medium truncate">${nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas nesta etapa 🎉'}</p>
-            ${nextTaskAssigneeName ? `
-              <div class="mt-1.5 flex items-center gap-1 text-[10px] text-indigo-300 font-medium">
-                <i data-lucide="user" class="w-3 h-3"></i>
-                <span>${escapeHtml(nextTaskAssigneeName)}</span>
+            
+            <p class="text-slate-100 font-semibold text-xs leading-snug line-clamp-2" title="${nextTask ? escapeHtml(nextTask.title) : 'Todas subtarefas concluídas'}">
+              ${nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas nesta etapa 🎉'}
+            </p>
+
+            ${nextTask ? `
+              <div class="pt-1 flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${nextTaskAssigneeName ? 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80 shadow-sm' : 'bg-slate-950 text-slate-400 border-slate-800'}" title="${nextTaskAssigneeName ? 'Responsável: ' + escapeHtml(nextTaskAssigneeName) : 'Nenhum responsável atribuído'}">
+                  <span class="w-3.5 h-3.5 rounded-full bg-indigo-900 text-indigo-200 text-[8px] font-bold flex items-center justify-center shrink-0">
+                    ${nextTaskAssigneeInitials ? nextTaskAssigneeInitials : '👤'}
+                  </span>
+                  <span class="truncate max-w-[170px]">${nextTaskAssigneeName ? escapeHtml(nextTaskAssigneeName) : 'Sem responsável'}</span>
+                </span>
               </div>
             ` : ''}
           </div>
 
           <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800/60">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1">
               ${waLink ? `
-                <button onclick="event.stopPropagation(); window.open('${waLink}', '_blank')" title="Abrir WhatsApp" class="p-1 rounded-lg text-emerald-400 hover:bg-emerald-950/50 transition cursor-pointer">
+                <button onclick="event.stopPropagation(); window.open('${waLink}', '_blank')" title="Abrir WhatsApp" class="touch-target p-1.5 rounded-xl text-emerald-400 hover:bg-emerald-950/50 transition cursor-pointer">
                   <i data-lucide="message-circle" class="w-4 h-4"></i>
                 </button>
-              ` : `
-                <span class="text-slate-600"><i data-lucide="message-circle" class="w-4 h-4 opacity-40"></i></span>
-              `}
-              
-              ${client.notes ? '<i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400/80" title="Possui anotações"></i>' : ''}
+              ` : ''}
+              <button onclick="event.stopPropagation(); toggleClientPriority('${client.id}', event)" title="Alternar Prioridade" class="touch-target p-1.5 rounded-xl ${isPriority ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'} transition cursor-pointer">
+                <i data-lucide="star" class="w-4 h-4 ${isPriority ? 'fill-amber-400 text-amber-400' : ''}"></i>
+              </button>
             </div>
 
-            <button onclick="event.stopPropagation(); openClientDrawer('${client.id}')" class="text-slate-400 hover:text-sky-400 text-[11px] font-medium flex items-center gap-1 transition cursor-pointer">
+            <button onclick="event.stopPropagation(); openClientDrawer('${client.id}')" class="min-h-[44px] px-3 py-2 flex items-center gap-1 font-semibold text-sky-400 hover:text-sky-300 transition cursor-pointer">
               <span>Detalhes</span>
               <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
             </button>
@@ -2257,8 +2446,12 @@
       `;
     }
 
-    
 
+    /**
+     * =========================================================================
+     * DRAG AND DROP KANBAN (COM FASE & DATA_ENTRADA_FASE NO FIRESTORE)
+     * =========================================================================
+     */
     let draggedClientId = null;
 
     function handleDragStart(e, clientId) {
@@ -2269,43 +2462,51 @@
       draggedClientId = clientId;
       e.dataTransfer.setData("text/plain", clientId);
       e.dataTransfer.effectAllowed = "move";
+      const card = document.getElementById("card-" + clientId);
+      if (card) {
+        card.classList.add("opacity-50", "scale-[0.98]");
+      }
     }
 
     function handleDragOver(e) {
-      if (!state.currentUser?.permissions?.canAdvancePhases) return;
       e.preventDefault();
-      e.currentTarget.classList.add("drag-over");
+      e.dataTransfer.dropEffect = "move";
+      const col = e.currentTarget;
+      col.classList.add("border-sky-500", "bg-sky-950/20");
     }
 
     function handleDragLeave(e) {
-      e.currentTarget.classList.remove("drag-over");
+      const col = e.currentTarget;
+      col.classList.remove("border-sky-500", "bg-sky-950/20");
     }
 
     async function handleDrop(e, targetStageId) {
       e.preventDefault();
-      e.currentTarget.classList.remove("drag-over");
+      const col = e.currentTarget;
+      col.classList.remove("border-sky-500", "bg-sky-950/20");
 
-      if (!state.currentUser?.permissions?.canAdvancePhases) {
-        showToast("Seu cargo não possui permissão para mover cards.");
-        return;
-      }
-
-      const clientId = draggedClientId || e.dataTransfer.getData("text/plain");
+      const clientId = e.dataTransfer.getData("text/plain") || draggedClientId;
       if (!clientId) return;
 
       const client = state.clients.find(c => c.id === clientId);
       if (!client) return;
 
-      const currentStage = getClientCurrentStage(client);
-      if (String(currentStage.id) === String(targetStageId)) return;
-
       const stages = getPipelineStages();
-      const destStage = stages.find(s => String(s.id) === String(targetStageId));
-      const destName = destStage?.nome || targetStageId;
+      const currentStage = getClientCurrentStage(client);
+
+      if (currentStage.id === targetStageId) return;
+
+      if (!state.currentUser?.permissions?.canAdvancePhases) {
+        showToast("Seu cargo não possui permissão para mover clientes de fase.");
+        return;
+      }
+
+      const targetStage = stages.find(s => s.id === targetStageId);
+      const stageName = targetStage ? targetStage.nome : targetStageId;
       const nowIso = new Date().toISOString();
 
       try {
-        await db.collection('clients').doc(clientId).update({
+        await db.collection("clients").doc(clientId).update({
           fase: targetStageId,
           status: targetStageId,
           dataEntradaFase: nowIso,
@@ -2313,21 +2514,26 @@
           historico: firebase.firestore.FieldValue.arrayUnion({
             data: nowIso,
             autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
-            acao: 'Mudança de fase para "' + destName + '" via esteira'
+            acao: 'Moveu cliente da etapa "' + currentStage.nome + '" para "' + stageName + '" (Drag-and-Drop)'
           })
         });
-        showToast('Cliente movido para "' + destName + '"!');
+
+        showToast('Cliente movido para "' + stageName + '"!');
       } catch (err) {
-        console.error("Erro ao mover cliente:", err);
-        showToast("Falha ao salvar no Firestore.");
+        console.error("Erro ao mover cliente via drag and drop:", err);
+        showToast("Erro ao atualizar fase no Firestore.");
       } finally {
         draggedClientId = null;
+        const card = document.getElementById("card-" + clientId);
+        if (card) {
+          card.classList.remove("opacity-50", "scale-[0.98]");
+        }
       }
     }
 
     /**
      * =========================================================================
-     * GAVETA DO CLIENTE, SUBTAREFAS & HISTÓRICO DE AUDITORIA
+     * GAVETA DO CLIENTE (CLIENT DRAWER) & SUBTAREFAS
      * =========================================================================
      */
     function updateDrawerPriorityUI(client) {
@@ -2357,7 +2563,7 @@
         if (elName) elName.textContent = client.name || "Sem Nome";
 
         const elNiche = document.getElementById("drawerClientNiche") || document.getElementById("drawerClientSpecialty");
-        if (elNiche) elNiche.textContent = client.specialty || "Geral";
+        if (elNiche) elNiche.textContent = client.specialty || client.niche || client.phone || "Geral";
         
         const currentStage = getClientCurrentStage(client);
         const stageBadge = document.getElementById("drawerClientPhaseBadge");
@@ -2370,8 +2576,8 @@
         const aging = getClientAgingInfo(client);
         const semaforoEl = document.getElementById("drawerClientSemaforo");
         if (semaforoEl) {
-          semaforoEl.textContent = aging.dotEmoji + " " + aging.days + "d na esteira (" + aging.label + ")";
-          semaforoEl.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full border " + aging.badgeClass;
+          semaforoEl.textContent = aging.dotEmoji + " " + aging.days + "d na esteira (" + aging.statusText + ")";
+          semaforoEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border shadow-sm " + aging.badgeClass;
         }
 
         const safeSetVal = (id, val) => {
@@ -2380,18 +2586,20 @@
         };
 
         safeSetVal("drawerInputName", client.name);
-        safeSetVal("drawerInputSpecialty", client.specialty);
+        safeSetVal("drawerInputSpecialty", client.specialty || client.niche);
         safeSetVal("drawerInputPhone", client.phone);
         safeSetVal("drawerInputEmail", client.email);
         safeSetVal("drawerInputWhatsappGroup", client.whatsappGroup);
-        safeSetVal("drawerInputEntryDate", client.entryDate || client.dataEntrada);
+        safeSetVal("drawerInputEntryDate", client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada);
         safeSetVal("drawerInputDeadline", client.deadline);
         safeSetVal("drawerInputNotes", client.notes);
 
         updateDrawerPriorityUI(client);
+
         if (document.getElementById("drawerTasksFilter")) {
           document.getElementById("drawerTasksFilter").value = "current";
         }
+
         switchDrawerTab("tasks");
         renderDrawerTasks();
         renderDrawerHistory();
@@ -2440,9 +2648,6 @@
         activeBtn.classList.add("text-sky-400", "border-b-2", "border-sky-500");
         activeBtn.classList.remove("text-slate-400");
       }
-
-      if (tab === "history") renderDrawerHistory();
-      lucide.createIcons();
     }
 
     function renderDrawerTasks() {
@@ -2499,7 +2704,7 @@
 
         return `
           <div class="bg-slate-950 border ${isDone ? 'border-slate-800/50 bg-slate-950/40 opacity-75' : 'border-slate-800'} rounded-xl p-3 flex items-start justify-between gap-3 transition">
-            <button onclick="toggleTaskStatus('${task.id}')" class="mt-0.5 w-5 h-5 rounded border ${isDone ? 'bg-sky-600 border-sky-500 text-white' : 'border-slate-700 bg-slate-900 text-transparent hover:border-sky-500'} flex items-center justify-center flex-shrink-0 transition cursor-pointer">
+            <button onclick="toggleTaskStatus('${task.id}')" class="mt-0.5 w-6 h-6 rounded-lg border ${isDone ? 'bg-sky-600 border-sky-500 text-white' : 'border-slate-700 bg-slate-900 text-transparent hover:border-sky-500'} flex items-center justify-center flex-shrink-0 transition cursor-pointer touch-target">
               <i data-lucide="check" class="w-3.5 h-3.5"></i>
             </button>
 
@@ -2522,57 +2727,6 @@
       }).join("");
 
       lucide.createIcons();
-    }
-
-    function renderDrawerHistory() {
-      const client = state.clients.find(c => c.id === state.selectedClientId);
-      if (!client) return;
-
-      const listEl = document.getElementById("drawerHistoryList");
-      const countEl = document.getElementById("drawerHistoryCount");
-      const history = Array.isArray(client.historico) ? [...client.historico] : [];
-
-      if (countEl) countEl.textContent = history.length;
-      if (!listEl) return;
-
-      if (history.length === 0) {
-        listEl.innerHTML = '<div class="text-slate-500 text-xs py-4 italic">Nenhum evento registrado no histórico ainda. As alterações de fase, conclusão de tarefas e edições aparecerão aqui automaticamente.</div>';
-        return;
-      }
-
-      history.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
-
-      listEl.innerHTML = history.map(item => {
-        const dateStr = item.data ? formatDateTime(item.data) : "Data recente";
-        return `
-          <div class="relative pl-5 pb-3.5 group">
-            <div class="w-2.5 h-2.5 rounded-full bg-sky-500 border-2 border-slate-900 absolute -left-[6px] top-1.5 shadow-sm group-hover:scale-125 transition"></div>
-            
-            <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-xs shadow-sm">
-              <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-                <span class="font-bold text-sky-400 flex items-center gap-1.5 truncate">
-                  <i data-lucide="user" class="w-3 h-3 text-slate-400 shrink-0"></i>
-                  <span>${escapeHtml(item.autor || 'Sistema')}</span>
-                </span>
-                <span class="text-[10px] text-slate-500 shrink-0">${escapeHtml(dateStr)}</span>
-              </div>
-              <p class="text-slate-200 font-medium leading-relaxed">${escapeHtml(item.acao || '')}</p>
-            </div>
-          </div>
-        `;
-      }).join("");
-
-      lucide.createIcons();
-    }
-
-    function formatDateTime(isoString) {
-      try {
-        const d = new Date(isoString);
-        if (isNaN(d.getTime())) return isoString;
-        return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-      } catch (e) {
-        return isoString;
-      }
     }
 
     async function toggleTaskStatus(taskId) {
@@ -2678,30 +2832,29 @@
       if (!client) return;
 
       const merged = getClientMergedTasks(client);
-      const task = merged.find(t => t.id === taskId);
-      if (!task) return;
+      const targetTask = merged.find(t => t.id === taskId);
+      if (!targetTask) return;
 
       let tasks = Array.isArray(client.tasks) ? [...client.tasks] : [];
-      const existingIdx = tasks.findIndex(t => t.id === taskId || (t.title && t.title.trim().toLowerCase() === task.title.trim().toLowerCase()));
+      const existingIdx = tasks.findIndex(t => t.id === taskId || (t.title && t.title.trim().toLowerCase() === targetTask.title.trim().toLowerCase()));
+
+      const nowIso = new Date().toISOString();
+      const member = state.users.find(u => (u.email || "").toLowerCase() === assigneeEmail.toLowerCase());
+      const memberName = member ? member.nome : (assigneeEmail || "Nenhum");
 
       if (existingIdx !== -1) {
         tasks[existingIdx].assignee = assigneeEmail;
       } else {
         tasks.push({
           id: taskId,
-          stageId: task.stageId,
-          phase: task.stageIndex,
-          title: task.title,
-          department: task.department,
-          status: task.status,
+          stageId: targetTask.stageId,
+          phase: targetTask.stageIndex,
+          title: targetTask.title,
+          status: targetTask.status,
           assignee: assigneeEmail,
-          completedAt: task.completedAt || ""
+          completedAt: targetTask.completedAt || ""
         });
       }
-
-      const member = state.users.find(u => (u.email || "").toLowerCase() === assigneeEmail.toLowerCase());
-      const assigneeLabel = member ? member.nome : (assigneeEmail || "Ninguém");
-      const nowIso = new Date().toISOString();
 
       try {
         await db.collection("clients").doc(client.id).update({
@@ -2710,12 +2863,67 @@
           historico: firebase.firestore.FieldValue.arrayUnion({
             data: nowIso,
             autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
-            acao: 'Atribuiu a subtarefa "' + task.title + '" para ' + assigneeLabel
+            acao: 'Atribuiu a subtarefa "' + targetTask.title + '" para: ' + memberName
           })
         });
-        showToast("Responsável atribuído!");
+
+        showToast("Responsável atualizado para " + memberName);
       } catch (err) {
-        console.error("Erro ao atribuir responsável:", err);
+        console.error("Erro ao atualizar responsável da tarefa:", err);
+        showToast("Erro ao salvar responsável.");
+      }
+    }
+
+    function renderDrawerHistory() {
+      const client = state.clients.find(c => c.id === state.selectedClientId);
+      if (!client) return;
+
+      const listEl = document.getElementById("drawerHistoryList");
+      const countEl = document.getElementById("drawerHistoryCount");
+      const history = Array.isArray(client.historico) ? [...client.historico] : [];
+
+      if (countEl) countEl.textContent = history.length;
+      if (!listEl) return;
+
+      if (history.length === 0) {
+        listEl.innerHTML = '<div class="text-slate-500 text-xs py-4 italic">Nenhum evento registrado no histórico ainda. As alterações de fase, conclusão de tarefas e edições aparecerão aqui automaticamente.</div>';
+        return;
+      }
+
+      history.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
+
+      listEl.innerHTML = history.map(item => {
+        const dateStr = item.data ? formatDateTime(item.data) : "Data recente";
+        return `
+          <div class="relative pl-5 pb-3.5 group">
+            <div class="w-2.5 h-2.5 rounded-full bg-sky-500 border-2 border-slate-900 absolute -left-[6px] top-1.5 shadow-sm group-hover:scale-125 transition"></div>
+            
+            <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-xs shadow-sm">
+              <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                <span class="font-bold text-sky-400 flex items-center gap-1.5 truncate">
+                  <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                  ${escapeHtml(item.autor || 'Usuário')}
+                </span>
+                <span class="text-[10px] text-slate-500 font-mono">${dateStr}</span>
+              </div>
+              <p class="text-slate-200 leading-relaxed font-medium">${escapeHtml(item.acao || '')}</p>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      lucide.createIcons();
+    }
+
+    function formatDateTime(isoString) {
+      if (!isoString) return "";
+      try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return isoString;
+        return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) + " " +
+               d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      } catch (e) {
+        return isoString;
       }
     }
 
@@ -2749,44 +2957,56 @@
             acao: 'Avançou fase para "' + nextStage.nome + '"'
           })
         });
-        showToast('Cliente avançado para "' + nextStage.nome + '"!');
+
+        // Celebração confetti
+        try {
+          if (typeof confetti === "function") {
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+          }
+        } catch (e) {}
+
+        showToast('Cliente avançado para a etapa "' + nextStage.nome + '"!');
       } catch (err) {
         console.error("Erro ao avançar etapa:", err);
-        showToast("Falha ao avançar etapa.");
+        showToast("Falha ao atualizar etapa no Firestore.");
       }
     }
 
-    let notesTimer = null;
+    let notesDebounceTimer = null;
     function handleNotesInputDebounced() {
-      const indicator = document.getElementById("notesStatusIndicator");
-      if (indicator) indicator.textContent = "Digitando...";
-      clearTimeout(notesTimer);
-      notesTimer = setTimeout(() => {
+      const statusIndicator = document.getElementById("notesStatusIndicator");
+      if (statusIndicator) {
+        statusIndicator.textContent = "Alterações não salvas...";
+        statusIndicator.className = "text-amber-400 font-mono text-[11px]";
+      }
+
+      clearTimeout(notesDebounceTimer);
+      notesDebounceTimer = setTimeout(() => {
         saveDrawerNotes();
-      }, 800);
+      }, 1500);
     }
 
     async function saveDrawerNotes() {
-      const client = state.clients.find(c => c.id === state.selectedClientId);
-      if (!client) return;
-      const notes = document.getElementById("drawerInputNotes")?.value || "";
-      const indicator = document.getElementById("notesStatusIndicator");
-      const nowIso = new Date().toISOString();
+      if (!state.selectedClientId) return;
+      const notesVal = document.getElementById("drawerInputNotes")?.value || "";
+      const statusIndicator = document.getElementById("notesStatusIndicator");
 
       try {
-        await db.collection("clients").doc(client.id).update({
-          notes: notes,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          historico: firebase.firestore.FieldValue.arrayUnion({
-            data: nowIso,
-            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
-            acao: "Atualizou as anotações do cliente"
-          })
+        await db.collection("clients").doc(state.selectedClientId).update({
+          notes: notesVal,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        if (indicator) indicator.textContent = "Salvo no Firestore!";
+
+        if (statusIndicator) {
+          statusIndicator.textContent = "Sincronizado";
+          statusIndicator.className = "text-emerald-400 font-mono text-[11px]";
+        }
       } catch (err) {
-        console.error("Erro ao salvar notas:", err);
-        if (indicator) indicator.textContent = "Erro ao salvar";
+        console.error("Erro ao salvar anotações:", err);
+        if (statusIndicator) {
+          statusIndicator.textContent = "Erro ao salvar";
+          statusIndicator.className = "text-rose-400 font-mono text-[11px]";
+        }
       }
     }
 
@@ -2806,12 +3026,14 @@
 
       const updated = {
         name: document.getElementById("drawerInputName")?.value.trim() || client.name,
-        specialty: document.getElementById("drawerInputSpecialty")?.value.trim() || client.specialty,
-        phone: document.getElementById("drawerInputPhone")?.value.trim() || client.phone,
-        email: document.getElementById("drawerInputEmail")?.value.trim() || client.email,
-        whatsappGroup: document.getElementById("drawerInputWhatsappGroup")?.value.trim() || client.whatsappGroup,
-        entryDate: document.getElementById("drawerInputEntryDate")?.value || client.entryDate,
-        deadline: document.getElementById("drawerInputDeadline")?.value || client.deadline,
+        specialty: document.getElementById("drawerInputSpecialty")?.value.trim() || client.specialty || client.niche || "",
+        niche: document.getElementById("drawerInputSpecialty")?.value.trim() || client.specialty || client.niche || "",
+        phone: document.getElementById("drawerInputPhone")?.value.trim() || client.phone || "",
+        email: document.getElementById("drawerInputEmail")?.value.trim() || client.email || "",
+        whatsappGroup: document.getElementById("drawerInputWhatsappGroup")?.value.trim() || client.whatsappGroup || "",
+        entryDate: document.getElementById("drawerInputEntryDate")?.value || client.entryDate || client.dataEntrada || "",
+        paymentDate: document.getElementById("drawerInputEntryDate")?.value || client.entryDate || client.dataEntrada || "",
+        deadline: document.getElementById("drawerInputDeadline")?.value || "",
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
 
@@ -2823,12 +3045,13 @@
           historico: firebase.firestore.FieldValue.arrayUnion({
             data: nowIso,
             autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
-            acao: "Atualizou os dados cadastrais do cliente"
+            acao: "Atualizou dados cadastrais e de contato do cliente"
           })
         });
+
         showToast("Dados do cliente atualizados com sucesso!");
       } catch (err) {
-        console.error("Erro ao atualizar cliente:", err);
+        console.error("Erro ao salvar dados do cliente:", err);
         showToast("Erro ao gravar dados no Firestore.");
       }
     }
@@ -2859,7 +3082,7 @@
 
     /**
      * =========================================================================
-     * TABELA GERAL (FILTROS COMBINADOS & ORDENAÇÃO POR COLUNAS)
+     * VISUALIZAÇÃO EM TABELA (FILTROS COMBINADOS & ORDENAÇÃO)
      * =========================================================================
      */
     function sortTableBy(column) {
@@ -2873,21 +3096,21 @@
     }
 
     function clearTableFilters() {
-      const s = document.getElementById("tableFilterSearch");
-      if (s) s.value = "";
-      const p = document.getElementById("tableFilterPhase");
-      if (p) p.value = "all";
-      const a = document.getElementById("tableFilterAssignee");
-      if (a) a.value = "all";
-      const ag = document.getElementById("tableFilterAging");
-      if (ag) ag.value = "all";
+      const search = document.getElementById("tableFilterSearch");
+      if (search) search.value = "";
+      const phase = document.getElementById("tableFilterPhase");
+      if (phase) phase.value = "all";
+      const assignee = document.getElementById("tableFilterAssignee");
+      if (assignee) assignee.value = "all";
+      const aging = document.getElementById("tableFilterAging");
+      if (aging) aging.value = "all";
       renderTable();
     }
 
     function populateTableFilterOptions() {
       const phaseSelect = document.getElementById("tableFilterPhase");
+      const stages = getPipelineStages();
       if (phaseSelect && phaseSelect.options.length <= 1) {
-        const stages = getPipelineStages();
         stages.forEach((st, idx) => {
           const opt = document.createElement("option");
           opt.value = st.id;
@@ -2897,11 +3120,11 @@
       }
 
       const assigneeSelect = document.getElementById("tableFilterAssignee");
-      if (assigneeSelect && assigneeSelect.options.length <= 1) {
+      if (assigneeSelect && assigneeSelect.options.length <= 1 && state.users.length > 0) {
         state.users.forEach(u => {
           const opt = document.createElement("option");
           opt.value = u.email;
-          opt.textContent = (u.nome || u.email.split("@")[0]) + " (" + (u.cargo || 'Membro') + ")";
+          opt.textContent = (u.nome || u.email.split('@')[0]) + " (" + (u.cargo || 'Membro') + ")";
           assigneeSelect.appendChild(opt);
         });
       }
@@ -2952,17 +3175,14 @@
           if (!hasTaskForUser) return false;
         }
 
-        // 4. Filtro de aging
+        // 4. Filtro de aging (nova escala oficial de 5 faixas)
         if (filterAging !== "all") {
           const aging = getClientAgingInfo(c);
-          if (filterAging === "0-6" && aging.category !== "0-6") return false;
-          if (filterAging === "7-14" && aging.category !== "7-14") return false;
-          if (filterAging === "15-30" && aging.category !== "15-30") return false;
-          if (filterAging === "31+" && aging.category !== "31+") return false;
-          // fallbacks
-          if (filterAging === "0-7" && aging.days > 7) return false;
-          if (filterAging === "8-14" && (aging.days < 8 || aging.days > 14)) return false;
-          if (filterAging === "46+" && aging.days < 46) return false;
+          if (filterAging === "0-15" && aging.category !== "0-15") return false;
+          if (filterAging === "16-30" && aging.category !== "16-30") return false;
+          if (filterAging === "31-45" && aging.category !== "31-45") return false;
+          if (filterAging === "46-60" && aging.category !== "46-60") return false;
+          if (filterAging === "61+" && aging.category !== "61+") return false;
         }
 
         return true;
@@ -3020,7 +3240,7 @@
               ${escapeHtml(c.name)}
               ${c.priority ? '<span class="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800">Alta</span>' : ''}
             </td>
-            <td class="p-3.5 text-slate-400">${escapeHtml(c.specialty || c.niche || '-')}</td>
+            <td class="p-3.5 text-slate-400">${escapeHtml(c.specialty || c.niche || '-')}</t
             <td class="p-3.5">
               <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" style="background-color: ${stageColor}22; border: 1px solid ${stageColor}66; color: ${stageColor}">
                 ${escapeHtml(stage.nome)}
@@ -3041,13 +3261,13 @@
             </td>
             <td class="p-3.5" onclick="event.stopPropagation()">
               ${waLink ? `
-                <button onclick="window.open('${waLink}', '_blank')" class="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-950/50 transition cursor-pointer" title="Abrir WhatsApp">
+                <button onclick="window.open('${waLink}', '_blank')" class="touch-target p-1.5 rounded-xl text-emerald-400 hover:bg-emerald-950/50 transition cursor-pointer" title="Abrir WhatsApp">
                   <i data-lucide="message-circle" class="w-4 h-4"></i>
                 </button>
               ` : '<span class="text-slate-600">-</span>'}
             </td>
             <td class="p-3.5 text-right" onclick="event.stopPropagation()">
-              <button onclick="openClientDrawer('${c.id}')" class="px-2.5 py-1 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 text-[11px] font-medium transition cursor-pointer shadow-sm">
+              <button onclick="openClientDrawer('${c.id}')" class="min-h-[44px] px-3.5 py-2 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 text-xs font-semibold transition cursor-pointer shadow-sm">
                 Abrir Gaveta
               </button>
             </td>
@@ -3058,6 +3278,11 @@
       lucide.createIcons();
     }
 
+    /**
+     * =========================================================================
+     * MÉTRICAS & GARGALOS (KPIs, TEMPOS E CARGA DE TRABALHO)
+     * =========================================================================
+     */
     function renderMetrics() {
       const stages = getPipelineStages();
       const clients = state.clients || [];
@@ -3087,7 +3312,6 @@
         const stageClients = clients.filter(c => isClientInStage(c, st, sIdx, stages));
         let sumDays = 0;
         stageClients.forEach(c => {
-          // Se tiver dataEntradaFase registrada, calcula dias nesta fase específica; senão usa aging
           if (c.dataEntradaFase) {
             const diff = Math.max(0, new Date().getTime() - new Date(c.dataEntradaFase).getTime());
             sumDays += Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -3097,55 +3321,56 @@
         });
         const avgDays = stageClients.length > 0 ? (sumDays / stageClients.length) : 0;
         return {
-          stage: st,
-          stageIndex: sIdx + 1,
+          id: st.id,
+          name: st.nome,
+          color: st.cor || "#3b82f6",
           count: stageClients.length,
           avgDays: avgDays
         };
       });
 
-      // Identifica a fase com maior tempo médio (Gargalo principal)
-      let maxAvg = 0;
-      let bottleneck = null;
-      stageStats.forEach(st => {
-        if (st.avgDays > maxAvg) {
-          maxAvg = st.avgDays;
-          bottleneck = st;
+      // Identifica o maior gargalo (fase intermediária com maior tempo médio)
+      let maxAvgDays = 0;
+      let bottleneckStage = null;
+      stageStats.forEach((st, idx) => {
+        if (idx < stageStats.length - 1 && st.count > 0 && st.avgDays > maxAvgDays) {
+          maxAvgDays = st.avgDays;
+          bottleneckStage = st;
         }
       });
 
-      const bottleneckPhaseEl = document.getElementById("metricBottleneckPhase");
-      const bottleneckDaysEl = document.getElementById("metricBottleneckDays");
-      if (bottleneckPhaseEl) {
-        bottleneckPhaseEl.textContent = bottleneck ? (bottleneck.stageIndex + ". " + bottleneck.stage.nome) : "Nenhum gargalo";
-      }
-      if (bottleneckDaysEl) {
-        bottleneckDaysEl.textContent = bottleneck ? (bottleneck.avgDays.toFixed(1) + " dias médios nesta etapa") : "Fluxo regular";
+      const bnPhaseEl = document.getElementById("metricBottleneckPhase");
+      const bnDaysEl = document.getElementById("metricBottleneckDays");
+      if (bnPhaseEl && bnDaysEl) {
+        if (bottleneckStage) {
+          bnPhaseEl.textContent = bottleneckStage.name;
+          bnDaysEl.textContent = bottleneckStage.avgDays.toFixed(1) + " dias médios na fase";
+        } else {
+          bnPhaseEl.textContent = "Fluxo Normal";
+          bnDaysEl.textContent = "Sem gargalos críticos";
+        }
       }
 
-      // Renderiza Gráfico Horizontal de Tempo Médio por Fase
+      // Renderiza lista de duração por fase
       const durationListEl = document.getElementById("metricsPhaseDurationList");
       if (durationListEl) {
-        const topAvg = Math.max(maxAvg, 1);
+        const maxDaysLimit = Math.max(...stageStats.map(s => s.avgDays), 1);
         durationListEl.innerHTML = stageStats.map(st => {
-          const isBottleneck = bottleneck && bottleneck.stage.id === st.stage.id && st.avgDays > 0;
-          const pct = Math.round((st.avgDays / topAvg) * 100);
-          const stageColor = st.stage.cor || "#3b82f6";
+          const widthPct = Math.round((st.avgDays / maxDaysLimit) * 100);
+          const isBottleneck = bottleneckStage && bottleneckStage.id === st.id;
 
           return `
-            <div class="space-y-1">
-              <div class="flex items-center justify-between text-xs">
-                <span class="font-bold text-white flex items-center gap-1.5 truncate max-w-[220px]">
-                  <span class="w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center shrink-0" style="background-color: ${stageColor}33; color: ${stageColor}">${st.stageIndex}</span>
-                  <span class="truncate">${escapeHtml(st.stage.nome)}</span>
-                  ${isBottleneck ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-950 text-rose-300 border border-rose-800">Gargalo</span>' : ''}
+            <div class="p-3 bg-slate-950/60 rounded-xl border ${isBottleneck ? 'border-rose-900/60 bg-rose-950/10' : 'border-slate-800/80'} text-xs">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="font-semibold text-white flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${st.color}"></span>
+                  ${escapeHtml(st.name)}
+                  ${isBottleneck ? '<span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-rose-950 text-rose-400 border border-rose-800">Maior Gargalo</span>' : ''}
                 </span>
-                <span class="font-mono text-[11px] ${isBottleneck ? 'text-rose-400 font-bold' : 'text-slate-400'}">
-                  ${st.avgDays.toFixed(1)} dias médios
-                </span>
+                <span class="font-bold text-slate-300 font-mono">${st.avgDays.toFixed(1)} dias</span>
               </div>
-              <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800/80">
-                <div class="${isBottleneck ? 'bg-gradient-to-r from-rose-600 to-amber-500' : 'bg-sky-500'} h-2 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+              <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div class="h-1.5 rounded-full" style="width: ${widthPct}%; background-color: ${isBottleneck ? '#f43f5e' : st.color}"></div>
               </div>
             </div>
           `;
@@ -3155,90 +3380,74 @@
       // 3. Volume de Clientes por Fase
       const volumeListEl = document.getElementById("metricsPhaseVolumeList");
       if (volumeListEl) {
-        const topCount = Math.max(...stageStats.map(s => s.count), 1);
         volumeListEl.innerHTML = stageStats.map(st => {
-          const pct = Math.round((st.count / topCount) * 100);
-          const stageColor = st.stage.cor || "#3b82f6";
-
+          const pct = totalClients > 0 ? Math.round((st.count / totalClients) * 100) : 0;
           return `
-            <div class="space-y-1">
-              <div class="flex items-center justify-between text-xs">
-                <span class="font-bold text-white flex items-center gap-1.5 truncate max-w-[220px]">
-                  <span class="w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center shrink-0" style="background-color: ${stageColor}33; color: ${stageColor}">${st.stageIndex}</span>
-                  <span class="truncate">${escapeHtml(st.stage.nome)}</span>
+            <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 text-xs">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="font-semibold text-white flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${st.color}"></span>
+                  ${escapeHtml(st.name)}
                 </span>
-                <span class="font-semibold text-slate-300 text-[11px]">
-                  ${st.count} ${st.count === 1 ? 'cliente' : 'clientes'}
-                </span>
+                <span class="font-bold text-slate-300 font-mono">${st.count} clientes (${pct}%)</span>
               </div>
-              <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800/80">
-                <div class="h-2 rounded-full transition-all duration-500" style="background-color: ${stageColor}; width: ${pct}%"></div>
+              <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div class="h-1.5 rounded-full" style="width: ${pct}%; background-color: ${st.color}"></div>
               </div>
             </div>
           `;
         }).join("");
       }
 
-      // 4. Distribuição de Carga por Membro da Equipe
-      let totalPendingAcrossTeam = 0;
-      const teamStats = (state.users || []).map(u => {
-        let pendingTasks = 0;
-        let completedTasks = 0;
-
-        clients.forEach(c => {
-          const tasks = getClientMergedTasks(c);
-          tasks.forEach(t => {
-            if ((t.assignee || "").toLowerCase() === (u.email || "").toLowerCase()) {
-              if (t.status === "Concluída") completedTasks++;
-              else pendingTasks++;
-            }
-          });
-        });
-
-        totalPendingAcrossTeam += pendingTasks;
-        return {
-          user: u,
-          pending: pendingTasks,
-          completed: completedTasks
-        };
-      });
-
-      const totalPendingEl = document.getElementById("metricTotalPendingTasks");
-      if (totalPendingEl) totalPendingEl.textContent = totalPendingAcrossTeam + " tarefas pendentes";
-
-      const teamListEl = document.getElementById("metricsTeamWorkloadList");
-      if (teamListEl) {
-        if (teamStats.length === 0) {
-          teamListEl.innerHTML = '<div class="col-span-3 text-slate-500 text-xs py-4 text-center">Nenhum membro cadastrado na equipe.</div>';
+      // 4. Distribuição de Carga de Trabalho por Membro
+      const workloadListEl = document.getElementById("metricsTeamWorkloadList");
+      if (workloadListEl) {
+        if (state.users.length === 0) {
+          workloadListEl.innerHTML = '<div class="text-slate-500 text-xs py-4 italic">Nenhum membro da equipe cadastrado.</div>';
           return;
         }
 
-        const maxWorkload = Math.max(...teamStats.map(t => t.pending), 1);
+        const workloads = state.users.map(u => {
+          const userEmail = (u.email || "").toLowerCase();
+          let pendingTasks = 0;
+          let completedTasks = 0;
 
-        teamListEl.innerHTML = teamStats.map(ts => {
-          const initials = getInitials(ts.user.nome || ts.user.email);
-          const pct = Math.round((ts.pending / maxWorkload) * 100);
+          clients.forEach(c => {
+            const merged = getClientMergedTasks(c);
+            merged.forEach(t => {
+              if ((t.assignee || "").toLowerCase() === userEmail) {
+                if (t.status === "Concluída") completedTasks++;
+                else pendingTasks++;
+              }
+            });
+          });
 
+          return {
+            name: u.nome || u.email.split('@')[0],
+            email: u.email,
+            cargo: u.cargo || "Membro",
+            pending: pendingTasks,
+            completed: completedTasks,
+            total: pendingTasks + completedTasks
+          };
+        });
+
+        workloadListEl.innerHTML = workloads.map(w => {
+          const pct = w.total > 0 ? Math.round((w.completed / w.total) * 100) : 0;
           return `
-            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
-              <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-lg bg-indigo-950 border border-indigo-800 text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0">
-                  ${initials}
+            <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 text-xs">
+              <div class="flex items-center justify-between mb-1.5">
+                <div>
+                  <div class="font-bold text-white">${escapeHtml(w.name)}</div>
+                  <div class="text-[10px] text-slate-400">${escapeHtml(w.cargo)}</div>
                 </div>
-                <div class="min-w-0 flex-1">
-                  <h4 class="font-bold text-xs text-white truncate">${escapeHtml(ts.user.nome || ts.user.email)}</h4>
-                  <p class="text-[10px] text-slate-400 truncate">${escapeHtml(ts.user.cargo || 'Membro')} • ${ts.user.email}</p>
+                <div class="text-right">
+                  <span class="font-bold text-amber-400 font-mono">${w.pending} pendentes</span>
+                  <span class="text-slate-500 text-[10px] block">${w.completed} concluídas</span>
                 </div>
               </div>
-
-              <div>
-                <div class="flex items-center justify-between text-[11px] mb-1">
-                  <span class="text-slate-400">Tarefas Pendentes:</span>
-                  <span class="font-bold text-amber-400">${ts.pending}</span>
-                </div>
-                <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
-                  <div class="bg-indigo-500 h-1.5 rounded-full" style="width: ${pct}%"></div>
-                </div>
+              <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-indigo-500 h-1.5 rounded-full" style="width: ${pct}%"></div>
               </div>
             </div>
           `;
@@ -3247,6 +3456,7 @@
 
       lucide.createIcons();
     }
+
 
     // 8. CADASTRO DE NOVO CLIENTE & EXCLUSÃO
     function openNewClientModal() {
@@ -3361,29 +3571,95 @@
       }
     }
 
-    function openDeleteClientModal() {
+    let clientToDeleteId = null;
+
+    function openDeleteClientModal(clientId) {
       if (!state.currentUser?.permissions?.canDeleteClients) {
         showToast("Apenas administradores podem excluir clientes.");
         return;
       }
-      document.getElementById("modalDeleteClient").classList.remove("hidden");
+      const targetId = clientId || state.selectedClientId;
+      const client = state.clients.find(c => c.id === targetId);
+      if (!client) {
+        showToast("Nenhum cliente selecionado para exclusão.");
+        return;
+      }
+      clientToDeleteId = targetId;
+
+      const targetNameEl = document.getElementById("deleteClientTargetName");
+      if (targetNameEl) targetNameEl.textContent = client.name || "Cliente";
+
+      const inputEl = document.getElementById("inputConfirmDeleteClientName");
+      if (inputEl) {
+        inputEl.value = "";
+        inputEl.placeholder = "Digite exatamente: " + (client.name || "");
+      }
+
+      const btnConfirm = document.getElementById("btnConfirmDeleteClient");
+      if (btnConfirm) {
+        btnConfirm.disabled = true;
+        btnConfirm.className = "px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold transition cursor-pointer text-xs opacity-40 cursor-not-allowed shadow-lg shadow-rose-950/40";
+      }
+
+      const modal = document.getElementById("modalDeleteClient");
+      if (modal) modal.classList.remove("hidden");
+      setTimeout(() => inputEl?.focus(), 150);
     }
 
     function closeDeleteClientModal() {
-      document.getElementById("modalDeleteClient").classList.add("hidden");
+      const modal = document.getElementById("modalDeleteClient");
+      if (modal) modal.classList.add("hidden");
+      clientToDeleteId = null;
+    }
+
+    function handleConfirmDeleteClientInput(val) {
+      const client = state.clients.find(c => c.id === clientToDeleteId);
+      if (!client) return;
+
+      const btnConfirm = document.getElementById("btnConfirmDeleteClient");
+      const clientNameClean = (client.name || "").trim().toLowerCase();
+      const inputClean = (val || "").trim().toLowerCase();
+      const isMatch = clientNameClean.length > 0 && inputClean === clientNameClean;
+
+      if (btnConfirm) {
+        btnConfirm.disabled = !isMatch;
+        if (isMatch) {
+          btnConfirm.className = "px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold transition cursor-pointer text-xs opacity-100 shadow-lg shadow-rose-600/30";
+        } else {
+          btnConfirm.className = "px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold transition cursor-pointer text-xs opacity-40 cursor-not-allowed shadow-lg shadow-rose-950/40";
+        }
+      }
     }
 
     async function confirmDeleteClient() {
-      if (!state.currentUser?.permissions?.canDeleteClients || !state.selectedClientId) return;
+      if (!state.currentUser?.permissions?.canDeleteClients || !clientToDeleteId) return;
+
+      const client = state.clients.find(c => c.id === clientToDeleteId);
+      const clientName = client ? client.name : "Cliente";
+      const targetId = clientToDeleteId;
+
+      const btnConfirm = document.getElementById("btnConfirmDeleteClient");
+      if (btnConfirm) {
+        btnConfirm.disabled = true;
+        btnConfirm.innerHTML = "Excluindo...";
+      }
 
       try {
-        await db.collection("clients").doc(state.selectedClientId).delete();
+        await db.collection("clients").doc(targetId).delete();
         closeDeleteClientModal();
-        closeClientDrawer();
-        showToast("Cliente removido com sucesso!");
+        if (state.selectedClientId === targetId) {
+          closeClientDrawer();
+        }
+        showToast("Cliente '" + clientName + "' excluído definitivamente!");
       } catch (err) {
         console.error("Erro ao excluir cliente:", err);
-        showToast("Erro ao excluir do Firestore.");
+        showToast("Falha ao excluir cliente: " + (err.message || err));
+      } finally {
+        if (btnConfirm) {
+          btnConfirm.disabled = true;
+          btnConfirm.innerHTML = "Excluir Definitivamente";
+        }
+        clientToDeleteId = null;
       }
     }
 
@@ -3613,9 +3889,18 @@
                         </div>
 
                         <!-- Excluir Subtarefa -->
-                        <button type="button" onclick="deleteSubtask(${sIdx}, ${subIdx})" class="p-1 text-slate-500 hover:text-rose-400 transition cursor-pointer shrink-0" title="Remover Subtarefa">
-                          <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                        </button>
+                        ${(pendingSubtaskDelete && pendingSubtaskDelete.sIdx === sIdx && pendingSubtaskDelete.subIdx === subIdx) ? `
+                          <button type="button" onclick="deleteSubtask(${sIdx}, ${subIdx})" class="px-2 py-0.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] transition cursor-pointer shadow-sm animate-pulse shrink-0" title="Clique novamente para confirmar a exclusão">
+                            Confirmar?
+                          </button>
+                          <button type="button" onclick="pendingSubtaskDelete = null; renderPipelineEditor();" class="p-1 text-slate-400 hover:text-white text-[10px] cursor-pointer shrink-0" title="Cancelar">
+                            ✕
+                          </button>
+                        ` : `
+                          <button type="button" onclick="deleteSubtask(${sIdx}, ${subIdx})" class="p-1 text-slate-500 hover:text-rose-400 transition cursor-pointer shrink-0" title="Excluir subtarefa (requer confirmação)">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                          </button>
+                        `}
                       </div>
                     `;
                   }).join("")}
@@ -3706,28 +3991,48 @@
       renderPipelineEditor();
     }
 
+    let stageToDeleteIdx = null;
+
     function handleDeleteStage(stageIdx) {
       const stage = editingPipeline[stageIdx];
       if (!stage) return;
+      stageToDeleteIdx = stageIdx;
 
-      const stagesSnapshot = getPipelineStages();
-      const clientsInStage = state.clients.filter(c => isClientInStage(c, stage, stageIdx, stagesSnapshot));
+      const targetNameEl = document.getElementById("deleteStageTargetName");
+      if (targetNameEl) targetNameEl.textContent = '"' + (stage.nome || "Etapa") + '"';
 
-      if (clientsInStage.length > 0) {
-        const confirmed = confirm(
-          "⚠️ ATENÇÃO: Existem " + clientsInStage.length + " cliente(s) vinculados à etapa '" + stage.nome + "'.\n\n" +
-          "Ao excluir esta etapa, os cards serão alocados na primeira etapa da esteira para preservar os dados.\n\n" +
-          "Deseja realmente excluir esta etapa?"
-        );
-        if (!confirmed) return;
-      } else {
-        const confirmed = confirm("Deseja realmente excluir a etapa '" + stage.nome + "'?");
-        if (!confirmed) return;
-      }
+      const modal = document.getElementById("modalDeleteStage");
+      if (modal) modal.classList.remove("hidden");
+    }
 
+    function closeDeleteStageModal() {
+      const modal = document.getElementById("modalDeleteStage");
+      if (modal) modal.classList.add("hidden");
+      stageToDeleteIdx = null;
+    }
+
+    async function executeDeleteStage() {
+      if (stageToDeleteIdx === null) return;
+      const stageIdx = stageToDeleteIdx;
+      const stage = editingPipeline[stageIdx];
+      if (!stage) return;
+
+      const removedName = stage.nome;
       editingPipeline.splice(stageIdx, 1);
       expandedStageIds.delete(stage.id);
+      closeDeleteStageModal();
       renderPipelineEditor();
+
+      try {
+        await db.collection("settings").doc("pipeline").set({
+          etapas: editingPipeline,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast("Etapa '" + removedName + "' excluída e configurações salvas.");
+      } catch (err) {
+        console.error("Erro ao sincronizar exclusão de etapa:", err);
+        showToast("Falha ao salvar no Firestore.");
+      }
     }
 
     function addSubtaskToStage(stageIdx) {
@@ -3774,10 +4079,32 @@
       }
     }
 
-    function deleteSubtask(stageIdx, subIdx) {
-      if (editingPipeline[stageIdx] && Array.isArray(editingPipeline[stageIdx].subtarefas)) {
-        editingPipeline[stageIdx].subtarefas.splice(subIdx, 1);
+    let pendingSubtaskDelete = null;
+
+    async function deleteSubtask(stageIdx, subIdx) {
+      if (pendingSubtaskDelete && pendingSubtaskDelete.sIdx === stageIdx && pendingSubtaskDelete.subIdx === subIdx) {
+        // Segundo clique: executa e salva imediatamente no Firestore
+        if (editingPipeline[stageIdx] && Array.isArray(editingPipeline[stageIdx].subtarefas)) {
+          const removed = editingPipeline[stageIdx].subtarefas.splice(subIdx, 1);
+          pendingSubtaskDelete = null;
+          renderPipelineEditor();
+
+          try {
+            await db.collection("settings").doc("pipeline").set({
+              etapas: editingPipeline,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showToast("Subtarefa '" + (removed[0]?.titulo || "selecionada") + "' removida e salva no Firestore.");
+          } catch (err) {
+            console.error("Erro ao salvar exclusão de subtarefa:", err);
+            showToast("Erro ao gravar exclusão no Firestore.");
+          }
+        }
+      } else {
+        // Primeiro clique: exige segundo clique de validação
+        pendingSubtaskDelete = { sIdx: stageIdx, subIdx: subIdx };
         renderPipelineEditor();
+        showToast("Confirmação: clique novamente no botão vermelho para excluir esta subtarefa.");
       }
     }
 
@@ -3876,6 +4203,21 @@
         toast.classList.remove("translate-y-0", "opacity-100");
         toast.classList.add("translate-y-24", "opacity-0");
       }, 3500);
+    }
+
+    
+    function openDatePicker(inputId) {
+      const el = document.getElementById(inputId);
+      if (el) {
+        el.focus();
+        if (typeof el.showPicker === "function") {
+          try {
+            el.showPicker();
+          } catch (e) {
+            console.log("showPicker fallback:", e);
+          }
+        }
+      }
     }
 
     function getInitials(name) {
