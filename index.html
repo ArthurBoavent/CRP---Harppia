@@ -272,6 +272,15 @@
 
             <div class="space-y-0.5 text-xs">
               <!-- Gerenciar Equipe (Apenas Admin) -->
+              <!-- Configurações do CRM (Apenas Admin) -->
+              <button id="menuItemSettings" onclick="openPipelineSettingsModal()" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition text-left cursor-pointer">
+                <i data-lucide="sliders" class="w-4 h-4 text-sky-400"></i>
+                <div class="flex-1">
+                  <span class="font-medium block">⚙️ Configurações do CRM</span>
+                  <span class="text-[10px] text-slate-400 block">Etapas e subtarefas dinâmicas</span>
+                </div>
+              </button>
+
               <button id="menuItemTeam" onclick="openTeamModal()" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition text-left cursor-pointer">
                 <i data-lucide="users" class="w-4 h-4 text-indigo-400"></i>
                 <div class="flex-1">
@@ -309,20 +318,47 @@
   </header>
 
   <!-- =========================================================================
-       BARRA DE FILTROS & BUSCA RÁPIDA
+       BARRA DE FILTROS & BUSCA RÁPIDA (AGING FILTER & RESPONSÁVEIS)
        ========================================================================= -->
-  <section class="px-3 sm:px-6 py-3 border-b border-slate-800/60 bg-slate-950/40">
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
-      <!-- Busca por Nome / Nicho -->
-      <div class="relative flex-1 max-w-md">
+  <section class="px-3 sm:px-6 py-2.5 border-b border-slate-800/60 bg-slate-950/40">
+    <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 text-xs">
+      
+      <!-- Lado Esquerdo: Busca por Nome / Nicho -->
+      <div class="relative flex-1 max-w-sm">
         <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
-        <input type="text" id="kanbanSearch" oninput="renderKanban(); renderTable();" placeholder="Buscar cliente por nome ou especialidade..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition shadow-inner">
+        <input type="text" id="kanbanSearch" oninput="renderKanban(); renderTable();" placeholder="Buscar cliente por nome ou nicho..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition shadow-inner">
       </div>
 
-      <!-- Filtros Avançados -->
-      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <!-- Lado Direito: Filtro de Dias (Aging Filter) + Responsável da Vez -->
+      <div class="flex flex-wrap items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+        
+        <!-- Botões de Seleção Rápida de Envelhecimento (Aging Filter) -->
+        <div class="flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 shrink-0">
+          <span class="text-[10px] font-semibold text-slate-400 px-2 flex items-center gap-1">
+            <i data-lucide="clock" class="w-3 h-3 text-sky-400"></i> Dias:
+          </span>
+          <button type="button" onclick="setAgingFilter('all')" data-aging="all" class="aging-filter-btn px-2.5 py-1 rounded-lg text-[10px] font-semibold transition bg-sky-600 text-white shadow-sm cursor-pointer">
+            Todos
+          </button>
+          <button type="button" onclick="setAgingFilter('0-7')" data-aging="0-7" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-emerald-400 hover:bg-emerald-950/40 cursor-pointer" title="0 a 7 dias (Recentes)">
+            🟢 0-7d
+          </button>
+          <button type="button" onclick="setAgingFilter('8-14')" data-aging="8-14" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-sky-400 hover:bg-sky-950/40 cursor-pointer" title="8 a 14 dias (Atenção Inicial)">
+            🔵 8-14d
+          </button>
+          <button type="button" onclick="setAgingFilter('15-30')" data-aging="15-30" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-amber-400 hover:bg-amber-950/40 cursor-pointer" title="15 a 30 dias (Intermediário)">
+            🟠 15-30d
+          </button>
+          <button type="button" onclick="setAgingFilter('31-45')" data-aging="31-45" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 cursor-pointer" title="31 a 45 dias (Alerta)">
+            🔴 31-45d
+          </button>
+          <button type="button" onclick="setAgingFilter('46+')" data-aging="46+" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-red-400 hover:bg-red-950/40 cursor-pointer" title="46+ dias (Crítico)">
+            🚨 46+d
+          </button>
+        </div>
+
         <!-- Filtro por Responsável da Vez -->
-        <div class="relative inline-flex items-center">
+        <div class="relative inline-flex items-center shrink-0">
           <i data-lucide="user-check" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none"></i>
           <select id="filterAssignee" onchange="state.kanbanFilterAssignee = this.value; renderKanban();" class="bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer">
             <option value="all">Todos os Responsáveis</option>
@@ -331,13 +367,6 @@
           </select>
         </div>
 
-        <!-- Filtro por Semáforo / Tempo de Esteira -->
-        <select id="filterSemaforo" onchange="state.kanbanFilterSemaforo = this.value; renderKanban();" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer">
-          <option value="all">Todos os Prazos</option>
-          <option value="green">🟢 No Prazo (≤ 2 dias)</option>
-          <option value="yellow">🟡 Atenção (3 - 5 dias)</option>
-          <option value="red">🔴 Atrasado (> 5 dias)</option>
-        </select>
       </div>
     </div>
   </section>
@@ -623,6 +652,74 @@
   <!-- =========================================================================
        MODAL DE GERENCIAMENTO DE EQUIPE (RBAC - EXCLUSIVO ADMIN)
        ========================================================================= -->
+  
+  <!-- =========================================================================
+       MODAL: CONFIGURAÇÕES DO CRM & PIPELINE DINÂMICO (ADMIN)
+       ========================================================================= -->
+  <div id="modalPipelineSettings" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl relative text-left flex flex-col max-h-[92vh] overflow-hidden">
+      
+      <!-- Cabeçalho do Modal -->
+      <div class="flex items-start justify-between pb-4 border-b border-slate-800 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-sky-950 border border-sky-800 flex items-center justify-center text-sky-400">
+            <i data-lucide="sliders" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-white flex items-center gap-2">
+              Configurações do Pipeline & Etapas
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-950 text-sky-400 border border-sky-800">Admin</span>
+            </h3>
+            <p class="text-xs text-slate-400">Personalize as etapas do Kanban e as subtarefas dinâmicas sincronizadas no Firestore.</p>
+          </div>
+        </div>
+        <button onclick="closePipelineSettingsModal()" class="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Barra de Ações Rápidas -->
+      <div class="py-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/60 shrink-0 text-xs">
+        <div class="flex items-center gap-2">
+          <button onclick="addNewStage()" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Nova Etapa</span>
+          </button>
+          <button onclick="restoreDefaultPipeline()" class="px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-750 text-slate-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>Restaurar 9 Fases Oficiais</span>
+          </button>
+        </div>
+        <div class="flex items-center gap-2 text-[11px] text-slate-400">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950 border border-slate-800">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Firestore: <code class="text-sky-300">settings/pipeline</code></span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Lista de Etapas e Subtarefas (Scrollável) -->
+      <div id="pipelineStagesList" class="flex-1 overflow-y-auto py-4 space-y-3 pr-1">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+
+      <!-- Rodapé com Botões de Ação -->
+      <div class="pt-4 border-t border-slate-800 flex items-center justify-between shrink-0 text-xs">
+        <span class="text-slate-400 text-[11px]">As alterações serão propagadas em tempo real para toda a equipe.</span>
+        <div class="flex items-center gap-2">
+          <button onclick="closePipelineSettingsModal()" class="px-4 py-2 rounded-xl border border-slate-800 bg-slate-950 text-slate-300 hover:text-white transition cursor-pointer font-medium">
+            Cancelar
+          </button>
+          <button id="btnSavePipeline" onclick="savePipelineSettings()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold transition shadow-lg shadow-sky-950/40 flex items-center gap-2 cursor-pointer">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span id="btnSavePipelineText">Salvar Configurações</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <div id="modalTeam" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative text-left flex flex-col max-h-[90vh]">
       <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
@@ -737,6 +834,319 @@
       "arthurgama.adv@gmail.com",
       "arthurgama@harppia.com.br"
     ];
+
+
+    /**
+     * ESTRUTURA OFICIAL DAS 9 ETAPAS & 54 SUBTAREFAS DO HARPPIA CRM
+     * (Semeada automaticamente em 'settings/pipeline' caso o documento não exista)
+     */
+    const DEFAULT_PIPELINE_STAGES = [
+      {
+        id: "etapa_1",
+        nome: "Questionário",
+        cor: "#0ea5e9",
+        subtarefas: [
+          "Enviar link do questionário de boas-vindas e kit lev. inicial (Bio, Domínio e cor, Depoimentos)",
+          "Cobrar preenchimento do formulário",
+          "Recebimento questionário",
+          "Validar e aprovar respostas recebidas",
+          "Envio Domínio e cor",
+          "Disponibilidade do domínio",
+          "Cor site – Fora do padrão",
+          "Envio Bio",
+          "Envio de Depoimentos"
+        ]
+      },
+      {
+        id: "etapa_2",
+        nome: "Reunião Onboarding",
+        cor: "#3b82f6",
+        subtarefas: [
+          "Agendar reunião de onboarding com o cliente",
+          "Realização da Reunião de Onboarding (Validação de escopo e expectativas)"
+        ]
+      },
+      {
+        id: "etapa_3",
+        nome: "Fotos",
+        cor: "#6366f1",
+        subtarefas: [
+          "Envio do Guia de Fotos ao cliente",
+          "Agendamento das Fotos",
+          "Conferência do Agendamento das Fotos",
+          "Realização das Fotos",
+          "Aguardar envio das Fotos",
+          "Cobrar envio das Fotos",
+          "Fotos Recebidas",
+          "Validar se fotos atendem os requisitos técnicos",
+          "Fotos reprovadas",
+          "Fotos Aprovadas",
+          "Envio das fotos para tratamento",
+          "Fotos tratadas recebidas",
+          "Upar fotos na pasta do cliente no Drive",
+          "Mudar status do cliente para Planejamento Site"
+        ]
+      },
+      {
+        id: "etapa_4",
+        nome: "Planejamento Site",
+        cor: "#8b5cf6",
+        subtarefas: [
+          "Apresentar estrutura inicial ao cliente",
+          "Criação da Estrutura do Site",
+          "Revisão interna da Estrutura do Site",
+          "Estrutura do Site Aprovada"
+        ]
+      },
+      {
+        id: "etapa_5",
+        nome: "Ferramentas",
+        cor: "#f59e0b",
+        subtarefas: [
+          "Envio do tutorial de acesso às ferramentas ao cliente",
+          "Criação das ferramentas",
+          "Acesso às ferramentas",
+          "Validação das ferramentas",
+          "Configuração do domínio e DNS",
+          "Configuração de e-mails profissionais",
+          "Integrações de formulários e webhooks"
+        ]
+      },
+      {
+        id: "etapa_6",
+        nome: "Site",
+        cor: "#10b981",
+        subtarefas: [
+          "Início do desenvolvimento da Landing Page / Site",
+          "Montagem do layout e responsividade mobile",
+          "Revisão técnica interna (SEO, velocidade, links)",
+          "Envio do site para aprovação do cliente",
+          "Ajustes solicitados pelo cliente",
+          "Aprovação final do site pelo cliente",
+          "Publicação oficial no domínio definitivo",
+          "Instalação de Tags e Pixels de Rastreamento (GA4, Meta, Google Ads)"
+        ]
+      },
+      {
+        id: "etapa_7",
+        nome: "Campanha",
+        cor: "#f43f5e",
+        subtarefas: [
+          "Planejamento estratégico de tráfego pago",
+          "Criação dos criativos e copies de anúncios",
+          "Configuração das campanhas na plataforma de anúncios",
+          "Validação de saldo e forma de pagamento na conta de anúncios",
+          "Lançamento oficial das campanhas"
+        ]
+      },
+      {
+        id: "etapa_8",
+        nome: "Acompanhamento",
+        cor: "#3b82f6",
+        subtarefas: [
+          "Primeiro relatório de performance (7 dias)",
+          "Otimização de lances, públicos e criativos",
+          "Reunião de alinhamento mensal de resultados"
+        ]
+      },
+      {
+        id: "etapa_9",
+        nome: "Concluído",
+        cor: "#10b981",
+        subtarefas: [
+          "Entrega formal de relatórios e acessos consolidados",
+          "Solicitação de feedback / NPS e depoimento institucional"
+        ]
+      }
+    ];
+
+    /**
+     * RETORNA AS ETAPAS DO PIPELINE ATIVAS (DO FIRESTORE OU PADRÃO)
+     */
+    function getPipelineStages() {
+      if (state.pipeline && Array.isArray(state.pipeline.etapas) && state.pipeline.etapas.length > 0) {
+        return state.pipeline.etapas;
+      }
+      return DEFAULT_PIPELINE_STAGES;
+    }
+
+    /**
+     * VERIFICA SE O CLIENTE PERTENCE A UMA DETERMINADA ETAPA (COMPATIBILIDADE TOTAL)
+     */
+    function isClientInStage(client, stage, stageIndex, allStages) {
+      if (!client) return false;
+      const statusStr = String(client.status ?? "").trim();
+      
+      // Correspondência direta por ID da etapa (ex: "etapa_1")
+      if (statusStr === String(stage.id)) return true;
+
+      // Correspondência por ID indexado ("etapa_X" onde X = stageIndex + 1)
+      if (statusStr === ("etapa_" + (stageIndex + 1))) return true;
+
+      // Correspondência por número 1-based (ex: status: 1 ou status: "1")
+      if (statusStr === String(stageIndex + 1)) return true;
+
+      // Fallback seguro: se o cliente possui status antigo não mapeado, coloca na primeira etapa
+      if (stageIndex === 0) {
+        const matchesAny = (allStages || []).some((s, idx) => {
+          const sid = String(s.id);
+          return statusStr === sid || statusStr === ("etapa_" + (idx + 1)) || statusStr === String(idx + 1);
+        });
+        if (!matchesAny) return true;
+      }
+
+      return false;
+    }
+
+    /**
+     * RETORNA A ETAPA ATUAL DO CLIENTE
+     */
+    function getClientCurrentStage(client) {
+      const stages = getPipelineStages();
+      const found = stages.find((s, idx) => isClientInStage(client, s, idx, stages));
+      return found || stages[0] || { id: "etapa_1", nome: "Etapa Inicial", cor: "#0ea5e9", subtarefas: [] };
+    }
+
+    /**
+     * CALCULA O ENVELHECIMENTO (AGING) DO CARD DO CLIENTE EM DIAS
+     * Retorna a quantidade de dias, categoria para filtro, badge visual discreto e cor
+     */
+    function getClientAgingInfo(client) {
+      let dateObj = null;
+      if (client.entryDate) {
+        dateObj = new Date(client.entryDate);
+      } else if (client.dataEntrada) {
+        dateObj = new Date(client.dataEntrada);
+      } else if (client.createdAt) {
+        if (typeof client.createdAt.toDate === "function") {
+          dateObj = client.createdAt.toDate();
+        } else {
+          dateObj = new Date(client.createdAt);
+        }
+      } else if (client.updatedAt) {
+        if (typeof client.updatedAt.toDate === "function") {
+          dateObj = client.updatedAt.toDate();
+        } else {
+          dateObj = new Date(client.updatedAt);
+        }
+      }
+
+      // Fallback seguro para a data atual caso não haja registro prévio
+      if (!dateObj || isNaN(dateObj.getTime())) {
+        dateObj = new Date();
+      }
+
+      const now = new Date();
+      const diffMs = Math.max(0, now.getTime() - dateObj.getTime());
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      let category = "0-7";
+      let badgeClass = "bg-emerald-950/80 text-emerald-400 border-emerald-800/80";
+      let dotEmoji = "🟢";
+      let label = "Recente";
+
+      if (days <= 7) {
+        category = "0-7";
+        badgeClass = "bg-emerald-950/80 text-emerald-400 border-emerald-800/80";
+        dotEmoji = "🟢";
+        label = "Recente";
+      } else if (days <= 14) {
+        category = "8-14";
+        badgeClass = "bg-sky-950/80 text-sky-400 border-sky-800/80";
+        dotEmoji = "🔵";
+        label = "Atenção inicial";
+      } else if (days <= 30) {
+        category = "15-30";
+        badgeClass = "bg-amber-950/80 text-amber-400 border-amber-800/80";
+        dotEmoji = "🟠";
+        label = "Intermediário";
+      } else if (days <= 45) {
+        category = "31-45";
+        badgeClass = "bg-rose-950/80 text-rose-400 border-rose-800/80";
+        dotEmoji = "🔴";
+        label = "Alerta";
+      } else {
+        category = "46+";
+        badgeClass = "bg-red-950/90 text-red-300 border-red-700 animate-pulse";
+        dotEmoji = "🚨";
+        label = "Crítico";
+      }
+
+      return {
+        days,
+        category,
+        badgeClass,
+        dotEmoji,
+        label,
+        statusText: "⏱️ " + days + "d"
+      };
+    }
+
+    /**
+     * ACIONADOR DOS BOTÕES DE FILTRO POR DIAS (AGING)
+     */
+    function setAgingFilter(val) {
+      state.kanbanFilterAging = val;
+      document.querySelectorAll(".aging-filter-btn").forEach(btn => {
+        if (btn.getAttribute("data-aging") === val) {
+          btn.className = "aging-filter-btn px-2.5 py-1 rounded-lg text-[10px] font-semibold transition bg-sky-600 text-white shadow-sm cursor-pointer";
+        } else {
+          btn.className = "aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-white hover:bg-slate-800/60 cursor-pointer";
+        }
+      });
+      renderKanban();
+      renderTable();
+    }
+
+    /**
+     * RECONCILIAÇÃO INTELIGENTE DE SUBTAREFAS DO CLIENTE
+     * Cruza os títulos/IDs configurados no pipeline com os registros de tarefas do cliente,
+     * garantindo integridade e preservando tarefas já marcadas como 'Concluída'.
+     */
+    function getClientMergedTasks(client) {
+      if (!client) return [];
+      const stages = getPipelineStages();
+      const clientTasks = Array.isArray(client.tasks) ? client.tasks : [];
+      const merged = [];
+
+      stages.forEach((stage, stageIdx) => {
+        const subtarefas = Array.isArray(stage.subtarefas) ? stage.subtarefas : [];
+        subtarefas.forEach((taskItem, taskIdx) => {
+          const taskTitle = (typeof taskItem === "string" ? taskItem : (taskItem.title || taskItem.nome || "")).trim();
+          if (!taskTitle) return;
+
+          // Busca correspondência nas tarefas existentes do cliente (por título normalizado ou ID indexado)
+          const existing = clientTasks.find(t => {
+            if (!t) return false;
+            if (t.title && t.title.trim().toLowerCase() === taskTitle.toLowerCase()) return true;
+            if (t.id && (t.id === (client.id + "_" + stage.id + "_" + taskIdx) || t.id === (client.id + "_p" + (stageIdx + 1) + "_" + taskIdx))) return true;
+            return false;
+          });
+
+          const taskId = existing ? existing.id : (client.id + "_" + stage.id + "_" + taskIdx);
+          const isDone = existing ? (existing.status === "Concluída") : false;
+          const assignee = existing ? (existing.assignee || "") : "";
+          const completedAt = existing ? (existing.completedAt || "") : "";
+          const department = existing ? (existing.department || stage.nome) : stage.nome;
+
+          merged.push({
+            id: taskId,
+            stageId: stage.id,
+            stageIndex: stageIdx + 1,
+            stageName: stage.nome,
+            title: taskTitle,
+            department: department,
+            status: isDone ? "Concluída" : "Pendente",
+            assignee: assignee,
+            completedAt: completedAt
+          });
+        });
+      });
+
+      return merged;
+    }
+
+
 
     /**
      * AS 9 FASES OPERACIONAIS DA ESTEIRA HARPPIA CRM
@@ -854,7 +1264,9 @@
       selectedClientId: null,
       currentView: "kanban",
       kanbanFilterAssignee: "all",
-      kanbanFilterSemaforo: "all"
+      kanbanFilterSemaforo: "all",
+      kanbanFilterAging: "all",
+      pipeline: null
     };
 
     /**
@@ -929,6 +1341,9 @@
       if (btnDelI) btnDelI.style.display = perms.canDeleteClients ? "inline-flex" : "none";
 
       // 3. Menu Gerenciar Equipe (Apenas Admin)
+      const menuSettings = document.getElementById("menuItemSettings");
+      if (menuSettings) menuSettings.style.display = perms.isAdmin ? "flex" : "none";
+
       const menuTeam = document.getElementById("menuItemTeam");
       if (menuTeam) menuTeam.style.display = perms.canAccessTeam ? "flex" : "none";
 
@@ -978,6 +1393,7 @@
           state.currentUser = null;
           if (unsubscribeClients) { unsubscribeClients(); unsubscribeClients = null; }
           if (unsubscribeTeam) { unsubscribeTeam(); unsubscribeTeam = null; }
+          if (unsubscribePipeline) { unsubscribePipeline(); unsubscribePipeline = null; }
           showLoginScreen(true);
           return;
         }
@@ -987,6 +1403,7 @@
 
         // Garante que o listener da equipe esteja escutando
         setupTeamListener();
+        setupPipelineListener();
 
         // Aguarda carregar registro do membro da coleção 'team'
         try {
@@ -1352,57 +1769,73 @@
       if (!container) return;
 
       const search = (document.getElementById("kanbanSearch")?.value || "").toLowerCase().trim();
-      const filterAssignee = state.kanbanFilterAssignee;
-      const filterSemaforo = state.kanbanFilterSemaforo;
+      const filterAssignee = state.kanbanFilterAssignee || "all";
+      const filterAging = state.kanbanFilterAging || "all";
       const canDrag = state.currentUser?.permissions?.canAdvancePhases;
+      const stages = getPipelineStages();
 
       const filtered = state.clients.filter(c => {
         const matchSearch = (c.name || "").toLowerCase().includes(search) || (c.specialty || "").toLowerCase().includes(search);
         if (!matchSearch) return false;
 
-        const esteira = computeClientEsteira(c);
-        if (filterSemaforo !== "all" && esteira.color !== filterSemaforo) return false;
+        // Filtro de Envelhecimento (Aging Filter)
+        const aging = getClientAgingInfo(c);
+        if (filterAging !== "all") {
+          if (filterAging === "0-7" && aging.category !== "0-7") return false;
+          if (filterAging === "8-14" && aging.category !== "8-14") return false;
+          if (filterAging === "15-30" && aging.category !== "15-30") return false;
+          if (filterAging === "31-45" && aging.category !== "31-45") return false;
+          if (filterAging === "46+" && aging.category !== "46+") return false;
+        }
 
+        // Filtro de Responsável da Vez
         if (filterAssignee === "my_actions") {
-          const hasMine = (c.tasks || []).some(t => t.phase === c.status && t.status !== "Concluída" && t.assignee === state.currentUser?.email);
+          const mergedTasks = getClientMergedTasks(c);
+          const currentStage = getClientCurrentStage(c);
+          const hasMine = mergedTasks.some(t => t.stageId === currentStage.id && t.status !== "Concluída" && t.assignee === state.currentUser?.email);
           if (!hasMine) return false;
         } else if (filterAssignee === "unassigned") {
-          const hasUnassigned = (c.tasks || []).some(t => t.phase === c.status && t.status !== "Concluída" && !t.assignee);
+          const mergedTasks = getClientMergedTasks(c);
+          const currentStage = getClientCurrentStage(c);
+          const hasUnassigned = mergedTasks.some(t => t.stageId === currentStage.id && t.status !== "Concluída" && !t.assignee);
           if (!hasUnassigned) return false;
         }
 
         return true;
       });
 
-      container.innerHTML = PHASES.map(phase => {
-        const colClients = filtered.filter(c => Number(c.status) === phase.id);
+      container.innerHTML = stages.map((stage, stageIndex) => {
+        const colClients = filtered.filter(c => isClientInStage(c, stage, stageIndex, stages));
+        const stageColor = stage.cor || "#3b82f6";
 
         return `
           <div class="kanban-col flex-shrink-0 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-col max-h-[calc(100vh-160px)] shadow-lg"
                ondragover="handleDragOver(event)"
                ondragleave="handleDragLeave(event)"
-               ondrop="handleDrop(event, ${phase.id})">
+               ondrop="handleDrop(event, '${stage.id}')">
             
             <!-- Cabeçalho da Coluna -->
             <div class="p-3.5 border-b border-slate-800 bg-slate-950/70 rounded-t-2xl flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="w-6 h-6 rounded-lg bg-sky-950 text-sky-400 border border-sky-800 flex items-center justify-center font-bold text-xs">${phase.id}</span>
-                <div>
-                  <h3 class="font-bold text-xs text-white leading-tight">${phase.name}</h3>
-                  <p class="text-[10px] text-slate-400">${phase.dept}</p>
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-6 h-6 rounded-lg text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm" style="background-color: ${stageColor}33; border: 1px solid ${stageColor}88; color: ${stageColor}">
+                  ${stageIndex + 1}
+                </span>
+                <div class="min-w-0">
+                  <h3 class="font-bold text-xs text-white leading-tight truncate max-w-[170px]" title="${escapeHtml(stage.nome)}">${escapeHtml(stage.nome)}</h3>
+                  <p class="text-[10px] text-slate-400">${(stage.subtarefas || []).length} subtarefas</p>
                 </div>
               </div>
-              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold">${colClients.length}</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold shrink-0">${colClients.length}</span>
             </div>
 
-            <!-- Lista de Cards -->
+            <!-- Lista de Cards da Coluna -->
             <div class="flex-1 overflow-y-auto p-3 space-y-3 min-h-[140px]">
               ${colClients.length === 0 ? `
                 <div class="border border-dashed border-slate-800/70 rounded-xl py-8 px-3 text-center text-slate-500 text-xs flex flex-col items-center justify-center gap-1.5 select-none">
                   <i data-lucide="inbox" class="w-5 h-5 text-slate-600 opacity-60"></i>
-                  <span>Nenhum cliente nesta fase</span>
+                  <span>Nenhum cliente nesta etapa</span>
                 </div>
-              ` : colClients.map(client => renderClientCard(client, canDrag)).join("")}
+              ` : colClients.map(client => renderClientCard(client, canDrag, stage, stageIndex)).join("")}
             </div>
           </div>
         `;
@@ -1411,17 +1844,18 @@
       lucide.createIcons();
     }
 
-    function renderClientCard(client, canDrag) {
-      const esteira = computeClientEsteira(client);
+    function renderClientCard(client, canDrag, currentStage, stageIndex) {
+      const aging = getClientAgingInfo(client);
       const isPriority = !!client.priority;
-      const tasks = client.tasks || [];
-      const phaseTasks = tasks.filter(t => Number(t.phase) === Number(client.status));
+      const allTasks = getClientMergedTasks(client);
+      const stage = currentStage || getClientCurrentStage(client);
+      const phaseTasks = allTasks.filter(t => t.stageId === stage.id);
       const donePhaseTasks = phaseTasks.filter(t => t.status === "Concluída");
       const nextTask = phaseTasks.find(t => t.status !== "Concluída");
 
       const waLink = client.whatsappGroup && client.whatsappGroup.trim()
         ? client.whatsappGroup.trim()
-        : (client.phone ? `https://wa.me/55${client.phone.replace(/\\D/g, '')}` : '');
+        : (client.phone ? `https://wa.me/55${client.phone.replace(/\D/g, '')}` : '');
 
       return `
         <div id="card-${client.id}"
@@ -1433,7 +1867,7 @@
           ${isPriority ? `
             <div class="mb-2 -mx-3.5 -mt-3.5 px-3 py-1 bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 text-white text-[10px] font-black tracking-wider uppercase flex items-center justify-between priority-badge-blink shadow-md">
               <span class="flex items-center gap-1"><i data-lucide="flame" class="w-3 h-3"></i> PRIORIDADE ALTA</span>
-              <button onclick="toggleClientPriority('${client.id}', event)" title="Desativar Prioridade" class="hover:bg-rose-700/60 p-0.5 rounded transition">
+              <button onclick="toggleClientPriority('${client.id}', event)" title="Desativar Prioridade" class="hover:bg-rose-700/60 p-0.5 rounded transition cursor-pointer">
                 <i data-lucide="x" class="w-3 h-3"></i>
               </button>
             </div>
@@ -1441,11 +1875,14 @@
 
           <div class="flex items-start justify-between gap-2 mb-2">
             <div class="min-w-0">
-              <h4 class="font-bold text-xs text-white truncate">${client.name}</h4>
-              <p class="text-[11px] text-slate-400 truncate">${client.specialty || 'Geral'}</p>
+              <h4 class="font-bold text-xs text-white truncate">${escapeHtml(client.name)}</h4>
+              <p class="text-[11px] text-slate-400 truncate">${escapeHtml(client.specialty || 'Geral')}</p>
             </div>
-            <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${esteira.badgeClass}">
-              ${esteira.dotEmoji} ${esteira.statusText}
+            
+            <!-- Badge Visual Discreto de Envelhecimento (Aging) -->
+            <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${aging.badgeClass} flex items-center gap-1" title="${aging.days} dias ativo na esteira (${aging.label})">
+              <span>${aging.dotEmoji}</span>
+              <span>${aging.statusText}</span>
             </span>
           </div>
 
@@ -1455,11 +1892,11 @@
               <span class="font-semibold text-sky-400">Próxima Ação:</span>
               <span>${donePhaseTasks.length}/${phaseTasks.length}</span>
             </div>
-            <p class="text-slate-200 font-medium truncate">${nextTask ? nextTask.title : 'Todas concluídas nesta fase 🎉'}</p>
+            <p class="text-slate-200 font-medium truncate">${nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas nesta etapa 🎉'}</p>
             ${nextTask && nextTask.assignee ? `
               <div class="mt-1.5 flex items-center gap-1 text-[10px] text-indigo-300 font-medium">
                 <i data-lucide="user" class="w-3 h-3"></i>
-                <span>${nextTask.assignee.split('@')[0]}</span>
+                <span>${escapeHtml(nextTask.assignee.split('@')[0])}</span>
               </div>
             ` : ''}
           </div>
@@ -1468,7 +1905,7 @@
           <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800/60" onclick="event.stopPropagation()">
             <div class="flex items-center gap-2">
               ${waLink ? `
-                <button onclick="window.open('${waLink}', '_blank')" title="Abrir WhatsApp" class="p-1 rounded-lg text-emerald-400 hover:bg-emerald-950/50 transition">
+                <button onclick="window.open('${waLink}', '_blank')" title="Abrir WhatsApp" class="p-1 rounded-lg text-emerald-400 hover:bg-emerald-950/50 transition cursor-pointer">
                   <i data-lucide="message-circle" class="w-4 h-4"></i>
                 </button>
               ` : `
@@ -1478,17 +1915,18 @@
               ${client.notes ? '<i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400/80" title="Possui anotações"></i>' : ''}
             </div>
 
-            <button onclick="openClientDrawer('${client.id}')" class="text-slate-400 hover:text-sky-400 text-[11px] font-medium flex items-center gap-1 transition">
+            <button onclick="openClientDrawer('${client.id}')" class="text-slate-400 hover:text-sky-400 text-[11px] font-medium flex items-center gap-1 transition cursor-pointer">
               <span>Detalhes</span>
               <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
             </button>
           </div>
+
         </div>
       `;
     }
 
     /**
-     * DRAG AND DROP COM PERSISTÊNCIA DIRETA NO FIRESTORE
+     * DRAG AND DROP KANBAN (SUPORTE A ETAPAS DINÂMICAS)
      */
     let draggedClientId = null;
 
@@ -1512,7 +1950,7 @@
       e.currentTarget.classList.remove("drag-over");
     }
 
-    async function handleDrop(e, targetPhase) {
+    async function handleDrop(e, targetStageId) {
       e.preventDefault();
       e.currentTarget.classList.remove("drag-over");
 
@@ -1525,14 +1963,19 @@
       if (!clientId) return;
 
       const client = state.clients.find(c => c.id === clientId);
-      if (!client || Number(client.status) === Number(targetPhase)) return;
+      if (!client) return;
+
+      const currentStage = getClientCurrentStage(client);
+      if (String(currentStage.id) === String(targetStageId)) return;
 
       try {
         await db.collection("clients").doc(clientId).update({
-          status: Number(targetPhase),
+          status: targetStageId,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        showToast(`Cliente movido para Fase ${targetPhase}!`);
+        const stages = getPipelineStages();
+        const destStage = stages.find(s => String(s.id) === String(targetStageId));
+        showToast(`Cliente movido para "${destStage?.nome || targetStageId}"!`);
       } catch (err) {
         console.error("Erro ao mover cliente:", err);
         showToast("Falha ao salvar no Firestore.");
@@ -1542,23 +1985,30 @@
     }
 
     /**
-     * GAVETA DO CLIENTE & SUBTAREFAS
+     * GAVETA DO CLIENTE & SUBTAREFAS DINÂMICAS
      */
     function openClientDrawer(clientId) {
-      state.selectedClientId = clientId;
       const client = state.clients.find(c => c.id === clientId);
       if (!client) return;
 
-      document.getElementById("drawerClientName").textContent = client.name;
-      document.getElementById("drawerClientNiche").textContent = client.specialty || "Geral";
-      document.getElementById("drawerClientPhaseBadge").textContent = `Fase ${client.status}`;
+      state.selectedClientId = clientId;
 
-      const esteira = computeClientEsteira(client);
+      // Cabeçalho da gaveta
+      document.getElementById("drawerClientName").textContent = client.name || "Sem Nome";
+      document.getElementById("drawerClientSpecialty").textContent = client.specialty || "Geral";
+      
+      const currentStage = getClientCurrentStage(client);
+      const stageBadge = document.getElementById("drawerClientPhaseBadge");
+      stageBadge.textContent = currentStage.nome;
+      stageBadge.style.borderColor = (currentStage.cor || "#3b82f6") + "66";
+      stageBadge.style.color = currentStage.cor || "#3b82f6";
+
+      const aging = getClientAgingInfo(client);
       const semaforoEl = document.getElementById("drawerClientSemaforo");
-      semaforoEl.textContent = `${esteira.dotEmoji} ${esteira.statusText}`;
-      semaforoEl.className = `text-[10px] font-semibold px-2 py-0.5 rounded-full border ${esteira.badgeClass}`;
+      semaforoEl.textContent = `${aging.dotEmoji} ${aging.days}d na esteira (${aging.label})`;
+      semaforoEl.className = `text-[10px] font-semibold px-2 py-0.5 rounded-full border ${aging.badgeClass}`;
 
-      // Preenche campos
+      // Preenche campos de edição
       document.getElementById("drawerInputName").value = client.name || "";
       document.getElementById("drawerInputSpecialty").value = client.specialty || "";
       document.getElementById("drawerInputPhone").value = client.phone || "";
@@ -1606,16 +2056,18 @@
       const listEl = document.getElementById("drawerTasksList");
       if (!listEl) return;
 
-      const allTasks = client.tasks || [];
+      const allTasks = getClientMergedTasks(client);
+      const currentStage = getClientCurrentStage(client);
+
       const filteredTasks = filter === "current"
-        ? allTasks.filter(t => Number(t.phase) === Number(client.status))
+        ? allTasks.filter(t => t.stageId === currentStage.id)
         : allTasks;
 
       const doneCount = allTasks.filter(t => t.status === "Concluída").length;
       document.getElementById("drawerTasksCount").textContent = `${doneCount}/${allTasks.length}`;
 
       if (filteredTasks.length === 0) {
-        listEl.innerHTML = '<div class="p-6 text-center text-slate-500 text-xs">Nenhuma subtarefa encontrada.</div>';
+        listEl.innerHTML = '<div class="p-6 text-center text-slate-500 text-xs">Nenhuma subtarefa encontrada para esta etapa.</div>';
         return;
       }
 
@@ -1632,20 +2084,19 @@
             <!-- Detalhes da Tarefa -->
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1 flex-wrap">
-                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-slate-800 text-slate-300">${task.department}</span>
-                <span class="text-[10px] text-slate-500">Fase ${task.phase}</span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-slate-800 text-slate-300">${escapeHtml(task.department || task.stageName)}</span>
+                <span class="text-[10px] text-slate-500">Etapa ${task.stageIndex}: ${escapeHtml(task.stageName)}</span>
                 
                 <!-- Atribuição rápida de responsável -->
                 <select onchange="updateTaskAssignee('${task.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-0.5 text-[10px] text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer">
                   <option value="">👤 Não atribuído</option>
                   ${state.users.map(u => `
-                    <option value="${u.email}" ${task.assignee === u.email ? 'selected' : ''}>${u.nome || u.email.split('@')[0]}</option>
+                    <option value="${u.email}" ${task.assignee === u.email ? 'selected' : ''}>${escapeHtml(u.nome || u.email.split('@')[0])}</option>
                   `).join("")}
                 </select>
               </div>
 
-              <p class="text-xs font-semibold ${isDone ? 'line-through text-slate-400' : 'text-slate-100'}">${task.title}</p>
-              ${task.description ? `<p class="text-[11px] text-slate-400 mt-1 leading-relaxed">${task.description}</p>` : ''}
+              <p class="text-xs font-semibold ${isDone ? 'line-through text-slate-400' : 'text-slate-100'}">${escapeHtml(task.title)}</p>
             </div>
           </div>
         `;
@@ -1658,28 +2109,51 @@
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
 
-      const tasks = client.tasks || [];
-      const taskIndex = tasks.findIndex(t => t.id === taskId);
-      if (taskIndex === -1) return;
+      const merged = getClientMergedTasks(client);
+      const targetTask = merged.find(t => t.id === taskId);
+      if (!targetTask) return;
 
-      const isDone = tasks[taskIndex].status === "Concluída";
-      tasks[taskIndex].status = isDone ? "Pendente" : "Concluída";
-      tasks[taskIndex].completedAt = isDone ? "" : new Date().toISOString();
+      const newStatus = targetTask.status === "Concluída" ? "Pendente" : "Concluída";
+      const newCompletedAt = newStatus === "Concluída" ? new Date().toISOString() : "";
 
-      // Checagem de avanço automático caso todas as tarefas da fase tenham sido concluídas
-      let newPhase = client.status;
-      const phaseTasks = tasks.filter(t => Number(t.phase) === Number(client.status));
-      const allDone = phaseTasks.length > 0 && phaseTasks.every(t => t.status === "Concluída");
+      let tasks = Array.isArray(client.tasks) ? [...client.tasks] : [];
+      const existingIdx = tasks.findIndex(t => t.id === taskId || (t.title && t.title.trim().toLowerCase() === targetTask.title.trim().toLowerCase()));
 
-      if (allDone && client.status < 9) {
-        newPhase = client.status + 1;
-        showToast(`Todas subtarefas da Fase ${client.status} concluídas! Auto-avanço para Fase ${newPhase}.`);
+      if (existingIdx !== -1) {
+        tasks[existingIdx].status = newStatus;
+        tasks[existingIdx].completedAt = newCompletedAt;
+      } else {
+        tasks.push({
+          id: taskId,
+          stageId: targetTask.stageId,
+          phase: targetTask.stageIndex,
+          title: targetTask.title,
+          department: targetTask.department,
+          status: newStatus,
+          assignee: targetTask.assignee || "",
+          completedAt: newCompletedAt
+        });
+      }
+
+      // Checagem de avanço automático caso todas as tarefas da etapa atual tenham sido concluídas
+      const stages = getPipelineStages();
+      const currentStage = getClientCurrentStage(client);
+      const currentIdx = stages.findIndex(s => s.id === currentStage.id);
+
+      const currentStageTasks = merged.map(t => t.id === taskId ? { ...t, status: newStatus } : t).filter(t => t.stageId === currentStage.id);
+      const allDone = currentStageTasks.length > 0 && currentStageTasks.every(t => t.status === "Concluída");
+
+      let nextStageId = client.status;
+      if (allDone && currentIdx !== -1 && currentIdx < stages.length - 1) {
+        const nextStage = stages[currentIdx + 1];
+        nextStageId = nextStage.id;
+        showToast(`Todas subtarefas da Etapa "${currentStage.nome}" concluídas! Auto-avanço para "${nextStage.nome}".`);
       }
 
       try {
         await db.collection("clients").doc(client.id).update({
           tasks: tasks,
-          status: newPhase,
+          status: nextStageId,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       } catch (err) {
@@ -1692,39 +2166,64 @@
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
 
-      const tasks = client.tasks || [];
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        task.assignee = assigneeEmail;
-        try {
-          await db.collection("clients").doc(client.id).update({
-            tasks: tasks,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          showToast("Responsável atribuído!");
-        } catch (err) {
-          console.error("Erro ao atribuir responsável:", err);
-        }
+      const merged = getClientMergedTasks(client);
+      const task = merged.find(t => t.id === taskId);
+      if (!task) return;
+
+      let tasks = Array.isArray(client.tasks) ? [...client.tasks] : [];
+      const existingIdx = tasks.findIndex(t => t.id === taskId || (t.title && t.title.trim().toLowerCase() === task.title.trim().toLowerCase()));
+
+      if (existingIdx !== -1) {
+        tasks[existingIdx].assignee = assigneeEmail;
+      } else {
+        tasks.push({
+          id: taskId,
+          stageId: task.stageId,
+          phase: task.stageIndex,
+          title: task.title,
+          department: task.department,
+          status: task.status,
+          assignee: assigneeEmail,
+          completedAt: task.completedAt || ""
+        });
+      }
+
+      try {
+        await db.collection("clients").doc(client.id).update({
+          tasks: tasks,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast("Responsável atribuído!");
+      } catch (err) {
+        console.error("Erro ao atribuir responsável:", err);
       }
     }
 
     async function advanceClientPhaseDrawer() {
       if (!state.currentUser?.permissions?.canAdvancePhases) {
-        showToast("Seu cargo não possui permissão para avançar fases.");
+        showToast("Seu cargo não possui permissão para avançar etapas.");
         return;
       }
       const client = state.clients.find(c => c.id === state.selectedClientId);
-      if (!client || client.status >= 9) return;
+      if (!client) return;
 
-      const nextPhase = client.status + 1;
+      const stages = getPipelineStages();
+      const currentIdx = stages.findIndex((s, idx) => isClientInStage(client, s, idx, stages));
+      if (currentIdx === -1 || currentIdx >= stages.length - 1) {
+        showToast("O cliente já está na última etapa da esteira.");
+        return;
+      }
+
+      const nextStage = stages[currentIdx + 1];
       try {
         await db.collection("clients").doc(client.id).update({
-          status: nextPhase,
+          status: nextStage.id,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        showToast(`Cliente avançado para Fase ${nextPhase}!`);
+        showToast(`Cliente avançado para "${nextStage.nome}"!`);
       } catch (err) {
-        console.error("Erro ao avançar fase:", err);
+        console.error("Erro ao avançar etapa:", err);
+        showToast("Falha ao avançar etapa.");
       }
     }
 
@@ -1785,36 +2284,23 @@
         await db.collection("clients").doc(client.id).update(updated);
         showToast("Dados do cliente atualizados com sucesso!");
       } catch (err) {
-        console.error("Erro ao salvar cliente:", err);
-        showToast("Erro ao gravar dados.");
+        console.error("Erro ao atualizar cliente:", err);
+        showToast("Erro ao gravar dados no Firestore.");
       }
-    }
-
-    function openDrawerWhatsApp() {
-      const url = document.getElementById("drawerInputWhatsappGroup")?.value.trim();
-      if (url) {
-        window.open(url, "_blank");
-      } else {
-        showToast("Nenhum link de WhatsApp informado.");
-      }
-    }
-
-    async function toggleDrawerPriority() {
-      if (!state.selectedClientId) return;
-      toggleClientPriority(state.selectedClientId);
     }
 
     async function toggleClientPriority(clientId, event) {
-      if (event) { event.stopPropagation(); event.preventDefault(); }
+      if (event) event.stopPropagation();
       const client = state.clients.find(c => c.id === clientId);
       if (!client) return;
 
+      const newPriority = !client.priority;
       try {
         await db.collection("clients").doc(clientId).update({
-          priority: !client.priority,
+          priority: newPriority,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        showToast(client.priority ? "Prioridade removida" : "Prioridade alta ativada!");
+        showToast(newPriority ? "Prioridade alta ativada!" : "Prioridade removida");
       } catch (err) {
         console.error("Erro ao alternar prioridade:", err);
       }
@@ -1824,10 +2310,10 @@
       const btn = document.getElementById("drawerBtnPriority");
       if (!btn) return;
       if (client.priority) {
-        btn.className = "text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-700 bg-rose-950 text-rose-300";
+        btn.className = "text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-700 bg-rose-950 text-rose-300 cursor-pointer";
         btn.textContent = "🔥 Alta Prioridade";
       } else {
-        btn.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition";
+        btn.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer";
         btn.textContent = "⭐ Prioridade";
       }
     }
@@ -1849,6 +2335,29 @@
       document.getElementById("modalNewClient").classList.add("hidden");
     }
 
+    function buildDefaultTasks(clientId) {
+      const stages = getPipelineStages();
+      const tasks = [];
+      stages.forEach((stage, sIdx) => {
+        const subtarefas = Array.isArray(stage.subtarefas) ? stage.subtarefas : [];
+        subtarefas.forEach((title, tIdx) => {
+          tasks.push({
+            id: `${clientId}_${stage.id}_${tIdx}`,
+            phase: sIdx + 1,
+            stageId: stage.id,
+            stageName: stage.nome,
+            title: typeof title === "string" ? title : (title.title || title.nome || ""),
+            department: stage.nome,
+            description: "",
+            status: "Pendente",
+            assignee: "",
+            completedAt: ""
+          });
+        });
+      });
+      return tasks;
+    }
+
     async function handleCreateClient(e) {
       e.preventDefault();
       if (!state.currentUser?.permissions?.canCreateClients) return;
@@ -1861,6 +2370,8 @@
       const entryDate = document.getElementById("newClientEntryDate").value || new Date().toISOString().split("T")[0];
       const deadline = document.getElementById("newClientDeadline").value || "";
 
+      const stages = getPipelineStages();
+      const initialStageId = stages[0]?.id || "etapa_1";
       const newId = "cli_" + Date.now();
       const initialTasks = buildDefaultTasks(newId);
 
@@ -1872,7 +2383,7 @@
         whatsappGroup,
         entryDate,
         deadline,
-        status: 1, // Inicia na Fase 1
+        status: initialStageId, // Inicia na 1ª Etapa ativa
         priority: false,
         notes: "",
         tasks: initialTasks,
@@ -1950,9 +2461,22 @@
       if (!tbody) return;
 
       const search = (document.getElementById("kanbanSearch")?.value || "").toLowerCase().trim();
-      const filtered = state.clients.filter(c =>
-        (c.name || "").toLowerCase().includes(search) || (c.specialty || "").toLowerCase().includes(search)
-      );
+      const filterAging = state.kanbanFilterAging || "all";
+
+      const filtered = state.clients.filter(c => {
+        const matchSearch = (c.name || "").toLowerCase().includes(search) || (c.specialty || "").toLowerCase().includes(search);
+        if (!matchSearch) return false;
+
+        const aging = getClientAgingInfo(c);
+        if (filterAging !== "all") {
+          if (filterAging === "0-7" && aging.category !== "0-7") return false;
+          if (filterAging === "8-14" && aging.category !== "8-14") return false;
+          if (filterAging === "15-30" && aging.category !== "15-30") return false;
+          if (filterAging === "31-45" && aging.category !== "31-45") return false;
+          if (filterAging === "46+" && aging.category !== "46+") return false;
+        }
+        return true;
+      });
 
       if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-500">Nenhum cliente encontrado.</td></tr>';
@@ -1960,48 +2484,42 @@
       }
 
       tbody.innerHTML = filtered.map(c => {
-        const esteira = computeClientEsteira(c);
-        const phase = PHASES.find(p => p.id === Number(c.status)) || PHASES[0];
-        const tasks = c.tasks || [];
-        const doneTasks = tasks.filter(t => t.status === "Concluída").length;
-        const percent = tasks.length > 0 ? Math.round((doneTasks / tasks.length) * 100) : 0;
+        const aging = getClientAgingInfo(c);
+        const stage = getClientCurrentStage(c);
+        const allTasks = getClientMergedTasks(c);
+        const doneTasks = allTasks.filter(t => t.status === "Concluída").length;
+        const percent = allTasks.length > 0 ? Math.round((doneTasks / allTasks.length) * 100) : 0;
+        const stageColor = stage.cor || "#3b82f6";
 
         return `
           <tr class="hover:bg-slate-800/40 transition">
             <td class="p-3.5 font-bold text-white">
-              ${c.name}
+              ${escapeHtml(c.name)}
               ${c.priority ? '<span class="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800">Alta</span>' : ''}
             </td>
-            <td class="p-3.5 text-slate-400">${c.specialty || 'Geral'}</td>
+            <td class="p-3.5 text-slate-400">${escapeHtml(c.specialty || 'Geral')}</td>
             <td class="p-3.5">
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-950 text-sky-400 border border-sky-800">
-                Fase ${c.status}: ${phase.name}
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" style="background-color: ${stageColor}22; border: 1px solid ${stageColor}66; color: ${stageColor}">
+                ${escapeHtml(stage.nome)}
               </span>
             </td>
             <td class="p-3.5">
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${esteira.badgeClass}">
-                ${esteira.dotEmoji} ${esteira.statusText}
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${aging.badgeClass}">
+                ${aging.dotEmoji} ${aging.days}d (${aging.label})
               </span>
             </td>
             <td class="p-3.5">
               <div class="flex items-center gap-2">
                 <div class="w-16 bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                  <div class="bg-sky-500 h-full rounded-full" style="width: ${percent}%"></div>
+                  <div class="bg-sky-500 h-1.5 rounded-full" style="width: ${percent}%"></div>
                 </div>
-                <span class="text-[10px] text-slate-400">${percent}%</span>
+                <span class="text-[10px] text-slate-400 font-medium">${percent}%</span>
               </div>
             </td>
-            <td class="p-3.5">
-              ${c.whatsappGroup ? `
-                <button onclick="window.open('${c.whatsappGroup}', '_blank')" class="text-emerald-400 hover:underline flex items-center gap-1">
-                  <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
-                  <span>Abrir Grupo</span>
-                </button>
-              ` : '<span class="text-slate-600">-</span>'}
-            </td>
+            <td class="p-3.5 text-slate-400">${escapeHtml(c.phone || '-')}</td>
             <td class="p-3.5 text-right">
-              <button onclick="openClientDrawer('${c.id}')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-[11px] transition">
-                Abrir Gaveta
+              <button onclick="openClientDrawer('${c.id}')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 text-[11px] font-medium transition cursor-pointer">
+                Ver Detalhes
               </button>
             </td>
           </tr>
@@ -2013,23 +2531,25 @@
 
     function renderMetrics() {
       const total = state.clients.length;
-      let green = 0, yellow = 0, red = 0;
+      let recent = 0, initialAttn = 0, intermediate = 0, alertCount = 0, critical = 0;
 
       state.clients.forEach(c => {
-        const est = computeClientEsteira(c);
-        if (est.color === "green") green++;
-        if (est.color === "yellow") yellow++;
-        if (est.color === "red") red++;
+        const aging = getClientAgingInfo(c);
+        if (aging.category === "0-7") recent++;
+        else if (aging.category === "8-14") initialAttn++;
+        else if (aging.category === "15-30") intermediate++;
+        else if (aging.category === "31-45") alertCount++;
+        else if (aging.category === "46+") critical++;
       });
 
       const totalEl = document.getElementById("metricTotalClients");
       if (totalEl) totalEl.textContent = total;
       const greenEl = document.getElementById("metricGreenClients");
-      if (greenEl) greenEl.textContent = green;
+      if (greenEl) greenEl.textContent = recent;
       const yellowEl = document.getElementById("metricYellowClients");
-      if (yellowEl) yellowEl.textContent = yellow;
+      if (yellowEl) yellowEl.textContent = (initialAttn + intermediate);
       const redEl = document.getElementById("metricRedClients");
-      if (redEl) redEl.textContent = red;
+      if (redEl) redEl.textContent = (alertCount + critical);
     }
 
     /**
@@ -2121,6 +2641,416 @@
       initAuth();
       lucide.createIcons();
     });
+  
+
+
+    /**
+     * =========================================================================
+     * GESTÃO E EDIÇÃO DINÂMICA DO PIPELINE (EXCLUSIVO ADMINISTRADOR)
+     * =========================================================================
+     */
+    let editingPipeline = [];
+    let expandedStageIds = new Set();
+    let unsubscribePipeline = null;
+
+    /**
+     * ESCUTA EM TEMPO REAL: DOCUMENTO 'settings/pipeline'
+     */
+    function setupPipelineListener() {
+      if (unsubscribePipeline) return;
+
+      unsubscribePipeline = db.collection("settings").doc("pipeline").onSnapshot(async (doc) => {
+        if (!doc.exists || !doc.data() || !Array.isArray(doc.data().etapas) || doc.data().etapas.length === 0) {
+          console.log("Documento 'settings/pipeline' não encontrado ou vazio. Semeando padrão oficial...");
+          try {
+            const initialDoc = {
+              etapas: DEFAULT_PIPELINE_STAGES,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await db.collection("settings").doc("pipeline").set(initialDoc);
+            state.pipeline = initialDoc;
+          } catch (err) {
+            console.error("Erro ao gravar seed em settings/pipeline:", err);
+            state.pipeline = { etapas: DEFAULT_PIPELINE_STAGES };
+          }
+        } else {
+          state.pipeline = doc.data();
+        }
+
+        renderKanban();
+        renderTable();
+        renderMetrics();
+        if (state.selectedClientId) {
+          renderDrawerTasks();
+        }
+
+        // Se o modal de configurações estiver aberto, re-sincroniza caso não esteja editando ativamente
+        const modal = document.getElementById("modalPipelineSettings");
+        if (modal && !modal.classList.contains("hidden") && editingPipeline.length === 0) {
+          editingPipeline = JSON.parse(JSON.stringify(getPipelineStages()));
+          renderPipelineEditor();
+        }
+      }, err => {
+        console.error("Erro no listener de pipeline:", err);
+        state.pipeline = { etapas: DEFAULT_PIPELINE_STAGES };
+        renderKanban();
+      });
+    }
+
+    /**
+     * ABERTURA E FECHAMENTO DO MODAL DE CONFIGURAÇÕES
+     */
+    function openPipelineSettingsModal() {
+      closeProfileDropdown();
+      if (!state.currentUser?.permissions?.isAdmin) {
+        showToast("Apenas administradores podem acessar as configurações do CRM.");
+        return;
+      }
+
+      // Clona profundamente as etapas atuais para permitir edição segura com cancelamento
+      editingPipeline = JSON.parse(JSON.stringify(getPipelineStages()));
+      expandedStageIds.clear();
+      // Deixa a primeira etapa expandida por conveniência
+      if (editingPipeline.length > 0) {
+        expandedStageIds.add(editingPipeline[0].id);
+      }
+
+      renderPipelineEditor();
+      document.getElementById("modalPipelineSettings").classList.remove("hidden");
+      lucide.createIcons();
+    }
+
+    function closePipelineSettingsModal() {
+      document.getElementById("modalPipelineSettings").classList.add("hidden");
+      editingPipeline = [];
+    }
+
+    /**
+     * RENDERIZAÇÃO DA LISTA DE ETAPAS E SUBTAREFAS NO EDITOR DO MODAL
+     */
+    function renderPipelineEditor() {
+      const container = document.getElementById("pipelineStagesList");
+      if (!container) return;
+
+      if (!editingPipeline || editingPipeline.length === 0) {
+        container.innerHTML = '<div class="p-8 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-2xl">Nenhuma etapa configurada. Clique em "Nova Etapa" ou "Restaurar 9 Fases Oficiais".</div>';
+        return;
+      }
+
+      container.innerHTML = editingPipeline.map((stage, sIdx) => {
+        const isExpanded = expandedStageIds.has(stage.id);
+        const subtarefas = Array.isArray(stage.subtarefas) ? stage.subtarefas : [];
+        const isFirst = sIdx === 0;
+        const isLast = sIdx === editingPipeline.length - 1;
+        const stageColor = stage.cor || "#3b82f6";
+
+        return `
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-sm transition">
+            
+            <!-- Barra Superior da Etapa -->
+            <div class="p-3.5 bg-slate-950 flex items-center justify-between gap-2.5">
+              
+              <!-- Controles de Reordenação e Identificador -->
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="moveStageUp(${sIdx})" ${isFirst ? 'disabled class="p-1 rounded text-slate-700 cursor-not-allowed"' : 'class="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"'} title="Mover para Cima">
+                  <i data-lucide="chevron-up" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="moveStageDown(${sIdx})" ${isLast ? 'disabled class="p-1 rounded text-slate-700 cursor-not-allowed"' : 'class="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"'} title="Mover para Baixo">
+                  <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </button>
+                
+                <span class="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 flex items-center justify-center font-bold text-xs">
+                  ${sIdx + 1}
+                </span>
+              </div>
+
+              <!-- Seletor de Cor da Etapa -->
+              <div class="flex items-center gap-1.5 shrink-0" title="Cor da Etapa">
+                <input type="color" value="${stageColor}" onchange="updateStageColor(${sIdx}, this.value)" class="w-7 h-7 rounded-lg border border-slate-700 bg-transparent cursor-pointer p-0.5" />
+              </div>
+
+              <!-- Input Editável do Nome da Etapa -->
+              <div class="flex-1 min-w-0">
+                <input type="text" value="${escapeHtml(stage.nome || '')}" oninput="updateStageName(${sIdx}, this.value)" placeholder="Nome da Etapa..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white font-semibold focus:outline-none focus:border-sky-500 shadow-inner" />
+              </div>
+
+              <!-- Contagem de Subtarefas & Botões de Ação -->
+              <div class="flex items-center gap-2 shrink-0">
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-800">
+                  ${subtarefas.length} subtarefas
+                </span>
+
+                <button type="button" onclick="toggleExpandStage('${stage.id}')" class="p-1.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:border-slate-700 transition cursor-pointer" title="${isExpanded ? 'Recolher Subtarefas' : 'Expandir Subtarefas'}">
+                  <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4"></i>
+                </button>
+
+                <button type="button" onclick="handleDeleteStage(${sIdx})" class="p-1.5 rounded-xl border border-rose-900/60 bg-rose-950/40 text-rose-400 hover:text-rose-300 hover:bg-rose-900/60 transition cursor-pointer" title="Excluir Etapa">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+
+            </div>
+
+            <!-- Área Expansível: Gerenciamento de Subtarefas -->
+            ${isExpanded ? `
+              <div class="border-t border-slate-800/80 bg-slate-900/60 p-4 space-y-2.5">
+                <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
+                  <span>Subtarefas / Checklist desta etapa:</span>
+                  <span class="text-[11px] text-slate-500">Defina os itens que o operador deve checar</span>
+                </div>
+
+                <!-- Lista de Subtarefas -->
+                <div class="space-y-1.5">
+                  ${subtarefas.length === 0 ? `
+                    <div class="text-[11px] text-slate-500 italic p-3 bg-slate-950/40 rounded-xl border border-dashed border-slate-800 text-center">
+                      Nenhuma subtarefa adicionada. Use o campo abaixo para adicionar a primeira.
+                    </div>
+                  ` : subtarefas.map((sub, subIdx) => {
+                    const subText = typeof sub === "string" ? sub : (sub.title || sub.nome || "");
+                    const isSubFirst = subIdx === 0;
+                    const isSubLast = subIdx === subtarefas.length - 1;
+
+                    return `
+                      <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800/80 text-xs">
+                        <span class="text-[10px] text-slate-500 font-bold w-4 text-right shrink-0">${subIdx + 1}.</span>
+                        
+                        <input type="text" value="${escapeHtml(subText)}" oninput="updateSubtaskText(${sIdx}, ${subIdx}, this.value)" placeholder="Descrição da subtarefa..." class="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500" />
+                        
+                        <!-- Reordenar Subtarefa -->
+                        <div class="flex items-center gap-0.5 shrink-0">
+                          <button type="button" onclick="moveSubtask(${sIdx}, ${subIdx}, -1)" ${isSubFirst ? 'disabled class="p-1 text-slate-700 cursor-not-allowed"' : 'class="p-1 text-slate-400 hover:text-white cursor-pointer"'} title="Mover para cima">
+                            <i data-lucide="arrow-up" class="w-3.5 h-3.5"></i>
+                          </button>
+                          <button type="button" onclick="moveSubtask(${sIdx}, ${subIdx}, 1)" ${isSubLast ? 'disabled class="p-1 text-slate-700 cursor-not-allowed"' : 'class="p-1 text-slate-400 hover:text-white cursor-pointer"'} title="Mover para baixo">
+                            <i data-lucide="arrow-down" class="w-3.5 h-3.5"></i>
+                          </button>
+                        </div>
+
+                        <!-- Excluir Subtarefa -->
+                        <button type="button" onclick="deleteSubtask(${sIdx}, ${subIdx})" class="p-1 text-slate-500 hover:text-rose-400 transition cursor-pointer" title="Remover Subtarefa">
+                          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        </button>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+
+                <!-- Formulário de Adição de Nova Subtarefa -->
+                <div class="flex items-center gap-2 pt-2 border-t border-slate-800/60">
+                  <input type="text" id="inputNewSubtask_${sIdx}" placeholder="Nova subtarefa para esta etapa..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); addSubtaskToStage(${sIdx}); }" />
+                  <button type="button" onclick="addSubtaskToStage(${sIdx})" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Adicionar</span>
+                  </button>
+                </div>
+
+              </div>
+            ` : ''}
+
+          </div>
+        `;
+      }).join("");
+
+      lucide.createIcons();
+    }
+
+    /**
+     * MÉTODOS DE MANIPULAÇÃO DE ETAPAS E SUBTAREFAS NO EDITOR
+     */
+    function toggleExpandStage(stageId) {
+      if (expandedStageIds.has(stageId)) {
+        expandedStageIds.delete(stageId);
+      } else {
+        expandedStageIds.add(stageId);
+      }
+      renderPipelineEditor();
+    }
+
+    function addNewStage() {
+      const newId = "etapa_" + Date.now();
+      const defaultColors = ["#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899", "#10b981", "#f59e0b"];
+      const randomColor = defaultColors[editingPipeline.length % defaultColors.length];
+
+      editingPipeline.push({
+        id: newId,
+        nome: "Nova Etapa " + (editingPipeline.length + 1),
+        cor: randomColor,
+        subtarefas: [
+          "Primeira ação desta etapa"
+        ]
+      });
+
+      expandedStageIds.add(newId);
+      renderPipelineEditor();
+    }
+
+    function updateStageName(stageIdx, val) {
+      if (editingPipeline[stageIdx]) {
+        editingPipeline[stageIdx].nome = val;
+      }
+    }
+
+    function updateStageColor(stageIdx, val) {
+      if (editingPipeline[stageIdx]) {
+        editingPipeline[stageIdx].cor = val;
+      }
+    }
+
+    function moveStageUp(stageIdx) {
+      if (stageIdx <= 0) return;
+      const temp = editingPipeline[stageIdx];
+      editingPipeline[stageIdx] = editingPipeline[stageIdx - 1];
+      editingPipeline[stageIdx - 1] = temp;
+      renderPipelineEditor();
+    }
+
+    function moveStageDown(stageIdx) {
+      if (stageIdx >= editingPipeline.length - 1) return;
+      const temp = editingPipeline[stageIdx];
+      editingPipeline[stageIdx] = editingPipeline[stageIdx + 1];
+      editingPipeline[stageIdx + 1] = temp;
+      renderPipelineEditor();
+    }
+
+    function handleDeleteStage(stageIdx) {
+      const stage = editingPipeline[stageIdx];
+      if (!stage) return;
+
+      // Verificação de segurança: Checa se há clientes vinculados a esta etapa
+      const stagesSnapshot = getPipelineStages();
+      const clientsInStage = state.clients.filter(c => isClientInStage(c, stage, stageIdx, stagesSnapshot));
+
+      if (clientsInStage.length > 0) {
+        const confirmed = confirm(
+          "⚠️ ATENÇÃO: Existem " + clientsInStage.length + " cliente(s) vinculados à etapa '" + stage.nome + "'.\n\n" +
+          "Ao excluir esta etapa, os cards serão alocados na primeira etapa da esteira para preservar os dados.\n\n" +
+          "Deseja realmente excluir esta etapa?"
+        );
+        if (!confirmed) return;
+      } else {
+        const confirmed = confirm("Deseja realmente excluir a etapa '" + stage.nome + "'?");
+        if (!confirmed) return;
+      }
+
+      editingPipeline.splice(stageIdx, 1);
+      expandedStageIds.delete(stage.id);
+      renderPipelineEditor();
+    }
+
+    function addSubtaskToStage(stageIdx) {
+      const input = document.getElementById("inputNewSubtask_" + stageIdx);
+      if (!input) return;
+      const title = input.value.trim();
+      if (!title) {
+        showToast("Digite o nome da subtarefa.");
+        return;
+      }
+
+      if (!Array.isArray(editingPipeline[stageIdx].subtarefas)) {
+        editingPipeline[stageIdx].subtarefas = [];
+      }
+
+      editingPipeline[stageIdx].subtarefas.push(title);
+      input.value = "";
+      renderPipelineEditor();
+    }
+
+    function updateSubtaskText(stageIdx, subIdx, val) {
+      if (editingPipeline[stageIdx] && Array.isArray(editingPipeline[stageIdx].subtarefas)) {
+        editingPipeline[stageIdx].subtarefas[subIdx] = val;
+      }
+    }
+
+    function deleteSubtask(stageIdx, subIdx) {
+      if (editingPipeline[stageIdx] && Array.isArray(editingPipeline[stageIdx].subtarefas)) {
+        editingPipeline[stageIdx].subtarefas.splice(subIdx, 1);
+        renderPipelineEditor();
+      }
+    }
+
+    function moveSubtask(stageIdx, subIdx, dir) {
+      const subtarefas = editingPipeline[stageIdx]?.subtarefas;
+      if (!Array.isArray(subtarefas)) return;
+      const targetIdx = subIdx + dir;
+      if (targetIdx < 0 || targetIdx >= subtarefas.length) return;
+
+      const temp = subtarefas[subIdx];
+      subtarefas[subIdx] = subtarefas[targetIdx];
+      subtarefas[targetIdx] = temp;
+      renderPipelineEditor();
+    }
+
+    function restoreDefaultPipeline() {
+      const confirmed = confirm("Deseja redefinir as etapas e subtarefas para o padrão oficial das 9 fases e 54 tarefas da Harppia?\n\nIsso substituirá suas edições no modal.");
+      if (!confirmed) return;
+
+      editingPipeline = JSON.parse(JSON.stringify(DEFAULT_PIPELINE_STAGES));
+      expandedStageIds.clear();
+      if (editingPipeline.length > 0) {
+        expandedStageIds.add(editingPipeline[0].id);
+      }
+      renderPipelineEditor();
+      showToast("Padrão oficial das 9 fases carregado no editor.");
+    }
+
+    /**
+     * GRAVAÇÃO CENTRALIZADA NO CLOUD FIRESTORE ('settings/pipeline')
+     */
+    async function savePipelineSettings() {
+      if (!state.currentUser?.permissions?.isAdmin) {
+        showToast("Apenas administradores podem salvar alterações no pipeline.");
+        return;
+      }
+
+      if (!editingPipeline || editingPipeline.length === 0) {
+        alert("O pipeline deve conter pelo menos 1 etapa ativa.");
+        return;
+      }
+
+      // Validação: nomes das etapas não podem ficar vazios
+      for (let i = 0; i < editingPipeline.length; i++) {
+        const name = (editingPipeline[i].nome || "").trim();
+        if (!name) {
+          alert("A etapa " + (i + 1) + " está sem nome. Preencha o nome de todas as etapas antes de salvar.");
+          return;
+        }
+      }
+
+      const btn = document.getElementById("btnSavePipeline");
+      const btnText = document.getElementById("btnSavePipelineText");
+      btn.disabled = true;
+      btnText.textContent = "Salvando no Firestore...";
+
+      try {
+        const payload = {
+          etapas: editingPipeline,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: state.currentUser?.email || "admin"
+        };
+
+        await db.collection("settings").doc("pipeline").set(payload);
+        showToast("Configurações do Pipeline salvas e sincronizadas!");
+        closePipelineSettingsModal();
+      } catch (err) {
+        console.error("Erro ao gravar pipeline no Firestore:", err);
+        showToast("Falha ao salvar configurações no Firestore.");
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = "Salvar Configurações";
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+
   </script>
 </body>
 </html>
