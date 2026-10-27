@@ -1679,9 +1679,9 @@
       renderTable();
     }
 
-    function getClientMergedTasks(client) {
+    function getClientMergedTasks(client, customStages) {
       if (!client) return [];
-      const stages = getPipelineStages();
+      const stages = (Array.isArray(customStages) && customStages.length > 0) ? customStages : getPipelineStages();
       const clientTasks = Array.isArray(client.tasks) ? client.tasks : [];
       const merged = [];
 
@@ -2316,13 +2316,32 @@
       select.value = currentVal;
     }
 
-    function getClientNextPendingTask(client) {
+    function getNextPendingTask(client, pipelineConfig) {
       if (!client) return null;
-      const stage = getClientCurrentStage(client);
-      const allTasks = getClientMergedTasks(client);
-      const phaseTasks = allTasks.filter(t => t.stageId === stage.id);
-      const nextTask = phaseTasks.find(t => t.status !== "Concluída");
+      const stages = (Array.isArray(pipelineConfig) && pipelineConfig.length > 0)
+        ? pipelineConfig
+        : getPipelineStages();
+      
+      // Para o cliente avaliado, verifique a sua fase atual (1 a 9)
+      const currentStage = stages.find((s, idx) => isClientInStage(client, s, idx, stages)) || stages[0];
+      if (!currentStage) return null;
+
+      // Obtenha a lista ordenada de subtarefas dessa fase específica
+      const allTasks = getClientMergedTasks(client, stages);
+      const phaseTasks = allTasks.filter(t => t.stageId === currentStage.id);
+
+      // Encontre a primeira subtarefa ainda não concluída
+      const nextTask = phaseTasks.find(t => {
+        if (!t) return false;
+        const s = String(t.status || "").toLowerCase().trim();
+        return s !== "concluída" && s !== "concluida" && s !== "checked" && t.completed !== true;
+      });
+
       return nextTask || null;
+    }
+
+    function getClientNextPendingTask(client, pipelineConfig) {
+      return getNextPendingTask(client, pipelineConfig);
     }
 
     function renderKanban() {
@@ -2461,7 +2480,7 @@
       const stage = currentStage || getClientCurrentStage(client);
       const phaseTasks = allTasks.filter(t => t.stageId === stage.id);
       const donePhaseTasks = phaseTasks.filter(t => t.status === "Concluída");
-      const nextTask = phaseTasks.find(t => t.status !== "Concluída");
+      const nextTask = getNextPendingTask(client);
 
       const waLink = client.whatsappGroup && client.whatsappGroup.trim()
         ? client.whatsappGroup.trim()
@@ -3274,11 +3293,52 @@
           if (String(currentStage.id) !== String(filterPhase)) return false;
         }
 
-        // 3. Filtro de responsável
+        // 3. Filtro de responsável baseado na Próxima Subtarefa Pendente da Fase Atual
         if (filterAssignee !== "all") {
-          const mergedTasks = getClientMergedTasks(c);
-          const hasTaskForUser = mergedTasks.some(t => (t.assignee || "").toLowerCase() === filterAssignee.toLowerCase());
-          if (!hasTaskForUser) return false;
+          const nextTask = getNextPendingTask(c, stages);
+
+          if (filterAssignee === "unassigned") {
+            if (!nextTask) return false;
+            const taskAssignee = (nextTask.assignee || "").trim();
+            if (taskAssignee && taskAssignee.toLowerCase() !== "sem responsável" && taskAssignee.toLowerCase() !== "não atribuído") {
+              return false;
+            }
+          } else if (filterAssignee === "my_actions") {
+            if (!nextTask) return false;
+            const taskAssignee = (nextTask.assignee || "").trim().toLowerCase();
+            if (!taskAssignee) return false;
+
+            const myEmail = (state.currentUser?.email || "").trim().toLowerCase();
+            const myName = (state.currentUser?.name || "").trim().toLowerCase();
+            const myFirst = myName ? myName.split(" ")[0] : "";
+
+            const isMine = (myEmail && taskAssignee === myEmail) ||
+                           (myName && taskAssignee === myName) ||
+                           (myFirst && taskAssignee === myFirst) ||
+                           (myEmail && taskAssignee === myEmail.split("@")[0]);
+            if (!isMine) return false;
+          } else {
+            if (!nextTask) return false;
+            const taskAssignee = (nextTask.assignee || "").trim().toLowerCase();
+            if (!taskAssignee) return false;
+
+            const filterVal = filterAssignee.trim().toLowerCase();
+            const memberRecord = (state.users || []).find(u => 
+              (u.email || "").toLowerCase().trim() === filterVal ||
+              (u.nome || "").toLowerCase().trim() === filterVal
+            );
+
+            const targetEmail = (memberRecord?.email || filterVal).toLowerCase().trim();
+            const targetName = (memberRecord?.nome || filterVal).toLowerCase().trim();
+            const targetFirst = targetName ? targetName.split(" ")[0] : "";
+
+            const isMatch = taskAssignee === targetEmail ||
+                            taskAssignee === targetName ||
+                            (targetFirst && taskAssignee === targetFirst) ||
+                            (targetEmail.includes("@") && taskAssignee === targetEmail.split("@")[0]) ||
+                            taskAssignee.includes(targetFirst || targetEmail);
+            if (!isMatch) return false;
+          }
         }
 
         // 4. Filtro de aging (nova escala oficial de 5 faixas)
