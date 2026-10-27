@@ -43,17 +43,19 @@
     input, textarea, [contenteditable="true"] {
       user-select: text;
     }
-    /* Scrollbars elegantes */
+    /* Scrollbars elegantes e espessas com visual arredondado */
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 10px;
+      height: 10px;
     }
     ::-webkit-scrollbar-track {
       background: #020617;
+      border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb {
       background: #1e293b;
       border-radius: 9999px;
+      border: 2px solid #020617;
     }
     ::-webkit-scrollbar-thumb:hover {
       background: #334155;
@@ -92,6 +94,7 @@
       border-style: dashed !important;
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white pb-12 sm:pb-0">
 
@@ -237,7 +240,7 @@
         </button>
 
         <!-- Menu de Perfil (Dropdown Suspenso) -->
-        <div class="relative">
+        <div class="relative" id="userProfileMenuWrapper">
           <button id="btnProfileMenuTrigger" onclick="toggleProfileDropdown(event)" class="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-950/80 hover:bg-slate-800/80 border border-slate-800/80 transition text-xs shadow-sm cursor-pointer select-none">
             <div id="currentUserAvatar" class="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm shadow-sky-500/20">
               HP
@@ -332,18 +335,27 @@
       <!-- Lado Direito: Filtro de Dias (Aging Filter) + Responsável da Vez -->
       <div class="flex flex-wrap items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
         
-        <!-- Botões de Seleção Rápida de Envelhecimento (Aging Filter) -->
-        <div class="flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 shrink-0">
-          <span class="text-[10px] font-semibold text-slate-400 px-2 flex items-center gap-1">
-            <i data-lucide="clock" class="w-3 h-3 text-sky-400"></i> Dias:
-          </span>
+        <!-- Dropdown Seletor de Prazos (Aging) -->
+        <div class="relative inline-flex items-center shrink-0">
+          <i data-lucide="clock" class="w-3.5 h-3.5 text-sky-400 absolute left-2.5 pointer-events-none"></i>
+          <select id="filterAgingSelect" onchange="setAgingFilter(this.value)" class="bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer font-medium shadow-inner">
+            <option value="all">⏱️ Todos os Prazos</option>
+            <option value="0-6">🟢 0 a 6 dias (Verde)</option>
+            <option value="7-14">🟡 7 a 14 dias (Amarelo)</option>
+            <option value="15-30">🟠 15 a 30 dias (Laranja)</option>
+            <option value="31+">🔴 31+ dias (Vermelho)</option>
+          </select>
+        </div>
+
+        <!-- Botões de Seleção Rápida de Envelhecimento (Desktop / Tablets) -->
+        <div class="hidden sm:flex items-center gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 shrink-0">
           <button type="button" onclick="setAgingFilter('all')" data-aging="all" class="aging-filter-btn px-2.5 py-1 rounded-lg text-[10px] font-semibold transition bg-sky-600 text-white shadow-sm cursor-pointer">
             Todos
           </button>
-          <button type="button" onclick="setAgingFilter('0-7')" data-aging="0-7" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-emerald-400 hover:bg-emerald-950/40 cursor-pointer" title="0 a 7 dias (Recentes)">
+          <button type="button" onclick="setAgingFilter('0-7')" data-aging="0-7" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-emerald-400 hover:bg-emerald-950/40 cursor-pointer" title="0 a 7 dias (Recente)">
             🟢 0-7d
           </button>
-          <button type="button" onclick="setAgingFilter('8-14')" data-aging="8-14" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-sky-400 hover:bg-sky-950/40 cursor-pointer" title="8 a 14 dias (Atenção Inicial)">
+          <button type="button" onclick="setAgingFilter('8-14')" data-aging="8-14" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-sky-400 hover:bg-sky-950/40 cursor-pointer" title="8 a 14 dias (Atenção)">
             🔵 8-14d
           </button>
           <button type="button" onclick="setAgingFilter('15-30')" data-aging="15-30" class="aging-filter-btn px-2 py-1 rounded-lg text-[10px] font-semibold transition text-slate-400 hover:text-amber-400 hover:bg-amber-950/40 cursor-pointer" title="15 a 30 dias (Intermediário)">
@@ -360,7 +372,7 @@
         <!-- Filtro por Responsável da Vez -->
         <div class="relative inline-flex items-center shrink-0">
           <i data-lucide="user-check" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none"></i>
-          <select id="filterAssignee" onchange="state.kanbanFilterAssignee = this.value; renderKanban();" class="bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer">
+          <select id="filterAssignee" onchange="state.kanbanFilterAssignee = this.value; renderKanban();" class="bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
             <option value="all">Todos os Responsáveis</option>
             <option value="my_actions">Minhas Ações</option>
             <option value="unassigned">Sem Atribuição</option>
@@ -383,17 +395,92 @@
     </div>
 
     <!-- VIEW: TABELA GERAL -->
-    <div id="view-table" class="hidden flex-1 overflow-y-auto p-4 sm:p-6">
+    <!-- VIEW: TABELA GERAL (COM FILTROS COMBINADOS & ORDENAÇÃO) -->
+    <div id="view-table" class="hidden flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+      
+      <!-- Barra de Filtros Combinados da Tabela -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
+        
+        <!-- Busca de Texto -->
+        <div class="relative flex-1 min-w-[200px] max-w-sm">
+          <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+          <input type="text" id="tableFilterSearch" oninput="renderTable();" placeholder="Filtrar por nome ou nicho..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 shadow-inner">
+        </div>
+
+        <!-- Filtros em Dropdown -->
+        <div class="flex flex-wrap items-center gap-2">
+          
+          <!-- Filtro por Fase -->
+          <div class="relative inline-flex items-center">
+            <select id="tableFilterPhase" onchange="renderTable();" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
+              <option value="all">Todas as Fases</option>
+              <!-- Preenchido dinamicamente via JS -->
+            </select>
+          </div>
+
+          <!-- Filtro por Responsável -->
+          <div class="relative inline-flex items-center">
+            <select id="tableFilterAssignee" onchange="renderTable();" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
+              <option value="all">Todos os Responsáveis</option>
+              <!-- Preenchido dinamicamente via JS -->
+            </select>
+          </div>
+
+          <!-- Filtro de Aging -->
+          <div class="relative inline-flex items-center">
+            <select id="tableFilterAging" onchange="renderTable();" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
+              <option value="all">Todos os Prazos</option>
+              <option value="0-6">🟢 0 a 6 dias (Verde)</option>
+              <option value="7-14">🟡 7 a 14 dias (Amarelo)</option>
+              <option value="15-30">🟠 15 a 30 dias (Laranja)</option>
+              <option value="31+">🔴 31+ dias (Vermelho)</option>
+            </select>
+          </div>
+
+          <!-- Botão Limpar Filtros -->
+          <button type="button" onclick="clearTableFilters()" class="p-2 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 hover:text-white transition cursor-pointer" title="Limpar Filtros da Tabela">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Tabela com Cabeçalhos Clicáveis para Ordenação -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs text-slate-300">
-            <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 font-semibold uppercase text-[10px] tracking-wider">
+            <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 font-semibold uppercase text-[10px] tracking-wider select-none">
               <tr>
-                <th class="p-3.5">Cliente</th>
-                <th class="p-3.5">Especialidade / Nicho</th>
-                <th class="p-3.5">Fase Atual</th>
-                <th class="p-3.5">Tempo na Fase</th>
-                <th class="p-3.5">Progresso</th>
+                <th onclick="sortTableBy('name')" class="p-3.5 cursor-pointer hover:text-white transition">
+                  <div class="flex items-center gap-1.5">
+                    <span>Cliente</span>
+                    <span id="sortIndicator-name" class="text-sky-400">↕</span>
+                  </div>
+                </th>
+                <th onclick="sortTableBy('specialty')" class="p-3.5 cursor-pointer hover:text-white transition">
+                  <div class="flex items-center gap-1.5">
+                    <span>Especialidade / Nicho</span>
+                    <span id="sortIndicator-specialty" class="text-slate-600">↕</span>
+                  </div>
+                </th>
+                <th onclick="sortTableBy('phase')" class="p-3.5 cursor-pointer hover:text-white transition">
+                  <div class="flex items-center gap-1.5">
+                    <span>Fase Atual</span>
+                    <span id="sortIndicator-phase" class="text-slate-600">↕</span>
+                  </div>
+                </th>
+                <th onclick="sortTableBy('aging')" class="p-3.5 cursor-pointer hover:text-white transition">
+                  <div class="flex items-center gap-1.5">
+                    <span>Tempo na Esteira</span>
+                    <span id="sortIndicator-aging" class="text-slate-600">↕</span>
+                  </div>
+                </th>
+                <th onclick="sortTableBy('progress')" class="p-3.5 cursor-pointer hover:text-white transition">
+                  <div class="flex items-center gap-1.5">
+                    <span>Progresso</span>
+                    <span id="sortIndicator-progress" class="text-slate-600">↕</span>
+                  </div>
+                </th>
                 <th class="p-3.5">WhatsApp</th>
                 <th class="p-3.5 text-right">Ações</th>
               </tr>
@@ -404,47 +491,121 @@
           </table>
         </div>
       </div>
+
     </div>
 
-    <!-- VIEW: MÉTRICAS OPERACIONAIS -->
+    <!-- VIEW: MÉTRICAS OPERACIONAIS (FOCO EM TEMPOS & GARGALOS) -->
     <div id="view-metrics" class="hidden flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+      
+      <!-- Top KPIs em Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
+        <!-- KPI Principal: Tempo Médio Total de Esteira -->
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg relative overflow-hidden">
           <div class="flex items-center justify-between text-slate-400 mb-2">
-            <span class="text-xs font-semibold uppercase">Total na Esteira</span>
-            <i data-lucide="users" class="w-5 h-5 text-sky-400"></i>
+            <span class="text-xs font-semibold uppercase tracking-wider text-sky-400">Tempo Médio Total</span>
+            <i data-lucide="clock" class="w-5 h-5 text-sky-400"></i>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <div id="metricAvgTotalDays" class="text-3xl font-black text-white">0.0</div>
+            <span class="text-xs text-slate-400 font-semibold">dias</span>
+          </div>
+          <span class="text-[11px] text-slate-400 mt-1 block">Média de permanência na esteira</span>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-500 to-indigo-500"></div>
+        </div>
+
+        <!-- Gargalo Principal -->
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-rose-400">Maior Gargalo</span>
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400"></i>
+          </div>
+          <div id="metricBottleneckPhase" class="text-lg font-black text-white truncate">-</div>
+          <span id="metricBottleneckDays" class="text-[11px] text-rose-400 font-semibold mt-1 block">0 dias médios na fase</span>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-amber-500"></div>
+        </div>
+
+        <!-- Clientes Ativos -->
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">Total na Esteira</span>
+            <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
           </div>
           <div id="metricTotalClients" class="text-3xl font-black text-white">0</div>
-          <span class="text-[11px] text-slate-400 mt-1 block">Clientes em acompanhamento</span>
+          <span class="text-[11px] text-slate-400 mt-1 block">Projetos em andamento</span>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-violet-500"></div>
         </div>
 
-        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
+        <!-- Entregas / Concluídos -->
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg relative overflow-hidden">
           <div class="flex items-center justify-between text-slate-400 mb-2">
-            <span class="text-xs font-semibold uppercase">No Prazo (Verde)</span>
-            <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i>
+            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Concluídos / Entregues</span>
+            <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
           </div>
-          <div id="metricGreenClients" class="text-3xl font-black text-emerald-400">0</div>
-          <span class="text-[11px] text-slate-400 mt-1 block">Até 2 dias na fase</span>
-        </div>
-
-        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
-          <div class="flex items-center justify-between text-slate-400 mb-2">
-            <span class="text-xs font-semibold uppercase">Atenção (Amarelo)</span>
-            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i>
-          </div>
-          <div id="metricYellowClients" class="text-3xl font-black text-amber-400">0</div>
-          <span class="text-[11px] text-slate-400 mt-1 block">Entre 3 e 5 dias</span>
-        </div>
-
-        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
-          <div class="flex items-center justify-between text-slate-400 mb-2">
-            <span class="text-xs font-semibold uppercase">Atrasados (Vermelho)</span>
-            <i data-lucide="alert-octagon" class="w-5 h-5 text-rose-400"></i>
-          </div>
-          <div id="metricRedClients" class="text-3xl font-black text-rose-400">0</div>
-          <span class="text-[11px] text-slate-400 mt-1 block">Mais de 5 dias na fase</span>
+          <div id="metricCompletedClients" class="text-3xl font-black text-emerald-400">0</div>
+          <span class="text-[11px] text-slate-400 mt-1 block">Etapa final concluída</span>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
         </div>
       </div>
+
+      <!-- Gráficos e Tabelas Analíticas -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Bloco 1: Gargalos - Tempo Médio por Fase -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-4">
+            <div>
+              <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                <i data-lucide="hourglass" class="w-4 h-4 text-amber-400"></i>
+                Tempo Médio por Fase (Gargalos)
+              </h3>
+              <p class="text-[11px] text-slate-400">Identificação de etapas que exigem otimização operacional</p>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold">Em dias</span>
+          </div>
+
+          <div id="metricsPhaseDurationList" class="space-y-3.5 flex-1 overflow-y-auto pr-1">
+            <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- Bloco 2: Volume de Clientes por Fase -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-4">
+            <div>
+              <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                <i data-lucide="bar-chart-2" class="w-4 h-4 text-sky-400"></i>
+                Volume de Clientes por Fase
+              </h3>
+              <p class="text-[11px] text-slate-400">Distribuição do fluxo de projetos ao longo da esteira</p>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold">Cards</span>
+          </div>
+
+          <div id="metricsPhaseVolumeList" class="space-y-3.5 flex-1 overflow-y-auto pr-1">
+            <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bloco 3: Distribuição de Carga por Membro da Equipe -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-4">
+          <div>
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <i data-lucide="users-2" class="w-4 h-4 text-indigo-400"></i>
+              Distribuição de Carga de Trabalho por Membro
+            </h3>
+            <p class="text-[11px] text-slate-400">Total de subtarefas pendentes atribuídas por profissional</p>
+          </div>
+          <span id="metricTotalPendingTasks" class="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800 font-bold">0 tarefas pendentes</span>
+        </div>
+
+        <div id="metricsTeamWorkloadList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Renderizado dinamicamente via JS -->
+        </div>
+      </div>
+
     </div>
   </main>
 
@@ -487,18 +648,22 @@
     </div>
 
     <!-- Navegação de Abas da Gaveta -->
-    <div class="border-b border-slate-800 bg-slate-950/40 px-4 flex gap-2">
-      <button onclick="switchDrawerTab('tasks')" id="drawerTabBtn-tasks" class="py-2.5 px-3 text-xs font-semibold text-sky-400 border-b-2 border-sky-500 flex items-center gap-1.5">
+    <div class="border-b border-slate-800 bg-slate-950/40 px-3 sm:px-4 flex gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
+      <button onclick="switchDrawerTab('tasks')" id="drawerTabBtn-tasks" class="py-2.5 px-2.5 sm:px-3 text-xs font-semibold text-sky-400 border-b-2 border-sky-500 flex items-center gap-1.5 shrink-0 cursor-pointer">
         <i data-lucide="check-square" class="w-4 h-4"></i>
         <span>Subtarefas (<span id="drawerTasksCount">0/0</span>)</span>
       </button>
-      <button onclick="switchDrawerTab('notes')" id="drawerTabBtn-notes" class="py-2.5 px-3 text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+      <button onclick="switchDrawerTab('notes')" id="drawerTabBtn-notes" class="py-2.5 px-2.5 sm:px-3 text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center gap-1.5 shrink-0 cursor-pointer">
         <i data-lucide="file-text" class="w-4 h-4"></i>
-        <span>Notas & Observações</span>
+        <span>Notas</span>
       </button>
-      <button onclick="switchDrawerTab('info')" id="drawerTabBtn-info" class="py-2.5 px-3 text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+      <button onclick="switchDrawerTab('info')" id="drawerTabBtn-info" class="py-2.5 px-2.5 sm:px-3 text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center gap-1.5 shrink-0 cursor-pointer">
         <i data-lucide="info" class="w-4 h-4"></i>
-        <span>Dados & Contatos</span>
+        <span>Dados</span>
+      </button>
+      <button onclick="switchDrawerTab('history')" id="drawerTabBtn-history" class="py-2.5 px-2.5 sm:px-3 text-xs font-semibold text-slate-400 hover:text-slate-200 flex items-center gap-1.5 shrink-0 cursor-pointer">
+        <i data-lucide="history" class="w-4 h-4 text-amber-400"></i>
+        <span>Histórico (<span id="drawerHistoryCount">0</span>)</span>
       </button>
     </div>
 
@@ -507,9 +672,18 @@
       <!-- Seletor de visualização de tarefas (Fase atual vs Todas as fases) -->
       <div class="flex items-center justify-between pb-2 border-b border-slate-800/60">
         <span class="text-xs text-slate-400 font-medium">Lista de Execução da Esteira:</span>
-        <select id="drawerTasksFilter" onchange="renderDrawerTasks()" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer">
-          <option value="current">Apenas Fase Atual</option>
+        <select id="drawerTasksFilter" onchange="renderDrawerTasks()" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer font-medium">
+          <option value="current">Apenas Fase Atual (Padrão)</option>
           <option value="all">Todas as 54 Subtarefas</option>
+          <option value="etapa_1">Fase 1: Questionário</option>
+          <option value="etapa_2">Fase 2: Reunião Onboarding</option>
+          <option value="etapa_3">Fase 3: Fotos</option>
+          <option value="etapa_4">Fase 4: Planejamento Site</option>
+          <option value="etapa_5">Fase 5: Intermediária</option>
+          <option value="etapa_6">Fase 6: Site</option>
+          <option value="etapa_7">Fase 7: Campanha</option>
+          <option value="etapa_8">Fase 8: Acompanhamento</option>
+          <option value="etapa_9">Fase 9: Concluído</option>
         </select>
       </div>
 
@@ -582,6 +756,17 @@
         </div>
       </form>
     </div>
+  <!-- Conteúdo da Gaveta: Histórico & Auditoria -->
+    <div id="drawerContent-history" class="hidden flex-1 overflow-y-auto p-4 space-y-3">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800/60 mb-2">
+        <span class="text-xs text-slate-400 font-medium">Timeline de Auditoria:</span>
+        <span class="text-[11px] text-slate-500">Histórico de ações e movimentações</span>
+      </div>
+
+      <div id="drawerHistoryList" class="relative pl-5 border-l-2 border-slate-800 space-y-3 my-2">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+    </div>
   </aside>
 
   <!-- =========================================================================
@@ -601,14 +786,11 @@
 
       <form id="formNewClient" onsubmit="handleCreateClient(event)" class="space-y-3.5 text-xs">
         <div>
-          <label class="block font-medium text-slate-300 mb-1">Nome do Cliente / Clínica *</label>
+          <label class="block font-medium text-slate-300 mb-1">Nome do Profissional / Clínica *</label>
           <input type="text" id="newClientName" required placeholder="Ex: Dr. Roberto Alencar" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500">
         </div>
 
-        <div>
-          <label class="block font-medium text-slate-300 mb-1">Especialidade / Nicho</label>
-          <input type="text" id="newClientSpecialty" placeholder="Ex: Dermatologia Estética" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500">
-        </div>
+
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -623,12 +805,12 @@
 
         <div>
           <label class="block font-medium text-slate-300 mb-1">Link do Grupo de WhatsApp</label>
-          <input type="url" id="newClientWhatsappGroup" placeholder="https://chat.whatsapp.com/..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500">
+          <input type="text" id="newClientWhatsappGroup" placeholder="https://chat.whatsapp.com/..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500">
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block font-medium text-slate-300 mb-1">Data de Entrada na Esteira</label>
+            <label class="block font-medium text-slate-300 mb-1">Data de Pagamento / Início *</label>
             <input type="date" id="newClientEntryDate" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-sky-500">
           </div>
           <div>
@@ -808,9 +990,15 @@
        SCRIPTS DA APLICAÇÃO: MODELO DE DADOS, FIRESTORE REAL-TIME & RBAC
        ========================================================================= -->
   <script>
+
     /**
-     * CONFIGURAÇÃO E INICIALIZAÇÃO OFICIAL DO FIREBASE (AUTH & FIRESTORE)
+     * =========================================================================
+     * HARPPIA CRM • CRP OPERACIONAL - JAVASCRIPT MASTER CLIENT
+     * Cloud Firestore (Auth, Clients, Team & Pipeline Settings)
+     * =========================================================================
      */
+
+    // 1. INICIALIZAÇÃO OFICIAL DO FIREBASE (AUTH & FIRESTORE)
     const firebaseConfig = {
       apiKey: "AIzaSyAu_1izFwegN6wvmkj1kDFtThMV8qCg5ts",
       authDomain: "harppia-27c9d.firebaseapp.com",
@@ -826,7 +1014,7 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // Administradores mestres hardcoded
+    // Administradores mestres hardcoded (acesso garantido / bypass de segurança)
     const PRIMARY_ADMIN_EMAILS = [
       "harppiacrp@gmail.com",
       "admin@harppia.com",
@@ -835,158 +1023,385 @@
       "arthurgama@harppia.com.br"
     ];
 
-
-    /**
-     * ESTRUTURA OFICIAL DAS 9 ETAPAS & 54 SUBTAREFAS DO HARPPIA CRM
-     * (Semeada automaticamente em 'settings/pipeline' caso o documento não exista)
-     */
+    // 2. ESTRUTURA OFICIAL DAS 9 ETAPAS & 54 SUBTAREFAS DO HARPPIA CRM
     const DEFAULT_PIPELINE_STAGES = [
+  {
+    "id": "etapa_1",
+    "nome": "Questionário",
+    "subtitulo": "Onboarding Inicial",
+    "cor": "#0ea5e9",
+    "subtarefas": [
       {
-        id: "etapa_1",
-        nome: "Questionário",
-        cor: "#0ea5e9",
-        subtarefas: [
-          "Enviar link do questionário de boas-vindas e kit lev. inicial (Bio, Domínio e cor, Depoimentos)",
-          "Cobrar preenchimento do formulário",
-          "Recebimento questionário",
-          "Validar e aprovar respostas recebidas",
-          "Envio Domínio e cor",
-          "Disponibilidade do domínio",
-          "Cor site – Fora do padrão",
-          "Envio Bio",
-          "Envio de Depoimentos"
-        ]
+        "id": "sub_1_1",
+        "titulo": "Enviar link do questionário de boas-vindas e kit lev. inicial (Bio, Dominio e cor, Depoimentos)",
+        "responsavelPadrao": ""
       },
       {
-        id: "etapa_2",
-        nome: "Reunião Onboarding",
-        cor: "#3b82f6",
-        subtarefas: [
-          "Agendar reunião de onboarding com o cliente",
-          "Realização da Reunião de Onboarding (Validação de escopo e expectativas)"
-        ]
+        "id": "sub_1_2",
+        "titulo": "Cobrar preenchimento do formulário",
+        "responsavelPadrao": ""
       },
       {
-        id: "etapa_3",
-        nome: "Fotos",
-        cor: "#6366f1",
-        subtarefas: [
-          "Envio do Guia de Fotos ao cliente",
-          "Agendamento das Fotos",
-          "Conferência do Agendamento das Fotos",
-          "Realização das Fotos",
-          "Aguardar envio das Fotos",
-          "Cobrar envio das Fotos",
-          "Fotos Recebidas",
-          "Validar se fotos atendem os requisitos técnicos",
-          "Fotos reprovadas",
-          "Fotos Aprovadas",
-          "Envio das fotos para tratamento",
-          "Fotos tratadas recebidas",
-          "Upar fotos na pasta do cliente no Drive",
-          "Mudar status do cliente para Planejamento Site"
-        ]
+        "id": "sub_1_3",
+        "titulo": "Recebimento questionário",
+        "responsavelPadrao": ""
       },
       {
-        id: "etapa_4",
-        nome: "Planejamento Site",
-        cor: "#8b5cf6",
-        subtarefas: [
-          "Apresentar estrutura inicial ao cliente",
-          "Criação da Estrutura do Site",
-          "Revisão interna da Estrutura do Site",
-          "Estrutura do Site Aprovada"
-        ]
+        "id": "sub_1_4",
+        "titulo": "Validar e aprovar respostas recebidas",
+        "responsavelPadrao": ""
       },
       {
-        id: "etapa_5",
-        nome: "Ferramentas",
-        cor: "#f59e0b",
-        subtarefas: [
-          "Envio do tutorial de acesso às ferramentas ao cliente",
-          "Criação das ferramentas",
-          "Acesso às ferramentas",
-          "Validação das ferramentas",
-          "Configuração do domínio e DNS",
-          "Configuração de e-mails profissionais",
-          "Integrações de formulários e webhooks"
-        ]
+        "id": "sub_1_5",
+        "titulo": "Envio Domínio e cor",
+        "responsavelPadrao": ""
       },
       {
-        id: "etapa_6",
-        nome: "Site",
-        cor: "#10b981",
-        subtarefas: [
-          "Início do desenvolvimento da Landing Page / Site",
-          "Montagem do layout e responsividade mobile",
-          "Revisão técnica interna (SEO, velocidade, links)",
-          "Envio do site para aprovação do cliente",
-          "Ajustes solicitados pelo cliente",
-          "Aprovação final do site pelo cliente",
-          "Publicação oficial no domínio definitivo",
-          "Instalação de Tags e Pixels de Rastreamento (GA4, Meta, Google Ads)"
-        ]
+        "id": "sub_1_6",
+        "titulo": "Disponibilidade do domínio",
+        "responsavelPadrao": ""
       },
       {
-        id: "etapa_7",
-        nome: "Campanha",
-        cor: "#f43f5e",
-        subtarefas: [
-          "Planejamento estratégico de tráfego pago",
-          "Criação dos criativos e copies de anúncios",
-          "Configuração das campanhas na plataforma de anúncios",
-          "Validação de saldo e forma de pagamento na conta de anúncios",
-          "Lançamento oficial das campanhas"
-        ]
+        "id": "sub_1_7",
+        "titulo": "Cor site - Fora do padrão",
+        "responsavelPadrao": ""
       },
       {
-        id: "etapa_8",
-        nome: "Acompanhamento",
-        cor: "#3b82f6",
-        subtarefas: [
-          "Primeiro relatório de performance (7 dias)",
-          "Otimização de lances, públicos e criativos",
-          "Reunião de alinhamento mensal de resultados"
-        ]
+        "id": "sub_1_8",
+        "titulo": "Teste Cor - Aprovação",
+        "responsavelPadrao": ""
       },
       {
-        id: "etapa_9",
-        nome: "Concluído",
-        cor: "#10b981",
-        subtarefas: [
-          "Entrega formal de relatórios e acessos consolidados",
-          "Solicitação de feedback / NPS e depoimento institucional"
-        ]
+        "id": "sub_1_9",
+        "titulo": "Envio BIO",
+        "responsavelPadrao": ""
       }
-    ];
+    ]
+  },
+  {
+    "id": "etapa_2",
+    "nome": "Reunião Onboarding",
+    "subtitulo": "Onboarding & Alinhamento",
+    "cor": "#3b82f6",
+    "subtarefas": [
+      {
+        "id": "sub_2_1",
+        "titulo": "Agendar reunião de onboarding com data/hora",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_2_2",
+        "titulo": "Realizar reunião e alinhar expectativas",
+        "responsavelPadrao": ""
+      }
+    ]
+  },
+  {
+    "id": "etapa_3",
+    "nome": "Fotos",
+    "subtitulo": "Fotos & Design",
+    "cor": "#6366f1",
+    "subtarefas": [
+      {
+        "id": "sub_3_1",
+        "titulo": "Enviar e-mail com drive das fotos",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_2",
+        "titulo": "Enviar guia de direcionamento de fotos",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_3",
+        "titulo": "Enviar fotos originais e códigos de vestimenta",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_4",
+        "titulo": "Confirmação recebimento",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_5",
+        "titulo": "Envio equipe IA",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_6",
+        "titulo": "Receber fotos originais / Gerar fotos em IA",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_7",
+        "titulo": "Análise e seleção de fotos",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_8",
+        "titulo": "Enviar para aprovação",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_9",
+        "titulo": "Aprovação ou alteração",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_10",
+        "titulo": "Envio equipe IA (Ajustes)",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_11",
+        "titulo": "Gerar novas fotos em IA (Ajustes)",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_12",
+        "titulo": "Análise e seleção de novas fotos",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_13",
+        "titulo": "Enviar fotos reajustadas para aprovação",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_3_14",
+        "titulo": "Aprovação final das fotos",
+        "responsavelPadrao": ""
+      }
+    ]
+  },
+  {
+    "id": "etapa_4",
+    "nome": "Planejamento Site",
+    "subtitulo": "Copywriting & Planejamento",
+    "cor": "#8b5cf6",
+    "subtarefas": [
+      {
+        "id": "sub_4_1",
+        "titulo": "Enviar Depoimentos",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_4_2",
+        "titulo": "Escrever base copy da Landing Page",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_4_3",
+        "titulo": "Elaborar estrutura de conteúdo / Wireframe",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_4_4",
+        "titulo": "Escrever copy da Landing Page",
+        "responsavelPadrao": ""
+      }
+    ]
+  },
+  {
+    "id": "etapa_5",
+    "nome": "Intermediária",
+    "subtitulo": "Suporte e Ferramentas de vendas",
+    "cor": "#ec4899",
+    "subtarefas": [
+      {
+        "id": "sub_5_1",
+        "titulo": "Enviar Roteiros de venda",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_5_2",
+        "titulo": "Enviar orientações do link de pgto",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_5_3",
+        "titulo": "Envio dos links de pgto",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_5_4",
+        "titulo": "Testes do link de pgto",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_5_5",
+        "titulo": "Aprovação ou alteração do link de pgto",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_5_6",
+        "titulo": "Criação de login e senha Plataforma Formulário Paciente",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_5_7",
+        "titulo": "Enviar acesso Plataforma Formulário Paciente",
+        "responsavelPadrao": ""
+      }
+    ]
+  },
+  {
+    "id": "etapa_6",
+    "nome": "Site",
+    "subtitulo": "Produção do Site",
+    "cor": "#f59e0b",
+    "subtarefas": [
+      {
+        "id": "sub_6_1",
+        "titulo": "Criar layout da Landing Page / Site",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_6_2",
+        "titulo": "Configurar botões de WhatsApp e formulários",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_6_3",
+        "titulo": "Configurar domínio e certificado SSL",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_6_4",
+        "titulo": "Validações Interna",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_6_5",
+        "titulo": "Apresentar site pronto para o cliente",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_6_6",
+        "titulo": "Listar ajustes solicitados",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_6_7",
+        "titulo": "Aplicar alterações e obter aprovação final",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_6_8",
+        "titulo": "Aprovação final do site",
+        "responsavelPadrao": ""
+      }
+    ]
+  },
+  {
+    "id": "etapa_7",
+    "nome": "Campanha",
+    "subtitulo": "Campanha de Tráfego",
+    "cor": "#10b981",
+    "subtarefas": [
+      {
+        "id": "sub_7_1",
+        "titulo": "Agendar reunião cliente Google ADS",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_7_2",
+        "titulo": "Solicitar/Configurar acessos do Google Ads",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_7_3",
+        "titulo": "Criar anúncios, palavras-chave e orçamento",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_7_4",
+        "titulo": "Publicar e ativar campanhas",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_7_5",
+        "titulo": "Acompanhar e controlar crédito Google ADS",
+        "responsavelPadrao": ""
+      }
+    ]
+  },
+  {
+    "id": "etapa_8",
+    "nome": "Acompanhamento",
+    "subtitulo": "Acompanhamento 4/7 Meses",
+    "cor": "#06b6d4",
+    "subtarefas": [
+      {
+        "id": "sub_8_1",
+        "titulo": "Agendar check-ins periódicos de 4 e 7 meses",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_8_2",
+        "titulo": "Enviar relatórios mensais de desempenho",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_8_3",
+        "titulo": "Negativar palavras e otimizar orçamento",
+        "responsavelPadrao": ""
+      }
+    ]
+  },
+  {
+    "id": "etapa_9",
+    "nome": "Concluído",
+    "subtitulo": "Sucesso & Renovação",
+    "cor": "#22c55e",
+    "subtarefas": [
+      {
+        "id": "sub_9_1",
+        "titulo": "Coletar depoimento / avaliação de satisfação",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_9_2",
+        "titulo": "Apresentar proposta de renovação/manutenção",
+        "responsavelPadrao": ""
+      }
+    ]
+  }
+];
 
-    /**
-     * RETORNA AS ETAPAS DO PIPELINE ATIVAS (DO FIRESTORE OU PADRÃO)
-     */
+    function normalizeSubtaskItem(item, idx, stageId) {
+      if (typeof item === "string") {
+        return {
+          id: (stageId || "sub") + "_" + (idx + 1),
+          titulo: item,
+          responsavelPadrao: ""
+        };
+      }
+      return {
+        id: item?.id || ((stageId || "sub") + "_" + (idx + 1)),
+        titulo: item?.titulo || item?.title || item?.nome || "",
+        responsavelPadrao: item?.responsavelPadrao || item?.assignee || ""
+      };
+    }
+
     function getPipelineStages() {
-      if (state.pipeline && Array.isArray(state.pipeline.etapas) && state.pipeline.etapas.length > 0) {
-        return state.pipeline.etapas;
+      if (state.pipeline && Array.isArray(state.pipeline.etapas) && state.pipeline.etapas.length === 9) {
+        const count = state.pipeline.etapas.reduce((acc, s) => acc + (Array.isArray(s.subtarefas) ? s.subtarefas.length : 0), 0);
+        if (count === 54) {
+          return state.pipeline.etapas;
+        }
       }
       return DEFAULT_PIPELINE_STAGES;
     }
 
-    /**
-     * VERIFICA SE O CLIENTE PERTENCE A UMA DETERMINADA ETAPA (COMPATIBILIDADE TOTAL)
-     */
     function isClientInStage(client, stage, stageIndex, allStages) {
       if (!client) return false;
-      const statusStr = String(client.status ?? "").trim();
+      const statusStr = String(client.fase ?? client.status ?? "").trim();
       
-      // Correspondência direta por ID da etapa (ex: "etapa_1")
       if (statusStr === String(stage.id)) return true;
-
-      // Correspondência por ID indexado ("etapa_X" onde X = stageIndex + 1)
       if (statusStr === ("etapa_" + (stageIndex + 1))) return true;
-
-      // Correspondência por número 1-based (ex: status: 1 ou status: "1")
       if (statusStr === String(stageIndex + 1)) return true;
 
-      // Fallback seguro: se o cliente possui status antigo não mapeado, coloca na primeira etapa
       if (stageIndex === 0) {
         const matchesAny = (allStages || []).some((s, idx) => {
           const sid = String(s.id);
@@ -998,78 +1413,67 @@
       return false;
     }
 
-    /**
-     * RETORNA A ETAPA ATUAL DO CLIENTE
-     */
     function getClientCurrentStage(client) {
       const stages = getPipelineStages();
       const found = stages.find((s, idx) => isClientInStage(client, s, idx, stages));
       return found || stages[0] || { id: "etapa_1", nome: "Etapa Inicial", cor: "#0ea5e9", subtarefas: [] };
     }
 
-    /**
-     * CALCULA O ENVELHECIMENTO (AGING) DO CARD DO CLIENTE EM DIAS
-     * Retorna a quantidade de dias, categoria para filtro, badge visual discreto e cor
-     */
     function getClientAgingInfo(client) {
+      if (!client) {
+        return { days: 0, category: "0-6", badgeClass: "bg-emerald-950/80 text-emerald-400 border-emerald-800/80", dotEmoji: "🟢", label: "0 a 6 dias", statusText: "0d" };
+      }
+
       let dateObj = null;
-      if (client.entryDate) {
-        dateObj = new Date(client.entryDate);
-      } else if (client.dataEntrada) {
-        dateObj = new Date(client.dataEntrada);
+      const rawDate = client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada;
+      if (rawDate) {
+        dateObj = new Date(rawDate);
       } else if (client.createdAt) {
         if (typeof client.createdAt.toDate === "function") {
           dateObj = client.createdAt.toDate();
         } else {
           dateObj = new Date(client.createdAt);
         }
-      } else if (client.updatedAt) {
-        if (typeof client.updatedAt.toDate === "function") {
-          dateObj = client.updatedAt.toDate();
-        } else {
-          dateObj = new Date(client.updatedAt);
-        }
       }
 
-      // Fallback seguro para a data atual caso não haja registro prévio
       if (!dateObj || isNaN(dateObj.getTime())) {
         dateObj = new Date();
       }
 
       const now = new Date();
       const diffMs = Math.max(0, now.getTime() - dateObj.getTime());
-      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const days = Math.floor(diffMs / 86400000);
 
-      let category = "0-7";
+      let category = "0-6";
       let badgeClass = "bg-emerald-950/80 text-emerald-400 border-emerald-800/80";
       let dotEmoji = "🟢";
-      let label = "Recente";
+      let label = "0 a 6 dias";
+      let statusText = days + "d";
 
-      if (days <= 7) {
-        category = "0-7";
+      if (days <= 6) {
+        category = "0-6";
         badgeClass = "bg-emerald-950/80 text-emerald-400 border-emerald-800/80";
         dotEmoji = "🟢";
-        label = "Recente";
+        label = "0 a 6 dias";
+        statusText = days + "d";
       } else if (days <= 14) {
-        category = "8-14";
-        badgeClass = "bg-sky-950/80 text-sky-400 border-sky-800/80";
-        dotEmoji = "🔵";
-        label = "Atenção inicial";
+        category = "7-14";
+        badgeClass = "bg-amber-950/80 text-amber-300 border-amber-800/80";
+        dotEmoji = "🟡";
+        label = "7 a 14 dias";
+        statusText = days + "d";
       } else if (days <= 30) {
         category = "15-30";
-        badgeClass = "bg-amber-950/80 text-amber-400 border-amber-800/80";
+        badgeClass = "bg-orange-950/80 text-orange-400 border-orange-800/80";
         dotEmoji = "🟠";
-        label = "Intermediário";
-      } else if (days <= 45) {
-        category = "31-45";
+        label = "15 a 30 dias";
+        statusText = days + "d";
+      } else {
+        category = "31+";
         badgeClass = "bg-rose-950/80 text-rose-400 border-rose-800/80";
         dotEmoji = "🔴";
-        label = "Alerta";
-      } else {
-        category = "46+";
-        badgeClass = "bg-red-950/90 text-red-300 border-red-700 animate-pulse";
-        dotEmoji = "🚨";
-        label = "Crítico";
+        label = "31+ dias";
+        statusText = days + "d";
       }
 
       return {
@@ -1078,15 +1482,15 @@
         badgeClass,
         dotEmoji,
         label,
-        statusText: "⏱️ " + days + "d"
+        statusText
       };
     }
 
-    /**
-     * ACIONADOR DOS BOTÕES DE FILTRO POR DIAS (AGING)
-     */
     function setAgingFilter(val) {
       state.kanbanFilterAging = val;
+      const select = document.getElementById("filterAgingSelect");
+      if (select) select.value = val;
+
       document.querySelectorAll(".aging-filter-btn").forEach(btn => {
         if (btn.getAttribute("data-aging") === val) {
           btn.className = "aging-filter-btn px-2.5 py-1 rounded-lg text-[10px] font-semibold transition bg-sky-600 text-white shadow-sm cursor-pointer";
@@ -1098,11 +1502,6 @@
       renderTable();
     }
 
-    /**
-     * RECONCILIAÇÃO INTELIGENTE DE SUBTAREFAS DO CLIENTE
-     * Cruza os títulos/IDs configurados no pipeline com os registros de tarefas do cliente,
-     * garantindo integridade e preservando tarefas já marcadas como 'Concluída'.
-     */
     function getClientMergedTasks(client) {
       if (!client) return [];
       const stages = getPipelineStages();
@@ -1112,32 +1511,34 @@
       stages.forEach((stage, stageIdx) => {
         const subtarefas = Array.isArray(stage.subtarefas) ? stage.subtarefas : [];
         subtarefas.forEach((taskItem, taskIdx) => {
-          const taskTitle = (typeof taskItem === "string" ? taskItem : (taskItem.title || taskItem.nome || "")).trim();
+          const norm = normalizeSubtaskItem(taskItem, taskIdx, stage.id);
+          const taskTitle = norm.titulo.trim();
           if (!taskTitle) return;
 
-          // Busca correspondência nas tarefas existentes do cliente (por título normalizado ou ID indexado)
           const existing = clientTasks.find(t => {
             if (!t) return false;
+            if (t.id && (t.id === norm.id || t.id === (client.id + "_" + stage.id + "_" + taskIdx) || t.id === (client.id + "_p" + (stageIdx + 1) + "_" + taskIdx))) return true;
             if (t.title && t.title.trim().toLowerCase() === taskTitle.toLowerCase()) return true;
-            if (t.id && (t.id === (client.id + "_" + stage.id + "_" + taskIdx) || t.id === (client.id + "_p" + (stageIdx + 1) + "_" + taskIdx))) return true;
             return false;
           });
 
-          const taskId = existing ? existing.id : (client.id + "_" + stage.id + "_" + taskIdx);
+          const taskId = existing?.id || (client.id + "_" + stage.id + "_" + taskIdx);
           const isDone = existing ? (existing.status === "Concluída") : false;
-          const assignee = existing ? (existing.assignee || "") : "";
-          const completedAt = existing ? (existing.completedAt || "") : "";
-          const department = existing ? (existing.department || stage.nome) : stage.nome;
+          const effectiveAssignee = (existing && existing.assignee) ? existing.assignee : (norm.responsavelPadrao || "");
+          const completedAt = existing?.completedAt || "";
+          const department = existing?.department || stage.nome;
 
           merged.push({
             id: taskId,
+            configId: norm.id,
             stageId: stage.id,
             stageIndex: stageIdx + 1,
             stageName: stage.nome,
             title: taskTitle,
             department: department,
             status: isDone ? "Concluída" : "Pendente",
-            assignee: assignee,
+            assignee: effectiveAssignee,
+            defaultAssignee: norm.responsavelPadrao || "",
             completedAt: completedAt
           });
         });
@@ -1146,117 +1547,25 @@
       return merged;
     }
 
-
-
-    /**
-     * AS 9 FASES OPERACIONAIS DA ESTEIRA HARPPIA CRM
-     */
-    const PHASES = [
-      { id: 1, name: "Questionário", dept: "Onboarding Inicial", color: "sky" },
-      { id: 2, name: "Reunião Onboarding", dept: "Alinhamento", color: "blue" },
-      { id: 3, name: "Fotos", dept: "Fotos & Design", color: "indigo" },
-      { id: 4, name: "Planejamento Site", dept: "Copywriting", color: "violet" },
-      { id: 5, name: "Ferramentas", dept: "Suporte & Vendas", color: "amber" },
-      { id: 6, name: "Site", dept: "Produção Landing Page", color: "emerald" },
-      { id: 7, name: "Campanha", dept: "Google Ads & Tráfego", color: "rose" },
-      { id: 8, name: "Acompanhamento", dept: "Check-ins 4/7 Meses", color: "teal" },
-      { id: 9, name: "Concluído", dept: "Sucesso & Renovação", color: "green" }
-    ];
-
-    /**
-     * AS 54 SUBTAREFAS DA ESTEIRA OPERACIONAL
-     */
-    const DEFAULT_TASKS_TEMPLATE = [
-      // FASE 1
-      { phase: 1, title: "Enviar link do questionário de boas-vindas e kit lev. inicial (Bio, Domínio e cor, Depoimentos)", department: "Atendimento", description: "Disponibilizar o formulário padrão no WhatsApp com instruções." },
-      { phase: 1, title: "Cobrar preenchimento do formulário", department: "Atendimento", description: "Follow-up caso o cliente não tenha respondido em até 48 horas." },
-      { phase: 1, title: "Recebimento questionário", department: "Cliente", description: "Aguardar retorno e preenchimento completo pelo cliente (1 a 3 dias úteis)." },
-      { phase: 1, title: "Validar e aprovar respostas recebidas", department: "Atendimento", description: "Conferir informações essenciais. Enviar confirmação. Criar pasta de arquivos." },
-      { phase: 1, title: "Envio Domínio e cor", department: "Cliente", description: "Aguardar definição de domínio e cores pelo cliente (1 a 3 dias úteis)." },
-      { phase: 1, title: "Disponibilidade do domínio", department: "Atendimento", description: "Checar disponibilidade no Registro.br / Whois. Enviar confirmação." },
-      { phase: 1, title: "Cor site – Fora do padrão", department: "Atendimento", description: "Enviar confirmação. Fazer teste de cor e enviar para aprovação do cliente." },
-      { phase: 1, title: "Teste Cor - Aprovação", department: "Cliente", description: "Aguardar aprovação do teste de cores pelo cliente (1 a 3 dias úteis)." },
-      { phase: 1, title: "Envio BIO", department: "Cliente", description: "Atendimento: Envio de confirmação de recebimento da Bio." },
-
-      // FASE 2
-      { phase: 2, title: "Agendar reunião de onboarding com data/hora", department: "Atendimento", description: "Alinhar agenda com o cliente e registrar a data e horário no sistema." },
-      { phase: 2, title: "Realizar reunião e alinhar expectativas", department: "Atendimento", description: "Conduzir a sessão de boas-vindas, definir prazos da esteira e coletar diretrizes estratégicas." },
-
-      // FASE 3
-      { phase: 3, title: "Enviar e-mail para envio das fotos", department: "Atendimento", description: "Liberar acesso para envio e encaminhar e-mail com instruções." },
-      { phase: 3, title: "Enviar guia de direcionamento de fotos", department: "Atendimento", description: "Compartilhar o PDF/manual de poses, iluminação e identidade visual." },
-      { phase: 3, title: "Enviar fotos originais e referências", department: "Cliente", description: "Aguardar envio das fotos originais pelo cliente (1 a 5 dias úteis)." },
-      { phase: 3, title: "Confirmação recebimento", department: "Atendimento", description: "Checagem das fotos se estão dentro da especificação. Envio de confirmação." },
-      { phase: 3, title: "Envio equipe IA / Design", department: "Atendimento", description: "Repassar links de fotos e referências à equipe de Design." },
-      { phase: 3, title: "Receber fotos originais / Gerar ensaio em IA", department: "Design", description: "Gerar ensaio fotográfico realista via IA e enviar para a equipe de atendimento." },
-      { phase: 3, title: "Análise e seleção de fotos", department: "Atendimento", description: "Fazer recorte profissional, análise e seleção de fotos e solicitar ok formal do cliente." },
-      { phase: 3, title: "Enviar para aprovação", department: "Atendimento", description: "Enviar orientações para o cliente aprovar o ensaio." },
-      { phase: 3, title: "Aprovação ou alteração", department: "Cliente", description: "Aprovação (escolher 3 fotos) ou indicar cenários preferidos e apontar críticas." },
-      { phase: 3, title: "Envio equipe IA (Ajustes)", department: "Atendimento", description: "Apontar as críticas e identificar as fotos que o cliente mais gostou." },
-      { phase: 3, title: "Gerar novas fotos em IA (Ajustes)", department: "Design", description: "Gerar novo ensaio fotográfico e reenviar ao atendimento." },
-      { phase: 3, title: "Análise e seleção de novas fotos", department: "Atendimento", description: "Fazer recorte profissional, seleção e solicitar ok formal do cliente." },
-      { phase: 3, title: "Enviar fotos reajustadas para aprovação", department: "Atendimento", description: "Enviar link ao cliente para nova avaliação." },
-      { phase: 3, title: "Aprovação final das fotos", department: "Cliente", description: "Identificar as fotos finais escolhidas para produção do site." },
-
-      // FASE 4
-      { phase: 4, title: "Enviar Depoimentos e Casos", department: "Cliente", description: "Aguardar envio dos depoimentos pelo cliente. Envio de confirmação de recebimento." },
-      { phase: 4, title: "Escrever base copy da Landing Page", department: "Copywriting", description: "Agrupar informações base, orientações, headline, logo e referências." },
-      { phase: 4, title: "Elaborar estrutura de conteúdo / Wireframe", department: "Copywriting", description: "Definir seções: Hero, Sobre, Serviços, Depoimentos, FAQ e CTA. Padrão Harppia." },
-      { phase: 4, title: "Escrever copy da Landing Page", department: "Copywriting", description: "Redigir textos persuasivos focados na conversão de novos clientes." },
-
-      // FASE 5
-      { phase: 5, title: "Enviar Roteiros de venda e atendimento", department: "Atendimento", description: "1ª semana. Inicia 1 dia útil após envio dos dados base." },
-      { phase: 5, title: "Enviar orientações do link de pgto", department: "Atendimento", description: "2ª semana. Envio das instruções para meios de pagamento." },
-      { phase: 5, title: "Envio dos links de pgto", department: "Cliente", description: "Aguardar envio dos links de pagamento pelo cliente." },
-      { phase: 5, title: "Testes do link de pgto", department: "Atendimento", description: "Checagem de campos, valores e parcelamentos operacionais." },
-      { phase: 5, title: "Aprovação ou alteração do link de pgto", department: "Atendimento", description: "Aprovação ou recusa – orientações e suporte ao cliente." },
-      { phase: 5, title: "Criação de acessos às ferramentas", department: "Atendimento", description: "Criação de login/senha e teste de acesso às ferramentas de formulários." },
-      { phase: 5, title: "Enviar acesso às ferramentas de vendas", department: "Atendimento", description: "3ª semana. Envio de credenciais no WhatsApp particular do cliente." },
-
-      // FASE 6
-      { phase: 6, title: "Criar layout da Landing Page / Site", department: "Webdesigner", description: "Desenvolver página moderna, responsiva, ultra rápida e com alto padrão visual." },
-      { phase: 6, title: "Configurar botões de WhatsApp e formulários", department: "Webdesigner", description: "Integrar tags UTM, mensagens personalizadas de início de conversa e conversões." },
-      { phase: 6, title: "Configurar domínio e certificado SSL", department: "Webdesigner", description: "Apontar DNS (Cloudflare/Hostinger) e garantir HTTPS seguro e ativo." },
-      { phase: 6, title: "Validações Interna", department: "Comercial", description: "Validação interna de qualidade antes da apresentação ao cliente." },
-      { phase: 6, title: "Apresentar site pronto para o cliente", department: "Atendimento", description: "Gravar vídeo explicativo ou agendar call rápida para validação da página." },
-      { phase: 6, title: "Listar ajustes solicitados", department: "Atendimento", description: "Registrar eventuais alterações de texto, imagem ou disposição pedidas pelo cliente." },
-      { phase: 6, title: "Aplicar alterações e obter aprovação final", department: "Webdesigner", description: "Executar os ajustes finos e obter autorização formal de publicação." },
-      { phase: 6, title: "Aprovação final do site", department: "Cliente", description: "Aguardar aprovação final formal do cliente." },
-
-      // FASE 7
-      { phase: 7, title: "Agendar reunião de alinhamento Google ADS", department: "Comercial", description: "Agendar alinhamento de campanha com o cliente." },
-      { phase: 7, title: "Solicitar/Configurar acessos do Google Ads", department: "Tráfego", description: "Vincular MCC da assessoria à conta do cliente ou criar nova conta estruturada." },
-      { phase: 7, title: "Criar anúncios, palavras-chave e orçamento", department: "Tráfego", description: "Pesquisar termos de busca de alta intenção, criativos e lances estratégicos." },
-      { phase: 7, title: "Publicar e ativar campanhas", department: "Tráfego", description: "Validar tags de conversão do Google Ads e veicular. Informar cliente no grupo." },
-      { phase: 7, title: "Acompanhar e controlar crédito Google ADS", department: "Tráfego", description: "Monitorar saldo de créditos e faturamento da conta de anúncios." },
-
-      // FASE 8
-      { phase: 8, title: "Agendar check-ins periódicos de 4 e 7 meses", department: "CS", description: "Programar marcos de acompanhamento de longo prazo e retenção no calendário." },
-      { phase: 8, title: "Enviar relatórios mensais de desempenho", department: "Tráfego", description: "Gerar dashboard de cliques, leads no WhatsApp, custo por cliente e ROI." },
-      { phase: 8, title: "Negativar palavras e otimizar orçamento", department: "Tráfego", description: "Refinar termos de busca semanalmente para maximizar a conversão de clientes." },
-
-      // FASE 9
-      { phase: 9, title: "Coletar depoimento / avaliação de satisfação", department: "Comercial", description: "Enviar pesquisa de satisfação e solicitar depoimento em vídeo ou texto." },
-      { phase: 9, title: "Apresentar proposta de renovação/manutenção", department: "Comercial", description: "Oferecer plano de assessoria contínua de tráfego, SEO e suporte ao site." }
-    ];
-
-    function buildDefaultTasks(clientId) {
-      return DEFAULT_TASKS_TEMPLATE.map((tpl, idx) => ({
-        id: "task_" + clientId + "_" + (idx + 1),
-        clientId: clientId,
-        phase: tpl.phase,
-        title: tpl.title,
-        department: tpl.department,
-        description: tpl.description || "",
-        status: "Pendente",
-        completedAt: "",
-        assignee: ""
-      }));
+    function toggleDrawerPriority() {
+      if (!state.selectedClientId) return;
+      toggleClientPriority(state.selectedClientId);
     }
 
-    /**
-     * ESTADO GLOBAL DA APLICAÇÃO
-     */
+    function openDrawerWhatsApp() {
+      const client = state.clients.find(c => c.id === state.selectedClientId);
+      if (!client) return;
+      const link = client.whatsappGroup && client.whatsappGroup.trim()
+        ? client.whatsappGroup.trim()
+        : (client.phone ? ("https://wa.me/55" + client.phone.replace(/\D/g, '')) : '');
+      if (link) {
+        window.open(link, '_blank');
+      } else {
+        showToast("Nenhum telefone ou grupo de WhatsApp cadastrado.");
+      }
+    }
+
+    // 3. ESTADO GLOBAL DA APLICAÇÃO
     let state = {
       currentUser: null,
       clients: [],
@@ -1266,88 +1575,87 @@
       kanbanFilterAssignee: "all",
       kanbanFilterSemaforo: "all",
       kanbanFilterAging: "all",
+      tableSortColumn: "name",
+      tableSortOrder: "asc",
       pipeline: null
     };
 
-    /**
-     * CONTROLE RÍGIDO DE ACESSOS BASEADO EM CARGOS (RBAC)
-     */
-    function resolvePermissions(cargoName, userEmail) {
-      const email = (userEmail || "").toLowerCase().trim();
-      const cargo = (cargoName || "").trim().toLowerCase();
-      const isPrimary = PRIMARY_ADMIN_EMAILS.includes(email);
+    // 4. CONTROLE RÍGIDO DE ACESSOS (RBAC - ZERO TRUST)
+    function resolvePermissions(cargo, email) {
+      const isMasterAdmin = PRIMARY_ADMIN_EMAILS.includes((email || "").toLowerCase().trim());
+      const roleStr = String(cargo || "").trim().toLowerCase();
 
-      // 1. ADMIN
-      if (isPrimary || cargo === "admin" || cargo === "administrador" || cargo.includes("admin") || cargo.includes("coordenação")) {
+      if (isMasterAdmin || roleStr === "admin" || roleStr === "administrador") {
         return {
           role: "Admin",
           isAdmin: true,
-          isManager: false,
+          isManager: true,
           isAttendant: false,
-          canCreateClients: true,
           canEditClients: true,
+          canCreateClients: true,
           canDeleteClients: true,
           canAdvancePhases: true,
-          canManageTasks: true,
-          canAccessTeam: true
+          canToggleTasks: true,
+          canAccessTeam: true,
+          canAccessSettings: true
         };
       }
 
-      // 2. GERENTE DE PROJETOS
-      if (cargo === "gerente de projetos" || cargo.includes("gerente") || cargo.includes("projetos") || cargo.includes("gestor")) {
+      if (roleStr.includes("gerente") || roleStr.includes("gestor")) {
         return {
           role: "Gerente de Projetos",
           isAdmin: false,
           isManager: true,
           isAttendant: false,
-          canCreateClients: true,
           canEditClients: true,
-          canDeleteClients: false, // Bloqueado
-          canAdvancePhases: true,  // Pode mover cards
-          canManageTasks: true,
-          canAccessTeam: false     // Bloqueado
+          canCreateClients: true,
+          canDeleteClients: false,
+          canAdvancePhases: true,
+          canToggleTasks: true,
+          canAccessTeam: false,
+          canAccessSettings: false
         };
       }
 
-      // 3. ATENDENTE (OU VISUALIZADOR)
+      // Atendente / Visualizador
       return {
         role: "Atendente",
         isAdmin: false,
         isManager: false,
         isAttendant: true,
-        canCreateClients: false, // Bloqueado
-        canEditClients: false,   // Bloqueado
-        canDeleteClients: false, // Bloqueado
-        canAdvancePhases: false, // Drag-and-drop desabilitado
-        canManageTasks: true,    // Pode marcar tarefas e notas
-        canAccessTeam: false     // Bloqueado
+        canEditClients: false,
+        canCreateClients: false,
+        canDeleteClients: false,
+        canAdvancePhases: false,
+        canToggleTasks: true,
+        canAccessTeam: false,
+        canAccessSettings: false
       };
     }
 
-    /**
-     * APLICAÇÃO DOS BLOQUEIOS DE INTERFACE
-     */
     function applyUiPermissionLocks() {
-      const perms = state.currentUser ? state.currentUser.permissions : resolvePermissions("Atendente", "");
+      if (!state.currentUser) return;
+      const perms = state.currentUser.permissions;
 
-      // 1. Botão + Novo Cliente (Oculto para Atendente)
-      const btnNew = document.getElementById("btnNewClientHeader");
-      if (btnNew) btnNew.style.display = perms.canCreateClients ? "flex" : "none";
+      // Botão Novo Cliente
+      const btnNew = document.getElementById("btnNewClient") || document.getElementById("btnNewClientHeader");
+      if (btnNew) btnNew.style.display = perms.canCreateClients ? "inline-flex" : "none";
 
-      // 2. Botões de Exclusão de Cliente (Apenas Admin)
-      const btnDelH = document.getElementById("btnDeleteClientHeader");
-      if (btnDelH) btnDelH.style.display = perms.canDeleteClients ? "flex" : "none";
-      const btnDelI = document.getElementById("btnDeleteClientInfo");
-      if (btnDelI) btnDelI.style.display = perms.canDeleteClients ? "inline-flex" : "none";
+      // Botões Excluir Cliente
+      const btnDel1 = document.getElementById("btnDeleteClientHeader");
+      if (btnDel1) btnDel1.style.display = perms.canDeleteClients ? "inline-flex" : "none";
+      const btnDel2 = document.getElementById("btnDeleteClientInfo");
+      if (btnDel2) btnDel2.style.display = perms.canDeleteClients ? "inline-flex" : "none";
 
-      // 3. Menu Gerenciar Equipe (Apenas Admin)
+      // Menu Configurações do CRM (Apenas Admin)
       const menuSettings = document.getElementById("menuItemSettings");
       if (menuSettings) menuSettings.style.display = perms.isAdmin ? "flex" : "none";
 
+      // Menu Gerenciar Equipe (Apenas Admin)
       const menuTeam = document.getElementById("menuItemTeam");
       if (menuTeam) menuTeam.style.display = perms.canAccessTeam ? "flex" : "none";
 
-      // 4. Edição de dados do cliente na gaveta (Info tab)
+      // Campos da gaveta
       const drawerInputs = [
         "drawerInputName", "drawerInputSpecialty", "drawerInputPhone", "drawerInputEmail",
         "drawerInputWhatsappGroup", "drawerInputEntryDate", "drawerInputDeadline"
@@ -1364,28 +1672,14 @@
       const btnSaveInfo = document.getElementById("btnSaveDrawerInfo");
       if (btnSaveInfo) btnSaveInfo.style.display = perms.canEditClients ? "inline-flex" : "none";
 
-      // 5. Botão Avançar Fase na Gaveta
       const btnAdv = document.getElementById("btnAdvancePhaseDrawer");
       if (btnAdv) btnAdv.style.display = perms.canAdvancePhases ? "inline-flex" : "none";
-
-      // 6. Badge/Aviso para Atendente
-      const badge = document.getElementById("viewerOnlyBadge");
-      if (badge) {
-        if (perms.isAttendant) {
-          badge.classList.remove("hidden");
-          badge.classList.add("flex");
-        } else {
-          badge.classList.add("hidden");
-          badge.classList.remove("flex");
-        }
-      }
     }
 
-    /**
-     * SESSÃO E MONITORIZAÇÃO DO FIREBASE AUTH
-     */
+    // 5. OBSERVAÇÃO DO FIREBASE AUTH & REAL-TIME LISTENERS
     let unsubscribeClients = null;
     let unsubscribeTeam = null;
+    let unsubscribePipeline = null;
 
     function initAuth() {
       auth.onAuthStateChanged(async (user) => {
@@ -1401,11 +1695,9 @@
         const userEmail = (user.email || "").toLowerCase().trim();
         const isPrimaryAdmin = PRIMARY_ADMIN_EMAILS.includes(userEmail);
 
-        // Garante que o listener da equipe esteja escutando
         setupTeamListener();
         setupPipelineListener();
 
-        // Aguarda carregar registro do membro da coleção 'team'
         try {
           const teamSnap = await db.collection("team").get();
           let member = null;
@@ -1416,7 +1708,6 @@
             }
           });
 
-          // Se a coleção estiver completamente vazia, inicializa o admin mestre automaticamente
           if (teamSnap.empty) {
             const seedAdmin = {
               email: userEmail,
@@ -1430,7 +1721,6 @@
             member = seedAdmin;
           }
 
-          // Trava estrita de segurança pós-login
           const isActive = member && String(member.status || "Ativo").toLowerCase() === "ativo";
           if (!isPrimaryAdmin && (!member || !isActive)) {
             console.warn("Acesso negado: Usuário não cadastrado ou inativo:", userEmail);
@@ -1456,14 +1746,11 @@
           updateProfileUI();
           applyUiPermissionLocks();
           showLoginScreen(false);
-
-          // Inicializa escuta em tempo real dos clientes
           setupClientsListener();
 
         } catch (err) {
           console.error("Erro na verificação do usuário:", err);
           if (isPrimaryAdmin) {
-            // Libera fallback para o admin mestre mesmo em falha de conexão inicial
             state.currentUser = {
               id: user.uid,
               email: userEmail,
@@ -1485,9 +1772,6 @@
       });
     }
 
-    /**
-     * SINCRONIZAÇÃO EM TEMPO REAL: COLEÇÃO 'team'
-     */
     function setupTeamListener() {
       if (unsubscribeTeam) return;
       unsubscribeTeam = db.collection("team").onSnapshot(snapshot => {
@@ -1498,15 +1782,14 @@
         state.users = teamList;
         renderTeamList();
         populateAssigneeFilterOptions();
+        populateTableFilterOptions();
 
-        // Se o usuário logado teve seu status alterado para Inativo em tempo real:
         if (state.currentUser && !PRIMARY_ADMIN_EMAILS.includes(state.currentUser.email)) {
           const currentRecord = teamList.find(u => (u.email || "").toLowerCase().trim() === state.currentUser.email);
           if (!currentRecord || String(currentRecord.status).toLowerCase() !== "ativo") {
             showToast("Seu acesso foi desativado pela coordenação.");
             auth.signOut();
           } else if (currentRecord.cargo !== state.currentUser.cargo) {
-            // Atualiza cargo em tempo real
             state.currentUser.cargo = currentRecord.cargo;
             state.currentUser.permissions = resolvePermissions(currentRecord.cargo, state.currentUser.email);
             updateProfileUI();
@@ -1518,9 +1801,66 @@
       }, err => console.error("Erro no listener da equipe:", err));
     }
 
-    /**
-     * SINCRONIZAÇÃO EM TEMPO REAL: COLEÇÃO 'clients'
-     */
+    function setupPipelineListener() {
+      if (unsubscribePipeline) return;
+
+      unsubscribePipeline = db.collection("settings").doc("pipeline").onSnapshot(async (doc) => {
+        const docData = doc.exists ? doc.data() : null;
+        const currentEtapas = (docData && Array.isArray(docData.etapas)) ? docData.etapas : [];
+        const subCount = currentEtapas.reduce((acc, s) => acc + (Array.isArray(s.subtarefas) ? s.subtarefas.length : 0), 0);
+
+        if (!doc.exists || currentEtapas.length !== 9 || subCount !== 54) {
+          console.log("Sincronizando pipeline oficial de 9 fases e 54 subtarefas no Firestore...");
+          try {
+            const updatedEtapas = DEFAULT_PIPELINE_STAGES.map((defStage, sIdx) => {
+              const matchStage = currentEtapas[sIdx];
+              return {
+                ...defStage,
+                cor: matchStage?.cor || defStage.cor,
+                subtarefas: defStage.subtarefas.map((defSub) => {
+                  let assigned = "";
+                  if (matchStage && Array.isArray(matchStage.subtarefas)) {
+                    const found = matchStage.subtarefas.find(ms => (ms.titulo || ms.title || "").trim().toLowerCase() === defSub.titulo.trim().toLowerCase());
+                    if (found) assigned = found.responsavelPadrao || found.assignee || "";
+                  }
+                  return { ...defSub, responsavelPadrao: assigned };
+                })
+              };
+            });
+
+            const initialDoc = {
+              etapas: updatedEtapas,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await db.collection("settings").doc("pipeline").set(initialDoc);
+            state.pipeline = initialDoc;
+          } catch (err) {
+            console.error("Erro ao atualizar seed em settings/pipeline:", err);
+            state.pipeline = { etapas: DEFAULT_PIPELINE_STAGES };
+          }
+        } else {
+          state.pipeline = docData;
+        }
+
+        renderKanban();
+        renderTable();
+        renderMetrics();
+        if (state.selectedClientId) {
+          renderDrawerTasks();
+        }
+
+        const modal = document.getElementById("modalPipelineSettings");
+        if (modal && !modal.classList.contains("hidden") && editingPipeline.length === 0) {
+          editingPipeline = JSON.parse(JSON.stringify(getPipelineStages()));
+          renderPipelineEditor();
+        }
+      }, err => {
+        console.error("Erro no listener de pipeline:", err);
+        state.pipeline = { etapas: DEFAULT_PIPELINE_STAGES };
+        renderKanban();
+      });
+    }
+
     function setupClientsListener() {
       if (unsubscribeClients) return;
       unsubscribeClients = db.collection("clients").onSnapshot(snapshot => {
@@ -1530,11 +1870,11 @@
           clientList.push({
             id: doc.id,
             ...data,
-            status: Number(data.status || 1)
+            fase: data.fase || data.status || 1,
+            status: data.fase || data.status || 1
           });
         });
 
-        // Ordena por prioridade e criação
         clientList.sort((a, b) => {
           if (a.priority && !b.priority) return -1;
           if (!a.priority && b.priority) return 1;
@@ -1546,20 +1886,17 @@
         renderTable();
         renderMetrics();
 
-        // Atualiza gaveta se aberta
         if (state.selectedClientId) {
           const activeClient = state.clients.find(c => c.id === state.selectedClientId);
           if (activeClient) {
             renderDrawerTasks();
+            renderDrawerHistory();
             updateDrawerPriorityUI(activeClient);
           }
         }
       }, err => console.error("Erro no listener de clientes:", err));
     }
 
-    /**
-     * LOGIN & LOGOUT COM PERSISTÊNCIA FIREBASE
-     */
     async function handleFirebaseLogin(e) {
       e.preventDefault();
       const email = document.getElementById("loginEmail").value.trim();
@@ -1635,9 +1972,7 @@
       }
     }
 
-    /**
-     * GESTÃO DE EQUIPE (ADMINISTRADORES)
-     */
+    // 6. GESTÃO DE EQUIPE (ADMINISTRADORES)
     function openTeamModal() {
       closeProfileDropdown();
       if (!state.currentUser?.permissions?.isAdmin) {
@@ -1678,7 +2013,7 @@
 
         document.getElementById("teamMemberEmail").value = "";
         document.getElementById("teamMemberName").value = "";
-        showToast(`Membro ${nome} salvo na equipe!`);
+        showToast("Membro " + nome + " salvo na equipe!");
       } catch (err) {
         console.error("Erro ao salvar membro:", err);
         showToast("Erro ao gravar no Firestore.");
@@ -1693,7 +2028,7 @@
           status: newStatus,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        showToast(`Status alterado para ${newStatus}!`);
+        showToast("Status alterado para " + newStatus + "!");
       } catch (err) {
         console.error("Erro ao alterar status:", err);
         showToast("Falha ao atualizar status.");
@@ -1721,10 +2056,10 @@
               </div>
               <div class="min-w-0">
                 <div class="font-semibold text-white flex items-center gap-2">
-                  <span class="truncate">${u.nome || u.email}</span>
+                  <span class="truncate">${escapeHtml(u.nome || u.email)}</span>
                   ${isSelf ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-sky-950 text-sky-400 border border-sky-800 font-bold">Você</span>' : ''}
                 </div>
-                <div class="text-[11px] text-slate-400 truncate">${u.email} • <span class="text-indigo-400 font-medium">${u.cargo || 'Membro'}</span></div>
+                <div class="text-[11px] text-slate-400 truncate">${escapeHtml(u.email)} • <span class="text-indigo-400 font-medium">${escapeHtml(u.cargo || 'Membro')}</span></div>
               </div>
             </div>
 
@@ -1734,7 +2069,7 @@
               </span>
 
               ${!isSelf ? `
-                <button onclick="toggleMemberStatus('${u.id}', '${u.status || 'Ativo'}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:text-white transition text-[11px]">
+                <button onclick="toggleMemberStatus('${u.id}', '${u.status || 'Ativo'}')" class="p-1.5 rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:text-white transition text-[11px] cursor-pointer">
                   ${isActive ? 'Desativar' : 'Ativar'}
                 </button>
               ` : ''}
@@ -1746,24 +2081,21 @@
       lucide.createIcons();
     }
 
-    /**
-     * KANBAN & CARDS
-     */
-    function computeClientEsteira(client) {
-      const entry = client.entryDate ? new Date(client.entryDate) : new Date();
-      const now = new Date();
-      const diffTime = Math.abs(now - entry);
-      const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      if (days <= 2) {
-        return { color: "green", statusText: `${days}d na esteira`, badgeClass: "bg-emerald-950 text-emerald-400 border-emerald-800", dotEmoji: "🟢" };
-      } else if (days <= 5) {
-        return { color: "yellow", statusText: `${days}d na esteira`, badgeClass: "bg-amber-950 text-amber-400 border-amber-800", dotEmoji: "🟡" };
-      } else {
-        return { color: "red", statusText: `${days}d na esteira`, badgeClass: "bg-rose-950 text-rose-400 border-rose-800", dotEmoji: "🔴" };
+    function populateAssigneeFilterOptions() {
+      const select = document.getElementById("filterAssignee");
+      if (!select) return;
+      while (select.options.length > 3) {
+        select.remove(3);
       }
+      state.users.forEach(u => {
+        const opt = document.createElement("option");
+        opt.value = u.email;
+        opt.textContent = "👤 " + (u.nome || u.email.split("@")[0]);
+        select.appendChild(opt);
+      });
     }
 
+    // 7. KANBAN, CARDS & GAVETA DO CLIENTE
     function renderKanban() {
       const container = document.getElementById("kanbanContainer");
       if (!container) return;
@@ -1778,7 +2110,6 @@
         const matchSearch = (c.name || "").toLowerCase().includes(search) || (c.specialty || "").toLowerCase().includes(search);
         if (!matchSearch) return false;
 
-        // Filtro de Envelhecimento (Aging Filter)
         const aging = getClientAgingInfo(c);
         if (filterAging !== "all") {
           if (filterAging === "0-7" && aging.category !== "0-7") return false;
@@ -1788,7 +2119,6 @@
           if (filterAging === "46+" && aging.category !== "46+") return false;
         }
 
-        // Filtro de Responsável da Vez
         if (filterAssignee === "my_actions") {
           const mergedTasks = getClientMergedTasks(c);
           const currentStage = getClientCurrentStage(c);
@@ -1814,7 +2144,6 @@
                ondragleave="handleDragLeave(event)"
                ondrop="handleDrop(event, '${stage.id}')">
             
-            <!-- Cabeçalho da Coluna -->
             <div class="p-3.5 border-b border-slate-800 bg-slate-950/70 rounded-t-2xl flex items-center justify-between">
               <div class="flex items-center gap-2 min-w-0">
                 <span class="w-6 h-6 rounded-lg text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm" style="background-color: ${stageColor}33; border: 1px solid ${stageColor}88; color: ${stageColor}">
@@ -1822,13 +2151,12 @@
                 </span>
                 <div class="min-w-0">
                   <h3 class="font-bold text-xs text-white leading-tight truncate max-w-[170px]" title="${escapeHtml(stage.nome)}">${escapeHtml(stage.nome)}</h3>
-                  <p class="text-[10px] text-slate-400">${(stage.subtarefas || []).length} subtarefas</p>
+                  <p class="text-[10px] text-slate-400 truncate max-w-[170px] font-normal" title="${escapeHtml(stage.subtitulo || '')}">${stage.subtitulo ? escapeHtml(stage.subtitulo) : (stage.subtarefas || []).length + ' subtarefas'}</p>
                 </div>
               </div>
               <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold shrink-0">${colClients.length}</span>
             </div>
 
-            <!-- Lista de Cards da Coluna -->
             <div class="flex-1 overflow-y-auto p-3 space-y-3 min-h-[140px]">
               ${colClients.length === 0 ? `
                 <div class="border border-dashed border-slate-800/70 rounded-xl py-8 px-3 text-center text-slate-500 text-xs flex flex-col items-center justify-center gap-1.5 select-none">
@@ -1855,10 +2183,17 @@
 
       const waLink = client.whatsappGroup && client.whatsappGroup.trim()
         ? client.whatsappGroup.trim()
-        : (client.phone ? `https://wa.me/55${client.phone.replace(/\D/g, '')}` : '');
+        : (client.phone ? ("https://wa.me/55" + client.phone.replace(/\D/g, '')) : '');
+
+      let nextTaskAssigneeName = "";
+      if (nextTask && nextTask.assignee) {
+        const member = state.users.find(u => (u.email || "").toLowerCase() === nextTask.assignee.toLowerCase());
+        nextTaskAssigneeName = member?.nome || nextTask.assignee.split("@")[0];
+      }
 
       return `
         <div id="card-${client.id}"
+             data-id="${client.id}"
              class="kanban-card p-3.5 bg-slate-950 border ${isPriority ? 'priority-card' : 'border-slate-800/80 hover:border-sky-500/60'} rounded-2xl shadow-sm transition ${canDrag ? 'cursor-grab active:cursor-grabbing hover:scale-[1.01]' : 'cursor-pointer'} select-none relative overflow-hidden"
              draggable="${canDrag ? 'true' : 'false'}"
              ${canDrag ? `ondragstart="handleDragStart(event, '${client.id}')"` : ''}
@@ -1867,45 +2202,42 @@
           ${isPriority ? `
             <div class="mb-2 -mx-3.5 -mt-3.5 px-3 py-1 bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 text-white text-[10px] font-black tracking-wider uppercase flex items-center justify-between priority-badge-blink shadow-md">
               <span class="flex items-center gap-1"><i data-lucide="flame" class="w-3 h-3"></i> PRIORIDADE ALTA</span>
-              <button onclick="toggleClientPriority('${client.id}', event)" title="Desativar Prioridade" class="hover:bg-rose-700/60 p-0.5 rounded transition cursor-pointer">
+              <button onclick="event.stopPropagation(); toggleClientPriority('${client.id}', event)" title="Desativar Prioridade" class="hover:bg-rose-700/60 p-0.5 rounded transition cursor-pointer">
                 <i data-lucide="x" class="w-3 h-3"></i>
               </button>
             </div>
           ` : ''}
 
           <div class="flex items-start justify-between gap-2 mb-2">
-            <div class="min-w-0">
-              <h4 class="font-bold text-xs text-white truncate">${escapeHtml(client.name)}</h4>
+            <div class="min-w-0" onclick="event.stopPropagation(); openClientDrawer('${client.id}')">
+              <h4 class="font-bold text-xs text-white truncate hover:text-sky-400 transition cursor-pointer">${escapeHtml(client.name)}</h4>
               <p class="text-[11px] text-slate-400 truncate">${escapeHtml(client.specialty || 'Geral')}</p>
             </div>
             
-            <!-- Badge Visual Discreto de Envelhecimento (Aging) -->
             <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${aging.badgeClass} flex items-center gap-1" title="${aging.days} dias ativo na esteira (${aging.label})">
               <span>${aging.dotEmoji}</span>
               <span>${aging.statusText}</span>
             </span>
           </div>
 
-          <!-- Próxima Ação da Vez -->
           <div class="bg-slate-900/80 rounded-xl p-2.5 border border-slate-800/80 mb-2.5 text-[11px]">
             <div class="flex items-center justify-between text-slate-400 text-[10px] mb-1">
               <span class="font-semibold text-sky-400">Próxima Ação:</span>
               <span>${donePhaseTasks.length}/${phaseTasks.length}</span>
             </div>
             <p class="text-slate-200 font-medium truncate">${nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas nesta etapa 🎉'}</p>
-            ${nextTask && nextTask.assignee ? `
+            ${nextTaskAssigneeName ? `
               <div class="mt-1.5 flex items-center gap-1 text-[10px] text-indigo-300 font-medium">
                 <i data-lucide="user" class="w-3 h-3"></i>
-                <span>${escapeHtml(nextTask.assignee.split('@')[0])}</span>
+                <span>${escapeHtml(nextTaskAssigneeName)}</span>
               </div>
             ` : ''}
           </div>
 
-          <!-- Rodapé do Card: Ações Rápidas -->
-          <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800/60" onclick="event.stopPropagation()">
+          <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800/60">
             <div class="flex items-center gap-2">
               ${waLink ? `
-                <button onclick="window.open('${waLink}', '_blank')" title="Abrir WhatsApp" class="p-1 rounded-lg text-emerald-400 hover:bg-emerald-950/50 transition cursor-pointer">
+                <button onclick="event.stopPropagation(); window.open('${waLink}', '_blank')" title="Abrir WhatsApp" class="p-1 rounded-lg text-emerald-400 hover:bg-emerald-950/50 transition cursor-pointer">
                   <i data-lucide="message-circle" class="w-4 h-4"></i>
                 </button>
               ` : `
@@ -1915,7 +2247,7 @@
               ${client.notes ? '<i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400/80" title="Possui anotações"></i>' : ''}
             </div>
 
-            <button onclick="openClientDrawer('${client.id}')" class="text-slate-400 hover:text-sky-400 text-[11px] font-medium flex items-center gap-1 transition cursor-pointer">
+            <button onclick="event.stopPropagation(); openClientDrawer('${client.id}')" class="text-slate-400 hover:text-sky-400 text-[11px] font-medium flex items-center gap-1 transition cursor-pointer">
               <span>Detalhes</span>
               <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
             </button>
@@ -1925,9 +2257,8 @@
       `;
     }
 
-    /**
-     * DRAG AND DROP KANBAN (SUPORTE A ETAPAS DINÂMICAS)
-     */
+    
+
     let draggedClientId = null;
 
     function handleDragStart(e, clientId) {
@@ -1968,14 +2299,24 @@
       const currentStage = getClientCurrentStage(client);
       if (String(currentStage.id) === String(targetStageId)) return;
 
+      const stages = getPipelineStages();
+      const destStage = stages.find(s => String(s.id) === String(targetStageId));
+      const destName = destStage?.nome || targetStageId;
+      const nowIso = new Date().toISOString();
+
       try {
-        await db.collection("clients").doc(clientId).update({
+        await db.collection('clients').doc(clientId).update({
+          fase: targetStageId,
           status: targetStageId,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          dataEntradaFase: nowIso,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          historico: firebase.firestore.FieldValue.arrayUnion({
+            data: nowIso,
+            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+            acao: 'Mudança de fase para "' + destName + '" via esteira'
+          })
         });
-        const stages = getPipelineStages();
-        const destStage = stages.find(s => String(s.id) === String(targetStageId));
-        showToast(`Cliente movido para "${destStage?.nome || targetStageId}"!`);
+        showToast('Cliente movido para "' + destName + '"!');
       } catch (err) {
         console.error("Erro ao mover cliente:", err);
         showToast("Falha ao salvar no Firestore.");
@@ -1985,67 +2326,123 @@
     }
 
     /**
-     * GAVETA DO CLIENTE & SUBTAREFAS DINÂMICAS
+     * =========================================================================
+     * GAVETA DO CLIENTE, SUBTAREFAS & HISTÓRICO DE AUDITORIA
+     * =========================================================================
      */
+    function updateDrawerPriorityUI(client) {
+      const btn = document.getElementById("drawerBtnPriority");
+      if (!btn) return;
+      const isPriority = !!client?.priority;
+      if (isPriority) {
+        btn.className = "text-[10px] font-semibold px-2.5 py-1 rounded-full border border-amber-500/60 bg-amber-500/20 text-amber-300 font-bold shadow-sm transition cursor-pointer";
+        btn.innerHTML = "⭐ Prioridade Alta";
+      } else {
+        btn.className = "text-[10px] font-semibold px-2.5 py-1 rounded-full border border-slate-700 bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer";
+        btn.innerHTML = "☆ Normal";
+      }
+    }
+
     function openClientDrawer(clientId) {
-      const client = state.clients.find(c => c.id === clientId);
-      if (!client) return;
+      try {
+        const client = state.clients.find(c => c.id === clientId);
+        if (!client) {
+          console.warn("Cliente não localizado:", clientId);
+          return;
+        }
 
-      state.selectedClientId = clientId;
+        state.selectedClientId = clientId;
 
-      // Cabeçalho da gaveta
-      document.getElementById("drawerClientName").textContent = client.name || "Sem Nome";
-      document.getElementById("drawerClientSpecialty").textContent = client.specialty || "Geral";
-      
-      const currentStage = getClientCurrentStage(client);
-      const stageBadge = document.getElementById("drawerClientPhaseBadge");
-      stageBadge.textContent = currentStage.nome;
-      stageBadge.style.borderColor = (currentStage.cor || "#3b82f6") + "66";
-      stageBadge.style.color = currentStage.cor || "#3b82f6";
+        const elName = document.getElementById("drawerClientName");
+        if (elName) elName.textContent = client.name || "Sem Nome";
 
-      const aging = getClientAgingInfo(client);
-      const semaforoEl = document.getElementById("drawerClientSemaforo");
-      semaforoEl.textContent = `${aging.dotEmoji} ${aging.days}d na esteira (${aging.label})`;
-      semaforoEl.className = `text-[10px] font-semibold px-2 py-0.5 rounded-full border ${aging.badgeClass}`;
+        const elNiche = document.getElementById("drawerClientNiche") || document.getElementById("drawerClientSpecialty");
+        if (elNiche) elNiche.textContent = client.specialty || "Geral";
+        
+        const currentStage = getClientCurrentStage(client);
+        const stageBadge = document.getElementById("drawerClientPhaseBadge");
+        if (stageBadge) {
+          stageBadge.textContent = currentStage.nome;
+          stageBadge.style.borderColor = (currentStage.cor || "#3b82f6") + "66";
+          stageBadge.style.color = currentStage.cor || "#3b82f6";
+        }
 
-      // Preenche campos de edição
-      document.getElementById("drawerInputName").value = client.name || "";
-      document.getElementById("drawerInputSpecialty").value = client.specialty || "";
-      document.getElementById("drawerInputPhone").value = client.phone || "";
-      document.getElementById("drawerInputEmail").value = client.email || "";
-      document.getElementById("drawerInputWhatsappGroup").value = client.whatsappGroup || "";
-      document.getElementById("drawerInputEntryDate").value = client.entryDate || "";
-      document.getElementById("drawerInputDeadline").value = client.deadline || "";
-      document.getElementById("drawerInputNotes").value = client.notes || "";
+        const aging = getClientAgingInfo(client);
+        const semaforoEl = document.getElementById("drawerClientSemaforo");
+        if (semaforoEl) {
+          semaforoEl.textContent = aging.dotEmoji + " " + aging.days + "d na esteira (" + aging.label + ")";
+          semaforoEl.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full border " + aging.badgeClass;
+        }
 
-      updateDrawerPriorityUI(client);
-      switchDrawerTab("tasks");
-      renderDrawerTasks();
-      applyUiPermissionLocks();
+        const safeSetVal = (id, val) => {
+          const el = document.getElementById(id);
+          if (el) el.value = val || "";
+        };
 
-      document.getElementById("clientDrawerBackdrop").classList.remove("hidden");
-      document.getElementById("clientDrawer").classList.remove("translate-x-full");
-      lucide.createIcons();
+        safeSetVal("drawerInputName", client.name);
+        safeSetVal("drawerInputSpecialty", client.specialty);
+        safeSetVal("drawerInputPhone", client.phone);
+        safeSetVal("drawerInputEmail", client.email);
+        safeSetVal("drawerInputWhatsappGroup", client.whatsappGroup);
+        safeSetVal("drawerInputEntryDate", client.entryDate || client.dataEntrada);
+        safeSetVal("drawerInputDeadline", client.deadline);
+        safeSetVal("drawerInputNotes", client.notes);
+
+        updateDrawerPriorityUI(client);
+        if (document.getElementById("drawerTasksFilter")) {
+          document.getElementById("drawerTasksFilter").value = "current";
+        }
+        switchDrawerTab("tasks");
+        renderDrawerTasks();
+        renderDrawerHistory();
+        applyUiPermissionLocks();
+
+        const backdrop = document.getElementById("clientDrawerBackdrop");
+        if (backdrop) backdrop.classList.remove("hidden");
+        const drawer = document.getElementById("clientDrawer");
+        if (drawer) drawer.classList.remove("translate-x-full");
+
+        if (window.lucide && typeof lucide.createIcons === "function") {
+          lucide.createIcons();
+        }
+      } catch (err) {
+        console.error("Erro ao abrir perfil do cliente:", err);
+        const backdrop = document.getElementById("clientDrawerBackdrop");
+        if (backdrop) backdrop.classList.remove("hidden");
+        const drawer = document.getElementById("clientDrawer");
+        if (drawer) drawer.classList.remove("translate-x-full");
+      }
     }
 
     function closeClientDrawer() {
-      document.getElementById("clientDrawerBackdrop").classList.add("hidden");
-      document.getElementById("clientDrawer").classList.add("translate-x-full");
+      const backdrop = document.getElementById("clientDrawerBackdrop");
+      if (backdrop) backdrop.classList.add("hidden");
+      const drawer = document.getElementById("clientDrawer");
+      if (drawer) drawer.classList.add("translate-x-full");
       state.selectedClientId = null;
     }
 
     function switchDrawerTab(tab) {
-      ["tasks", "notes", "info"].forEach(t => {
-        document.getElementById(`drawerContent-${t}`).classList.add("hidden");
-        const btn = document.getElementById(`drawerTabBtn-${t}`);
-        btn.classList.remove("text-sky-400", "border-b-2", "border-sky-500");
-        btn.classList.add("text-slate-400");
+      ["tasks", "notes", "info", "history"].forEach(t => {
+        const content = document.getElementById("drawerContent-" + t);
+        if (content) content.classList.add("hidden");
+        const btn = document.getElementById("drawerTabBtn-" + t);
+        if (btn) {
+          btn.classList.remove("text-sky-400", "border-b-2", "border-sky-500");
+          btn.classList.add("text-slate-400");
+        }
       });
 
-      document.getElementById(`drawerContent-${tab}`).classList.remove("hidden");
-      const activeBtn = document.getElementById(`drawerTabBtn-${tab}`);
-      activeBtn.classList.add("text-sky-400", "border-b-2", "border-sky-500");
-      activeBtn.classList.remove("text-slate-400");
+      const activeContent = document.getElementById("drawerContent-" + tab);
+      if (activeContent) activeContent.classList.remove("hidden");
+      const activeBtn = document.getElementById("drawerTabBtn-" + tab);
+      if (activeBtn) {
+        activeBtn.classList.add("text-sky-400", "border-b-2", "border-sky-500");
+        activeBtn.classList.remove("text-slate-400");
+      }
+
+      if (tab === "history") renderDrawerHistory();
+      lucide.createIcons();
     }
 
     function renderDrawerTasks() {
@@ -2059,39 +2456,61 @@
       const allTasks = getClientMergedTasks(client);
       const currentStage = getClientCurrentStage(client);
 
-      const filteredTasks = filter === "current"
-        ? allTasks.filter(t => t.stageId === currentStage.id)
-        : allTasks;
+      let filteredTasks = [];
+      if (filter === "current") {
+        filteredTasks = allTasks.filter(t => t.stageId === currentStage.id);
+      } else if (filter === "all") {
+        filteredTasks = allTasks;
+      } else {
+        filteredTasks = allTasks.filter(t => String(t.stageId) === String(filter));
+      }
 
       const doneCount = allTasks.filter(t => t.status === "Concluída").length;
-      document.getElementById("drawerTasksCount").textContent = `${doneCount}/${allTasks.length}`;
+      const countEl = document.getElementById("drawerTasksCount");
+      if (countEl) countEl.textContent = doneCount + "/" + allTasks.length;
 
       if (filteredTasks.length === 0) {
-        listEl.innerHTML = '<div class="p-6 text-center text-slate-500 text-xs">Nenhuma subtarefa encontrada para esta etapa.</div>';
+        listEl.innerHTML = '<div class="p-6 text-center text-slate-500 text-xs">Nenhuma subtarefa encontrada para este filtro.</div>';
         return;
       }
 
       listEl.innerHTML = filteredTasks.map(task => {
         const isDone = task.status === "Concluída";
 
+        let assigneeName = "";
+        let assigneeInitials = "";
+        if (task.assignee) {
+          const member = state.users.find(u => (u.email || "").toLowerCase() === task.assignee.toLowerCase());
+          assigneeName = member?.nome || task.assignee.split("@")[0];
+          assigneeInitials = getInitials(assigneeName);
+        }
+
+        const assigneeBadge = task.assignee ? `
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800/80 shrink-0 shadow-sm" title="Responsável: ${escapeHtml(assigneeName)} (${task.assignee})">
+            <span class="w-4 h-4 rounded-full bg-indigo-900 border border-indigo-700 text-indigo-200 text-[9px] font-bold flex items-center justify-center">${assigneeInitials}</span>
+            <span class="truncate max-w-[130px]">${escapeHtml(assigneeName)}</span>
+          </span>
+        ` : `
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-900 text-slate-400 border border-slate-800 shrink-0">
+            <i data-lucide="user-x" class="w-3 h-3 opacity-50"></i>
+            <span>Sem responsável</span>
+          </span>
+        `;
+
         return `
           <div class="bg-slate-950 border ${isDone ? 'border-slate-800/50 bg-slate-950/40 opacity-75' : 'border-slate-800'} rounded-xl p-3 flex items-start justify-between gap-3 transition">
-            <!-- Checkbox de Conclusão -->
             <button onclick="toggleTaskStatus('${task.id}')" class="mt-0.5 w-5 h-5 rounded border ${isDone ? 'bg-sky-600 border-sky-500 text-white' : 'border-slate-700 bg-slate-900 text-transparent hover:border-sky-500'} flex items-center justify-center flex-shrink-0 transition cursor-pointer">
               <i data-lucide="check" class="w-3.5 h-3.5"></i>
             </button>
 
-            <!-- Detalhes da Tarefa -->
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1 flex-wrap">
-                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-slate-800 text-slate-300">${escapeHtml(task.department || task.stageName)}</span>
-                <span class="text-[10px] text-slate-500">Etapa ${task.stageIndex}: ${escapeHtml(task.stageName)}</span>
-                
-                <!-- Atribuição rápida de responsável -->
-                <select onchange="updateTaskAssignee('${task.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-0.5 text-[10px] text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer">
+              <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                ${assigneeBadge}
+
+                <select onchange="updateTaskAssignee('${task.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-0.5 text-[10px] text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer ml-auto" title="Reatribuir responsável para este cliente">
                   <option value="">👤 Não atribuído</option>
                   ${state.users.map(u => `
-                    <option value="${u.email}" ${task.assignee === u.email ? 'selected' : ''}>${escapeHtml(u.nome || u.email.split('@')[0])}</option>
+                    <option value="${u.email}" ${task.assignee === u.email ? 'selected' : ''}>${escapeHtml(u.nome || u.email.split('@')[0])} (${escapeHtml(u.cargo || 'Membro')})</option>
                   `).join("")}
                 </select>
               </div>
@@ -2105,6 +2524,57 @@
       lucide.createIcons();
     }
 
+    function renderDrawerHistory() {
+      const client = state.clients.find(c => c.id === state.selectedClientId);
+      if (!client) return;
+
+      const listEl = document.getElementById("drawerHistoryList");
+      const countEl = document.getElementById("drawerHistoryCount");
+      const history = Array.isArray(client.historico) ? [...client.historico] : [];
+
+      if (countEl) countEl.textContent = history.length;
+      if (!listEl) return;
+
+      if (history.length === 0) {
+        listEl.innerHTML = '<div class="text-slate-500 text-xs py-4 italic">Nenhum evento registrado no histórico ainda. As alterações de fase, conclusão de tarefas e edições aparecerão aqui automaticamente.</div>';
+        return;
+      }
+
+      history.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
+
+      listEl.innerHTML = history.map(item => {
+        const dateStr = item.data ? formatDateTime(item.data) : "Data recente";
+        return `
+          <div class="relative pl-5 pb-3.5 group">
+            <div class="w-2.5 h-2.5 rounded-full bg-sky-500 border-2 border-slate-900 absolute -left-[6px] top-1.5 shadow-sm group-hover:scale-125 transition"></div>
+            
+            <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-xs shadow-sm">
+              <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                <span class="font-bold text-sky-400 flex items-center gap-1.5 truncate">
+                  <i data-lucide="user" class="w-3 h-3 text-slate-400 shrink-0"></i>
+                  <span>${escapeHtml(item.autor || 'Sistema')}</span>
+                </span>
+                <span class="text-[10px] text-slate-500 shrink-0">${escapeHtml(dateStr)}</span>
+              </div>
+              <p class="text-slate-200 font-medium leading-relaxed">${escapeHtml(item.acao || '')}</p>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      lucide.createIcons();
+    }
+
+    function formatDateTime(isoString) {
+      try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return isoString;
+        return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      } catch (e) {
+        return isoString;
+      }
+    }
+
     async function toggleTaskStatus(taskId) {
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
@@ -2113,8 +2583,9 @@
       const targetTask = merged.find(t => t.id === taskId);
       if (!targetTask) return;
 
+      const nowIso = new Date().toISOString();
       const newStatus = targetTask.status === "Concluída" ? "Pendente" : "Concluída";
-      const newCompletedAt = newStatus === "Concluída" ? new Date().toISOString() : "";
+      const newCompletedAt = newStatus === "Concluída" ? nowIso : "";
 
       let tasks = Array.isArray(client.tasks) ? [...client.tasks] : [];
       const existingIdx = tasks.findIndex(t => t.id === taskId || (t.title && t.title.trim().toLowerCase() === targetTask.title.trim().toLowerCase()));
@@ -2128,14 +2599,27 @@
           stageId: targetTask.stageId,
           phase: targetTask.stageIndex,
           title: targetTask.title,
-          department: targetTask.department,
           status: newStatus,
           assignee: targetTask.assignee || "",
           completedAt: newCompletedAt
         });
       }
 
-      // Checagem de avanço automático caso todas as tarefas da etapa atual tenham sido concluídas
+      const actionText = newStatus === "Concluída"
+        ? 'Concluiu a subtarefa: "' + targetTask.title + '"'
+        : 'Reabriu a subtarefa: "' + targetTask.title + '"';
+
+      const updatePayload = {
+        tasks: tasks,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        historico: firebase.firestore.FieldValue.arrayUnion({
+          data: nowIso,
+          autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+          acao: actionText
+        })
+      };
+
+      // Auto-avanço de fase: ao marcar a última pendente da fase atual se todas da fase estiverem concluídas e fase < 9
       const stages = getPipelineStages();
       const currentStage = getClientCurrentStage(client);
       const currentIdx = stages.findIndex(s => s.id === currentStage.id);
@@ -2143,19 +2627,46 @@
       const currentStageTasks = merged.map(t => t.id === taskId ? { ...t, status: newStatus } : t).filter(t => t.stageId === currentStage.id);
       const allDone = currentStageTasks.length > 0 && currentStageTasks.every(t => t.status === "Concluída");
 
-      let nextStageId = client.status;
-      if (allDone && currentIdx !== -1 && currentIdx < stages.length - 1) {
+      if (newStatus === "Concluída" && allDone && currentIdx !== -1 && currentIdx < 8) {
         const nextStage = stages[currentIdx + 1];
-        nextStageId = nextStage.id;
-        showToast(`Todas subtarefas da Etapa "${currentStage.nome}" concluídas! Auto-avanço para "${nextStage.nome}".`);
+        updatePayload.fase = nextStage.id;
+        updatePayload.status = nextStage.id;
+        updatePayload.dataEntradaFase = nowIso;
+        updatePayload.historico = firebase.firestore.FieldValue.arrayUnion(
+          {
+            data: nowIso,
+            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+            acao: actionText
+          },
+          {
+            data: nowIso,
+            autor: "Sistema (Auto-avanço)",
+            acao: 'Auto-avanço para "' + nextStage.nome + '" após conclusão de todas as subtarefas da fase'
+          }
+        );
+
+        showToast('🎉 Todas as subtarefas concluídas! Cliente avançado para "' + nextStage.nome + '"!');
+
+        // Dispara confetti de celebração
+        try {
+          if (typeof confetti === "function") {
+            confetti({
+              particleCount: 120,
+              spread: 80,
+              origin: { y: 0.6 }
+            });
+            setTimeout(() => {
+              confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0 } });
+              confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1 } });
+            }, 300);
+          }
+        } catch (confettiErr) {
+          console.log("Confetti trigger:", confettiErr);
+        }
       }
 
       try {
-        await db.collection("clients").doc(client.id).update({
-          tasks: tasks,
-          status: nextStageId,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        await db.collection("clients").doc(client.id).update(updatePayload);
       } catch (err) {
         console.error("Erro ao atualizar tarefa:", err);
         showToast("Erro ao gravar tarefa.");
@@ -2188,10 +2699,19 @@
         });
       }
 
+      const member = state.users.find(u => (u.email || "").toLowerCase() === assigneeEmail.toLowerCase());
+      const assigneeLabel = member ? member.nome : (assigneeEmail || "Ninguém");
+      const nowIso = new Date().toISOString();
+
       try {
         await db.collection("clients").doc(client.id).update({
           tasks: tasks,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          historico: firebase.firestore.FieldValue.arrayUnion({
+            data: nowIso,
+            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+            acao: 'Atribuiu a subtarefa "' + task.title + '" para ' + assigneeLabel
+          })
         });
         showToast("Responsável atribuído!");
       } catch (err) {
@@ -2215,12 +2735,21 @@
       }
 
       const nextStage = stages[currentIdx + 1];
+      const nowIso = new Date().toISOString();
+
       try {
         await db.collection("clients").doc(client.id).update({
+          fase: nextStage.id,
           status: nextStage.id,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          dataEntradaFase: nowIso,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          historico: firebase.firestore.FieldValue.arrayUnion({
+            data: nowIso,
+            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+            acao: 'Avançou fase para "' + nextStage.nome + '"'
+          })
         });
-        showToast(`Cliente avançado para "${nextStage.nome}"!`);
+        showToast('Cliente avançado para "' + nextStage.nome + '"!');
       } catch (err) {
         console.error("Erro ao avançar etapa:", err);
         showToast("Falha ao avançar etapa.");
@@ -2240,13 +2769,19 @@
     async function saveDrawerNotes() {
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
-      const notes = document.getElementById("drawerInputNotes").value;
+      const notes = document.getElementById("drawerInputNotes")?.value || "";
       const indicator = document.getElementById("notesStatusIndicator");
+      const nowIso = new Date().toISOString();
 
       try {
         await db.collection("clients").doc(client.id).update({
           notes: notes,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          historico: firebase.firestore.FieldValue.arrayUnion({
+            data: nowIso,
+            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+            acao: "Atualizou as anotações do cliente"
+          })
         });
         if (indicator) indicator.textContent = "Salvo no Firestore!";
       } catch (err) {
@@ -2270,18 +2805,27 @@
       if (!client) return;
 
       const updated = {
-        name: document.getElementById("drawerInputName").value.trim(),
-        specialty: document.getElementById("drawerInputSpecialty").value.trim(),
-        phone: document.getElementById("drawerInputPhone").value.trim(),
-        email: document.getElementById("drawerInputEmail").value.trim(),
-        whatsappGroup: document.getElementById("drawerInputWhatsappGroup").value.trim(),
-        entryDate: document.getElementById("drawerInputEntryDate").value,
-        deadline: document.getElementById("drawerInputDeadline").value,
+        name: document.getElementById("drawerInputName")?.value.trim() || client.name,
+        specialty: document.getElementById("drawerInputSpecialty")?.value.trim() || client.specialty,
+        phone: document.getElementById("drawerInputPhone")?.value.trim() || client.phone,
+        email: document.getElementById("drawerInputEmail")?.value.trim() || client.email,
+        whatsappGroup: document.getElementById("drawerInputWhatsappGroup")?.value.trim() || client.whatsappGroup,
+        entryDate: document.getElementById("drawerInputEntryDate")?.value || client.entryDate,
+        deadline: document.getElementById("drawerInputDeadline")?.value || client.deadline,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
 
+      const nowIso = new Date().toISOString();
+
       try {
-        await db.collection("clients").doc(client.id).update(updated);
+        await db.collection("clients").doc(client.id).update({
+          ...updated,
+          historico: firebase.firestore.FieldValue.arrayUnion({
+            data: nowIso,
+            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+            acao: "Atualizou os dados cadastrais do cliente"
+          })
+        });
         showToast("Dados do cliente atualizados com sucesso!");
       } catch (err) {
         console.error("Erro ao atualizar cliente:", err);
@@ -2295,10 +2839,17 @@
       if (!client) return;
 
       const newPriority = !client.priority;
+      const nowIso = new Date().toISOString();
+
       try {
         await db.collection("clients").doc(clientId).update({
           priority: newPriority,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          historico: firebase.firestore.FieldValue.arrayUnion({
+            data: nowIso,
+            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+            acao: newPriority ? "Definiu o projeto como Alta Prioridade 🔥" : "Removeu a marcação de Alta Prioridade"
+          })
         });
         showToast(newPriority ? "Prioridade alta ativada!" : "Prioridade removida");
       } catch (err) {
@@ -2306,21 +2857,398 @@
       }
     }
 
-    function updateDrawerPriorityUI(client) {
-      const btn = document.getElementById("drawerBtnPriority");
-      if (!btn) return;
-      if (client.priority) {
-        btn.className = "text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-700 bg-rose-950 text-rose-300 cursor-pointer";
-        btn.textContent = "🔥 Alta Prioridade";
+    /**
+     * =========================================================================
+     * TABELA GERAL (FILTROS COMBINADOS & ORDENAÇÃO POR COLUNAS)
+     * =========================================================================
+     */
+    function sortTableBy(column) {
+      if (state.tableSortColumn === column) {
+        state.tableSortOrder = state.tableSortOrder === "asc" ? "desc" : "asc";
       } else {
-        btn.className = "text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer";
-        btn.textContent = "⭐ Prioridade";
+        state.tableSortColumn = column;
+        state.tableSortOrder = "asc";
+      }
+      renderTable();
+    }
+
+    function clearTableFilters() {
+      const s = document.getElementById("tableFilterSearch");
+      if (s) s.value = "";
+      const p = document.getElementById("tableFilterPhase");
+      if (p) p.value = "all";
+      const a = document.getElementById("tableFilterAssignee");
+      if (a) a.value = "all";
+      const ag = document.getElementById("tableFilterAging");
+      if (ag) ag.value = "all";
+      renderTable();
+    }
+
+    function populateTableFilterOptions() {
+      const phaseSelect = document.getElementById("tableFilterPhase");
+      if (phaseSelect && phaseSelect.options.length <= 1) {
+        const stages = getPipelineStages();
+        stages.forEach((st, idx) => {
+          const opt = document.createElement("option");
+          opt.value = st.id;
+          opt.textContent = (idx + 1) + ". " + st.nome;
+          phaseSelect.appendChild(opt);
+        });
+      }
+
+      const assigneeSelect = document.getElementById("tableFilterAssignee");
+      if (assigneeSelect && assigneeSelect.options.length <= 1) {
+        state.users.forEach(u => {
+          const opt = document.createElement("option");
+          opt.value = u.email;
+          opt.textContent = (u.nome || u.email.split("@")[0]) + " (" + (u.cargo || 'Membro') + ")";
+          assigneeSelect.appendChild(opt);
+        });
       }
     }
 
-    /**
-     * CADASTRO DE NOVO CLIENTE (+ NOVO CLIENTE)
-     */
+    function renderTable() {
+      const tbody = document.getElementById("tableBodyClients");
+      if (!tbody) return;
+
+      populateTableFilterOptions();
+
+      // Atualiza indicadores de ordenação no thead
+      ["name", "specialty", "phase", "aging", "progress"].forEach(col => {
+        const ind = document.getElementById("sortIndicator-" + col);
+        if (ind) {
+          if (state.tableSortColumn === col) {
+            ind.textContent = state.tableSortOrder === "asc" ? "▲" : "▼";
+            ind.className = "text-sky-400 font-bold";
+          } else {
+            ind.textContent = "↕";
+            ind.className = "text-slate-600";
+          }
+        }
+      });
+
+      // Filtros combinados
+      const search = (document.getElementById("tableFilterSearch")?.value || document.getElementById("kanbanSearch")?.value || "").toLowerCase().trim();
+      const filterPhase = document.getElementById("tableFilterPhase")?.value || "all";
+      const filterAssignee = document.getElementById("tableFilterAssignee")?.value || "all";
+      const filterAging = document.getElementById("tableFilterAging")?.value || "all";
+      const stages = getPipelineStages();
+
+      let filtered = state.clients.filter(c => {
+        // 1. Busca textual
+        const matchSearch = (c.name || "").toLowerCase().includes(search) || (c.specialty || c.niche || "").toLowerCase().includes(search) || (c.phone || "").includes(search);
+        if (!matchSearch) return false;
+
+        // 2. Filtro de fase
+        if (filterPhase !== "all") {
+          const currentStage = getClientCurrentStage(c);
+          if (String(currentStage.id) !== String(filterPhase)) return false;
+        }
+
+        // 3. Filtro de responsável
+        if (filterAssignee !== "all") {
+          const mergedTasks = getClientMergedTasks(c);
+          const hasTaskForUser = mergedTasks.some(t => (t.assignee || "").toLowerCase() === filterAssignee.toLowerCase());
+          if (!hasTaskForUser) return false;
+        }
+
+        // 4. Filtro de aging
+        if (filterAging !== "all") {
+          const aging = getClientAgingInfo(c);
+          if (filterAging === "0-6" && aging.category !== "0-6") return false;
+          if (filterAging === "7-14" && aging.category !== "7-14") return false;
+          if (filterAging === "15-30" && aging.category !== "15-30") return false;
+          if (filterAging === "31+" && aging.category !== "31+") return false;
+          // fallbacks
+          if (filterAging === "0-7" && aging.days > 7) return false;
+          if (filterAging === "8-14" && (aging.days < 8 || aging.days > 14)) return false;
+          if (filterAging === "46+" && aging.days < 46) return false;
+        }
+
+        return true;
+      });
+
+      // Ordenação
+      filtered.sort((a, b) => {
+        const orderFactor = state.tableSortOrder === "asc" ? 1 : -1;
+        if (state.tableSortColumn === "name") {
+          return orderFactor * (a.name || "").localeCompare(b.name || "");
+        }
+        if (state.tableSortColumn === "specialty") {
+          return orderFactor * (a.specialty || a.niche || "").localeCompare(b.specialty || b.niche || "");
+        }
+        if (state.tableSortColumn === "phase") {
+          const sA = stages.findIndex(s => isClientInStage(a, s, 0, stages));
+          const sB = stages.findIndex(s => isClientInStage(b, s, 0, stages));
+          return orderFactor * (sA - sB);
+        }
+        if (state.tableSortColumn === "aging") {
+          const agA = getClientAgingInfo(a).days;
+          const agB = getClientAgingInfo(b).days;
+          return orderFactor * (agA - agB);
+        }
+        if (state.tableSortColumn === "progress") {
+          const tA = getClientMergedTasks(a);
+          const tB = getClientMergedTasks(b);
+          const pA = tA.length > 0 ? (tA.filter(t => t.status === "Concluída").length / tA.length) : 0;
+          const pB = tB.length > 0 ? (tB.filter(t => t.status === "Concluída").length / tB.length) : 0;
+          return orderFactor * (pA - pB);
+        }
+        return 0;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-500 text-xs italic">Nenhum cliente corresponde aos filtros selecionados.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(c => {
+        const aging = getClientAgingInfo(c);
+        const stage = getClientCurrentStage(c);
+        const allTasks = getClientMergedTasks(c);
+        const doneTasks = allTasks.filter(t => t.status === "Concluída").length;
+        const percent = allTasks.length > 0 ? Math.round((doneTasks / allTasks.length) * 100) : 0;
+        const stageColor = stage.cor || "#3b82f6";
+
+        const waLink = c.whatsappGroup && c.whatsappGroup.trim()
+          ? c.whatsappGroup.trim()
+          : (c.phone ? ("https://wa.me/55" + c.phone.replace(/\D/g, '')) : '');
+
+        return `
+          <tr onclick="openClientDrawer('${c.id}')" class="hover:bg-slate-800/40 transition cursor-pointer group">
+            <td class="p-3.5 font-bold text-white group-hover:text-sky-400 transition">
+              ${escapeHtml(c.name)}
+              ${c.priority ? '<span class="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800">Alta</span>' : ''}
+            </td>
+            <td class="p-3.5 text-slate-400">${escapeHtml(c.specialty || c.niche || '-')}</td>
+            <td class="p-3.5">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" style="background-color: ${stageColor}22; border: 1px solid ${stageColor}66; color: ${stageColor}">
+                ${escapeHtml(stage.nome)}
+              </span>
+            </td>
+            <td class="p-3.5">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${aging.badgeClass}">
+                ${aging.dotEmoji} ${aging.days}d (${aging.label})
+              </span>
+            </td>
+            <td class="p-3.5">
+              <div class="flex items-center gap-2">
+                <div class="w-16 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-sky-500 h-1.5 rounded-full" style="width: ${percent}%"></div>
+                </div>
+                <span class="text-[10px] text-slate-400 font-medium">${percent}%</span>
+              </div>
+            </td>
+            <td class="p-3.5" onclick="event.stopPropagation()">
+              ${waLink ? `
+                <button onclick="window.open('${waLink}', '_blank')" class="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-950/50 transition cursor-pointer" title="Abrir WhatsApp">
+                  <i data-lucide="message-circle" class="w-4 h-4"></i>
+                </button>
+              ` : '<span class="text-slate-600">-</span>'}
+            </td>
+            <td class="p-3.5 text-right" onclick="event.stopPropagation()">
+              <button onclick="openClientDrawer('${c.id}')" class="px-2.5 py-1 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 text-[11px] font-medium transition cursor-pointer shadow-sm">
+                Abrir Gaveta
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      lucide.createIcons();
+    }
+
+    function renderMetrics() {
+      const stages = getPipelineStages();
+      const clients = state.clients || [];
+      const totalClients = clients.length;
+
+      // 1. KPI Principal: Tempo Médio Total de Esteira
+      let totalAgingDays = 0;
+      clients.forEach(c => {
+        totalAgingDays += getClientAgingInfo(c).days;
+      });
+      const avgTotalDays = totalClients > 0 ? (totalAgingDays / totalClients).toFixed(1) : "0.0";
+      
+      const avgEl = document.getElementById("metricAvgTotalDays");
+      if (avgEl) avgEl.textContent = avgTotalDays;
+
+      const totalEl = document.getElementById("metricTotalClients");
+      if (totalEl) totalEl.textContent = totalClients;
+
+      // Entregas/Concluídos (Clientes na última etapa)
+      const lastStage = stages[stages.length - 1];
+      const completedCount = lastStage ? clients.filter(c => isClientInStage(c, lastStage, stages.length - 1, stages)).length : 0;
+      const completedEl = document.getElementById("metricCompletedClients");
+      if (completedEl) completedEl.textContent = completedCount;
+
+      // 2. Gargalos: Tempo Médio por Fase
+      const stageStats = stages.map((st, sIdx) => {
+        const stageClients = clients.filter(c => isClientInStage(c, st, sIdx, stages));
+        let sumDays = 0;
+        stageClients.forEach(c => {
+          // Se tiver dataEntradaFase registrada, calcula dias nesta fase específica; senão usa aging
+          if (c.dataEntradaFase) {
+            const diff = Math.max(0, new Date().getTime() - new Date(c.dataEntradaFase).getTime());
+            sumDays += Math.floor(diff / (1000 * 60 * 60 * 24));
+          } else {
+            sumDays += getClientAgingInfo(c).days;
+          }
+        });
+        const avgDays = stageClients.length > 0 ? (sumDays / stageClients.length) : 0;
+        return {
+          stage: st,
+          stageIndex: sIdx + 1,
+          count: stageClients.length,
+          avgDays: avgDays
+        };
+      });
+
+      // Identifica a fase com maior tempo médio (Gargalo principal)
+      let maxAvg = 0;
+      let bottleneck = null;
+      stageStats.forEach(st => {
+        if (st.avgDays > maxAvg) {
+          maxAvg = st.avgDays;
+          bottleneck = st;
+        }
+      });
+
+      const bottleneckPhaseEl = document.getElementById("metricBottleneckPhase");
+      const bottleneckDaysEl = document.getElementById("metricBottleneckDays");
+      if (bottleneckPhaseEl) {
+        bottleneckPhaseEl.textContent = bottleneck ? (bottleneck.stageIndex + ". " + bottleneck.stage.nome) : "Nenhum gargalo";
+      }
+      if (bottleneckDaysEl) {
+        bottleneckDaysEl.textContent = bottleneck ? (bottleneck.avgDays.toFixed(1) + " dias médios nesta etapa") : "Fluxo regular";
+      }
+
+      // Renderiza Gráfico Horizontal de Tempo Médio por Fase
+      const durationListEl = document.getElementById("metricsPhaseDurationList");
+      if (durationListEl) {
+        const topAvg = Math.max(maxAvg, 1);
+        durationListEl.innerHTML = stageStats.map(st => {
+          const isBottleneck = bottleneck && bottleneck.stage.id === st.stage.id && st.avgDays > 0;
+          const pct = Math.round((st.avgDays / topAvg) * 100);
+          const stageColor = st.stage.cor || "#3b82f6";
+
+          return `
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-white flex items-center gap-1.5 truncate max-w-[220px]">
+                  <span class="w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center shrink-0" style="background-color: ${stageColor}33; color: ${stageColor}">${st.stageIndex}</span>
+                  <span class="truncate">${escapeHtml(st.stage.nome)}</span>
+                  ${isBottleneck ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-950 text-rose-300 border border-rose-800">Gargalo</span>' : ''}
+                </span>
+                <span class="font-mono text-[11px] ${isBottleneck ? 'text-rose-400 font-bold' : 'text-slate-400'}">
+                  ${st.avgDays.toFixed(1)} dias médios
+                </span>
+              </div>
+              <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800/80">
+                <div class="${isBottleneck ? 'bg-gradient-to-r from-rose-600 to-amber-500' : 'bg-sky-500'} h-2 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      // 3. Volume de Clientes por Fase
+      const volumeListEl = document.getElementById("metricsPhaseVolumeList");
+      if (volumeListEl) {
+        const topCount = Math.max(...stageStats.map(s => s.count), 1);
+        volumeListEl.innerHTML = stageStats.map(st => {
+          const pct = Math.round((st.count / topCount) * 100);
+          const stageColor = st.stage.cor || "#3b82f6";
+
+          return `
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-white flex items-center gap-1.5 truncate max-w-[220px]">
+                  <span class="w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center shrink-0" style="background-color: ${stageColor}33; color: ${stageColor}">${st.stageIndex}</span>
+                  <span class="truncate">${escapeHtml(st.stage.nome)}</span>
+                </span>
+                <span class="font-semibold text-slate-300 text-[11px]">
+                  ${st.count} ${st.count === 1 ? 'cliente' : 'clientes'}
+                </span>
+              </div>
+              <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800/80">
+                <div class="h-2 rounded-full transition-all duration-500" style="background-color: ${stageColor}; width: ${pct}%"></div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      // 4. Distribuição de Carga por Membro da Equipe
+      let totalPendingAcrossTeam = 0;
+      const teamStats = (state.users || []).map(u => {
+        let pendingTasks = 0;
+        let completedTasks = 0;
+
+        clients.forEach(c => {
+          const tasks = getClientMergedTasks(c);
+          tasks.forEach(t => {
+            if ((t.assignee || "").toLowerCase() === (u.email || "").toLowerCase()) {
+              if (t.status === "Concluída") completedTasks++;
+              else pendingTasks++;
+            }
+          });
+        });
+
+        totalPendingAcrossTeam += pendingTasks;
+        return {
+          user: u,
+          pending: pendingTasks,
+          completed: completedTasks
+        };
+      });
+
+      const totalPendingEl = document.getElementById("metricTotalPendingTasks");
+      if (totalPendingEl) totalPendingEl.textContent = totalPendingAcrossTeam + " tarefas pendentes";
+
+      const teamListEl = document.getElementById("metricsTeamWorkloadList");
+      if (teamListEl) {
+        if (teamStats.length === 0) {
+          teamListEl.innerHTML = '<div class="col-span-3 text-slate-500 text-xs py-4 text-center">Nenhum membro cadastrado na equipe.</div>';
+          return;
+        }
+
+        const maxWorkload = Math.max(...teamStats.map(t => t.pending), 1);
+
+        teamListEl.innerHTML = teamStats.map(ts => {
+          const initials = getInitials(ts.user.nome || ts.user.email);
+          const pct = Math.round((ts.pending / maxWorkload) * 100);
+
+          return `
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-indigo-950 border border-indigo-800 text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0">
+                  ${initials}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h4 class="font-bold text-xs text-white truncate">${escapeHtml(ts.user.nome || ts.user.email)}</h4>
+                  <p class="text-[10px] text-slate-400 truncate">${escapeHtml(ts.user.cargo || 'Membro')} • ${ts.user.email}</p>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between text-[11px] mb-1">
+                  <span class="text-slate-400">Tarefas Pendentes:</span>
+                  <span class="font-bold text-amber-400">${ts.pending}</span>
+                </div>
+                <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-indigo-500 h-1.5 rounded-full" style="width: ${pct}%"></div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      lucide.createIcons();
+    }
+
+    // 8. CADASTRO DE NOVO CLIENTE & EXCLUSÃO
     function openNewClientModal() {
       if (!state.currentUser?.permissions?.canCreateClients) {
         showToast("Seu cargo não possui permissão para cadastrar novos clientes.");
@@ -2340,17 +3268,18 @@
       const tasks = [];
       stages.forEach((stage, sIdx) => {
         const subtarefas = Array.isArray(stage.subtarefas) ? stage.subtarefas : [];
-        subtarefas.forEach((title, tIdx) => {
+        subtarefas.forEach((item, tIdx) => {
+          const norm = normalizeSubtaskItem(item, tIdx, stage.id);
           tasks.push({
-            id: `${clientId}_${stage.id}_${tIdx}`,
+            id: clientId + "_" + stage.id + "_" + tIdx,
             phase: sIdx + 1,
             stageId: stage.id,
             stageName: stage.nome,
-            title: typeof title === "string" ? title : (title.title || title.nome || ""),
+            title: norm.titulo,
             department: stage.nome,
             description: "",
             status: "Pendente",
-            assignee: "",
+            assignee: norm.responsavelPadrao || "",
             completedAt: ""
           });
         });
@@ -2360,50 +3289,78 @@
 
     async function handleCreateClient(e) {
       e.preventDefault();
-      if (!state.currentUser?.permissions?.canCreateClients) return;
+      if (state.currentUser?.permissions && !state.currentUser.permissions.canCreateClients) {
+        showToast("Seu cargo não possui permissão para cadastrar novos clientes.");
+        return;
+      }
 
-      const name = document.getElementById("newClientName").value.trim();
-      const specialty = document.getElementById("newClientSpecialty").value.trim();
-      const phone = document.getElementById("newClientPhone").value.trim();
-      const email = document.getElementById("newClientEmail").value.trim();
-      const whatsappGroup = document.getElementById("newClientWhatsappGroup").value.trim();
-      const entryDate = document.getElementById("newClientEntryDate").value || new Date().toISOString().split("T")[0];
-      const deadline = document.getElementById("newClientDeadline").value || "";
+      const name = (document.getElementById("newClientName")?.value || "").trim();
+      if (!name) {
+        showToast("Por favor, informe o nome do cliente.");
+        return;
+      }
 
-      const stages = getPipelineStages();
-      const initialStageId = stages[0]?.id || "etapa_1";
-      const newId = "cli_" + Date.now();
-      const initialTasks = buildDefaultTasks(newId);
+      const specialty = (document.getElementById("newClientSpecialty")?.value || "").trim();
+      const phone = (document.getElementById("newClientPhone")?.value || "").trim();
+      const email = (document.getElementById("newClientEmail")?.value || "").trim();
+      const whatsappGroup = (document.getElementById("newClientWhatsappGroup")?.value || "").trim();
+      const entryDate = document.getElementById("newClientEntryDate")?.value || new Date().toISOString().split("T")[0];
+      const deadline = document.getElementById("newClientDeadline")?.value || "";
 
-      const clientData = {
-        name,
-        specialty,
-        phone,
-        email,
-        whatsappGroup,
-        entryDate,
-        deadline,
-        status: initialStageId, // Inicia na 1ª Etapa ativa
-        priority: false,
-        notes: "",
-        tasks: initialTasks,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
+      const btnSubmit = document.getElementById("btnSubmitNewClient");
+      const originalText = btnSubmit ? btnSubmit.innerHTML : "Salvar na Esteira";
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = "Gravando...";
+      }
 
       try {
+        const stages = getPipelineStages();
+        const initialStageId = stages[0]?.id || "etapa_1";
+        const newId = "cli_" + Date.now();
+        const initialTasks = buildDefaultTasks(newId);
+        const nowIso = new Date().toISOString();
+
+        const clientData = {
+          name,
+          specialty,
+          phone,
+          email,
+          whatsappGroup,
+          entryDate,
+          dataEntrada: entryDate,
+          deadline,
+          fase: initialStageId,
+          status: initialStageId,
+          dataEntradaFase: nowIso,
+          priority: false,
+          notes: "",
+          tasks: initialTasks,
+          historico: [
+            {
+              data: nowIso,
+              autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+              acao: "Cadastro inicial do cliente no CRM"
+            }
+          ],
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
         await db.collection("clients").doc(newId).set(clientData);
         closeNewClientModal();
-        showToast(`Cliente ${name} adicionado à esteira!`);
+        showToast("Cliente '" + name + "' cadastrado com sucesso!");
       } catch (err) {
         console.error("Erro ao criar cliente:", err);
-        showToast("Falha ao cadastrar cliente no Firestore.");
+        showToast("Falha ao cadastrar cliente: " + (err.message || "Erro no Firestore"));
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = originalText;
+        }
       }
     }
 
-    /**
-     * EXCLUSÃO DE CLIENTE (RBAC - EXCLUSIVO ADMIN)
-     */
     function openDeleteClientModal() {
       if (!state.currentUser?.permissions?.canDeleteClients) {
         showToast("Apenas administradores podem excluir clientes.");
@@ -2430,22 +3387,21 @@
       }
     }
 
-    /**
-     * VISUALIZAÇÃO: TABELA GERAL & MÉTRICAS
-     */
     function switchView(view) {
       state.currentView = view;
       ["kanban", "table", "metrics"].forEach(v => {
-        document.getElementById(`view-${v}`).classList.add("hidden");
-        const tab = document.getElementById(`tab-${v}`);
+        const viewEl = document.getElementById("view-" + v);
+        if (viewEl) viewEl.classList.add("hidden");
+        const tab = document.getElementById("tab-" + v);
         if (tab) {
           tab.classList.remove("bg-sky-600", "text-white");
           tab.classList.add("text-slate-400");
         }
       });
 
-      document.getElementById(`view-${view}`).classList.remove("hidden");
-      const activeTab = document.getElementById(`tab-${view}`);
+      const activeView = document.getElementById("view-" + view);
+      if (activeView) activeView.classList.remove("hidden");
+      const activeTab = document.getElementById("tab-" + view);
       if (activeTab) {
         activeTab.classList.add("bg-sky-600", "text-white");
         activeTab.classList.remove("text-slate-400");
@@ -2456,105 +3412,7 @@
       lucide.createIcons();
     }
 
-    function renderTable() {
-      const tbody = document.getElementById("tableBodyClients");
-      if (!tbody) return;
-
-      const search = (document.getElementById("kanbanSearch")?.value || "").toLowerCase().trim();
-      const filterAging = state.kanbanFilterAging || "all";
-
-      const filtered = state.clients.filter(c => {
-        const matchSearch = (c.name || "").toLowerCase().includes(search) || (c.specialty || "").toLowerCase().includes(search);
-        if (!matchSearch) return false;
-
-        const aging = getClientAgingInfo(c);
-        if (filterAging !== "all") {
-          if (filterAging === "0-7" && aging.category !== "0-7") return false;
-          if (filterAging === "8-14" && aging.category !== "8-14") return false;
-          if (filterAging === "15-30" && aging.category !== "15-30") return false;
-          if (filterAging === "31-45" && aging.category !== "31-45") return false;
-          if (filterAging === "46+" && aging.category !== "46+") return false;
-        }
-        return true;
-      });
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-500">Nenhum cliente encontrado.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = filtered.map(c => {
-        const aging = getClientAgingInfo(c);
-        const stage = getClientCurrentStage(c);
-        const allTasks = getClientMergedTasks(c);
-        const doneTasks = allTasks.filter(t => t.status === "Concluída").length;
-        const percent = allTasks.length > 0 ? Math.round((doneTasks / allTasks.length) * 100) : 0;
-        const stageColor = stage.cor || "#3b82f6";
-
-        return `
-          <tr class="hover:bg-slate-800/40 transition">
-            <td class="p-3.5 font-bold text-white">
-              ${escapeHtml(c.name)}
-              ${c.priority ? '<span class="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800">Alta</span>' : ''}
-            </td>
-            <td class="p-3.5 text-slate-400">${escapeHtml(c.specialty || 'Geral')}</td>
-            <td class="p-3.5">
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" style="background-color: ${stageColor}22; border: 1px solid ${stageColor}66; color: ${stageColor}">
-                ${escapeHtml(stage.nome)}
-              </span>
-            </td>
-            <td class="p-3.5">
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${aging.badgeClass}">
-                ${aging.dotEmoji} ${aging.days}d (${aging.label})
-              </span>
-            </td>
-            <td class="p-3.5">
-              <div class="flex items-center gap-2">
-                <div class="w-16 bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                  <div class="bg-sky-500 h-1.5 rounded-full" style="width: ${percent}%"></div>
-                </div>
-                <span class="text-[10px] text-slate-400 font-medium">${percent}%</span>
-              </div>
-            </td>
-            <td class="p-3.5 text-slate-400">${escapeHtml(c.phone || '-')}</td>
-            <td class="p-3.5 text-right">
-              <button onclick="openClientDrawer('${c.id}')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 text-[11px] font-medium transition cursor-pointer">
-                Ver Detalhes
-              </button>
-            </td>
-          </tr>
-        `;
-      }).join("");
-
-      lucide.createIcons();
-    }
-
-    function renderMetrics() {
-      const total = state.clients.length;
-      let recent = 0, initialAttn = 0, intermediate = 0, alertCount = 0, critical = 0;
-
-      state.clients.forEach(c => {
-        const aging = getClientAgingInfo(c);
-        if (aging.category === "0-7") recent++;
-        else if (aging.category === "8-14") initialAttn++;
-        else if (aging.category === "15-30") intermediate++;
-        else if (aging.category === "31-45") alertCount++;
-        else if (aging.category === "46+") critical++;
-      });
-
-      const totalEl = document.getElementById("metricTotalClients");
-      if (totalEl) totalEl.textContent = total;
-      const greenEl = document.getElementById("metricGreenClients");
-      if (greenEl) greenEl.textContent = recent;
-      const yellowEl = document.getElementById("metricYellowClients");
-      if (yellowEl) yellowEl.textContent = (initialAttn + intermediate);
-      const redEl = document.getElementById("metricRedClients");
-      if (redEl) redEl.textContent = (alertCount + critical);
-    }
-
-    /**
-     * UI DO PERFIL E DROPDOWN
-     */
+    // 9. UI DO PERFIL E DROPDOWN
     function updateProfileUI() {
       if (!state.currentUser) return;
       const u = state.currentUser;
@@ -2566,23 +3424,27 @@
       const userRole = document.getElementById("currentUserRole");
       if (userRole) userRole.textContent = u.roleLabel;
 
-      const dropAvatar = document.getElementById("dropdownUserAvatar");
-      if (dropAvatar) dropAvatar.textContent = u.avatar;
-      const dropName = document.getElementById("dropdownUserName");
-      if (dropName) dropName.textContent = u.name;
-      const dropEmail = document.getElementById("dropdownUserEmail");
-      if (dropEmail) dropEmail.textContent = u.email;
-      const dropRole = document.getElementById("dropdownUserRole");
-      if (dropRole) dropRole.textContent = u.roleLabel;
+      const dAvatar = document.getElementById("dropdownUserAvatar");
+      if (dAvatar) dAvatar.textContent = u.avatar;
+      const dName = document.getElementById("dropdownUserName");
+      if (dName) dName.textContent = u.name;
+      const dEmail = document.getElementById("dropdownUserEmail");
+      if (dEmail) dEmail.textContent = u.email;
+      const dRole = document.getElementById("dropdownUserRole");
+      if (dRole) dRole.textContent = u.roleLabel;
     }
 
     function toggleProfileDropdown(e) {
-      if (e) e.stopPropagation();
+      if (e && typeof e.stopPropagation === "function") e.stopPropagation();
       const menu = document.getElementById("profileDropdownMenu");
       const chevron = document.getElementById("profileDropdownChevron");
-      if (menu) {
-        menu.classList.toggle("hidden");
-        if (chevron) chevron.classList.toggle("rotate-180");
+      if (!menu) return;
+      const isHidden = menu.classList.contains("hidden");
+      if (isHidden) {
+        menu.classList.remove("hidden");
+        if (chevron) chevron.classList.add("rotate-180");
+      } else {
+        closeProfileDropdown();
       }
     }
 
@@ -2594,55 +3456,11 @@
     }
 
     document.addEventListener("click", (e) => {
-      const menu = document.getElementById("profileDropdownMenu");
-      const trigger = document.getElementById("btnProfileMenuTrigger");
-      if (menu && !menu.contains(e.target) && trigger && !trigger.contains(e.target)) {
+      const wrapper = document.getElementById("userProfileMenuWrapper");
+      if (wrapper && !wrapper.contains(e.target)) {
         closeProfileDropdown();
       }
     });
-
-    function populateAssigneeFilterOptions() {
-      const select = document.getElementById("filterAssignee");
-      if (!select) return;
-      const currentVal = select.value;
-
-      let html = '<option value="all">Todos os Responsáveis</option><option value="my_actions">Minhas Ações</option><option value="unassigned">Sem Atribuição</option>';
-      state.users.forEach(u => {
-        html += `<option value="${u.email}">${u.nome || u.email.split('@')[0]}</option>`;
-      });
-      select.innerHTML = html;
-      select.value = currentVal;
-    }
-
-    function showToast(message) {
-      const toast = document.getElementById("toastNotification");
-      const msgEl = document.getElementById("toastMessage");
-      if (!toast || !msgEl) return;
-
-      msgEl.textContent = message;
-      toast.classList.remove("translate-y-24", "opacity-0");
-      toast.classList.add("translate-y-0", "opacity-100");
-
-      setTimeout(() => {
-        toast.classList.remove("translate-y-0", "opacity-100");
-        toast.classList.add("translate-y-24", "opacity-0");
-      }, 3500);
-    }
-
-    function getInitials(name) {
-      if (!name) return "HP";
-      const parts = String(name).trim().split(/\\s+/);
-      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-
-    // BOOTSTRAP AO CARREGAR
-    window.addEventListener("DOMContentLoaded", () => {
-      initAuth();
-      lucide.createIcons();
-    });
-  
-
 
     /**
      * =========================================================================
@@ -2651,54 +3469,9 @@
      */
     let editingPipeline = [];
     let expandedStageIds = new Set();
-    let unsubscribePipeline = null;
-
+    
     /**
      * ESCUTA EM TEMPO REAL: DOCUMENTO 'settings/pipeline'
-     */
-    function setupPipelineListener() {
-      if (unsubscribePipeline) return;
-
-      unsubscribePipeline = db.collection("settings").doc("pipeline").onSnapshot(async (doc) => {
-        if (!doc.exists || !doc.data() || !Array.isArray(doc.data().etapas) || doc.data().etapas.length === 0) {
-          console.log("Documento 'settings/pipeline' não encontrado ou vazio. Semeando padrão oficial...");
-          try {
-            const initialDoc = {
-              etapas: DEFAULT_PIPELINE_STAGES,
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            await db.collection("settings").doc("pipeline").set(initialDoc);
-            state.pipeline = initialDoc;
-          } catch (err) {
-            console.error("Erro ao gravar seed em settings/pipeline:", err);
-            state.pipeline = { etapas: DEFAULT_PIPELINE_STAGES };
-          }
-        } else {
-          state.pipeline = doc.data();
-        }
-
-        renderKanban();
-        renderTable();
-        renderMetrics();
-        if (state.selectedClientId) {
-          renderDrawerTasks();
-        }
-
-        // Se o modal de configurações estiver aberto, re-sincroniza caso não esteja editando ativamente
-        const modal = document.getElementById("modalPipelineSettings");
-        if (modal && !modal.classList.contains("hidden") && editingPipeline.length === 0) {
-          editingPipeline = JSON.parse(JSON.stringify(getPipelineStages()));
-          renderPipelineEditor();
-        }
-      }, err => {
-        console.error("Erro no listener de pipeline:", err);
-        state.pipeline = { etapas: DEFAULT_PIPELINE_STAGES };
-        renderKanban();
-      });
-    }
-
-    /**
-     * ABERTURA E FECHAMENTO DO MODAL DE CONFIGURAÇÕES
      */
     function openPipelineSettingsModal() {
       closeProfileDropdown();
@@ -2707,10 +3480,8 @@
         return;
       }
 
-      // Clona profundamente as etapas atuais para permitir edição segura com cancelamento
       editingPipeline = JSON.parse(JSON.stringify(getPipelineStages()));
       expandedStageIds.clear();
-      // Deixa a primeira etapa expandida por conveniência
       if (editingPipeline.length > 0) {
         expandedStageIds.add(editingPipeline[0].id);
       }
@@ -2726,7 +3497,7 @@
     }
 
     /**
-     * RENDERIZAÇÃO DA LISTA DE ETAPAS E SUBTAREFAS NO EDITOR DO MODAL
+     * RENDERIZAÇÃO DA LISTA DE ETAPAS E SUBTAREFAS COM RESPONSÁVEL NO MODAL
      */
     function renderPipelineEditor() {
       const container = document.getElementById("pipelineStagesList");
@@ -2736,6 +3507,8 @@
         container.innerHTML = '<div class="p-8 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-2xl">Nenhuma etapa configurada. Clique em "Nova Etapa" ou "Restaurar 9 Fases Oficiais".</div>';
         return;
       }
+
+      const activeUsers = (state.users || []).filter(u => (u.status || "Ativo") === "Ativo");
 
       container.innerHTML = editingPipeline.map((stage, sIdx) => {
         const isExpanded = expandedStageIds.has(stage.id);
@@ -2748,7 +3521,7 @@
           <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-sm transition">
             
             <!-- Barra Superior da Etapa -->
-            <div class="p-3.5 bg-slate-950 flex items-center justify-between gap-2.5">
+            <div class="p-3.5 bg-slate-950 flex items-center justify-between gap-2.5 flex-wrap sm:flex-nowrap">
               
               <!-- Controles de Reordenação e Identificador -->
               <div class="flex items-center gap-1.5 shrink-0">
@@ -2770,7 +3543,7 @@
               </div>
 
               <!-- Input Editável do Nome da Etapa -->
-              <div class="flex-1 min-w-0">
+              <div class="flex-1 min-w-[160px]">
                 <input type="text" value="${escapeHtml(stage.nome || '')}" oninput="updateStageName(${sIdx}, this.value)" placeholder="Nome da Etapa..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white font-semibold focus:outline-none focus:border-sky-500 shadow-inner" />
               </div>
 
@@ -2791,31 +3564,44 @@
 
             </div>
 
-            <!-- Área Expansível: Gerenciamento de Subtarefas -->
+            <!-- Área Expansível: Gerenciamento de Subtarefas com Responsável Padrão -->
             ${isExpanded ? `
               <div class="border-t border-slate-800/80 bg-slate-900/60 p-4 space-y-2.5">
                 <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
-                  <span>Subtarefas / Checklist desta etapa:</span>
-                  <span class="text-[11px] text-slate-500">Defina os itens que o operador deve checar</span>
+                  <span>Subtarefas e Responsáveis Padrão:</span>
+                  <span class="text-[11px] text-slate-500">Defina o título e quem executará por padrão</span>
                 </div>
 
-                <!-- Lista de Subtarefas -->
-                <div class="space-y-1.5">
+                <!-- Lista de Subtarefas da Etapa -->
+                <div class="space-y-2">
                   ${subtarefas.length === 0 ? `
                     <div class="text-[11px] text-slate-500 italic p-3 bg-slate-950/40 rounded-xl border border-dashed border-slate-800 text-center">
-                      Nenhuma subtarefa adicionada. Use o campo abaixo para adicionar a primeira.
+                      Nenhuma subtarefa adicionada. Adicione uma subtarefa abaixo.
                     </div>
                   ` : subtarefas.map((sub, subIdx) => {
-                    const subText = typeof sub === "string" ? sub : (sub.title || sub.nome || "");
+                    const normSub = normalizeSubtaskItem(sub, subIdx, stage.id);
                     const isSubFirst = subIdx === 0;
                     const isSubLast = subIdx === subtarefas.length - 1;
 
                     return `
-                      <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800/80 text-xs">
+                      <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800/80 text-xs">
                         <span class="text-[10px] text-slate-500 font-bold w-4 text-right shrink-0">${subIdx + 1}.</span>
                         
-                        <input type="text" value="${escapeHtml(subText)}" oninput="updateSubtaskText(${sIdx}, ${subIdx}, this.value)" placeholder="Descrição da subtarefa..." class="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500" />
+                        <!-- Título da Subtarefa -->
+                        <input type="text" value="${escapeHtml(normSub.titulo)}" oninput="updateSubtaskTitle(${sIdx}, ${subIdx}, this.value)" placeholder="Título da subtarefa..." class="flex-1 min-w-[180px] bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500" />
                         
+                        <!-- Dropdown de Responsável Padrão da Equipe -->
+                        <div class="flex items-center gap-1 shrink-0">
+                          <select onchange="updateSubtaskDefaultAssignee(${sIdx}, ${subIdx}, this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-[11px] text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer max-w-[190px]" title="Responsável Padrão da Subtarefa">
+                            <option value="">👤 Sem responsável padrão</option>
+                            ${activeUsers.map(u => `
+                              <option value="${u.email}" ${normSub.responsavelPadrao === u.email ? 'selected' : ''}>
+                                ${escapeHtml(u.nome || u.email)} (${escapeHtml(u.cargo || 'Membro')})
+                              </option>
+                            `).join("")}
+                          </select>
+                        </div>
+
                         <!-- Reordenar Subtarefa -->
                         <div class="flex items-center gap-0.5 shrink-0">
                           <button type="button" onclick="moveSubtask(${sIdx}, ${subIdx}, -1)" ${isSubFirst ? 'disabled class="p-1 text-slate-700 cursor-not-allowed"' : 'class="p-1 text-slate-400 hover:text-white cursor-pointer"'} title="Mover para cima">
@@ -2827,7 +3613,7 @@
                         </div>
 
                         <!-- Excluir Subtarefa -->
-                        <button type="button" onclick="deleteSubtask(${sIdx}, ${subIdx})" class="p-1 text-slate-500 hover:text-rose-400 transition cursor-pointer" title="Remover Subtarefa">
+                        <button type="button" onclick="deleteSubtask(${sIdx}, ${subIdx})" class="p-1 text-slate-500 hover:text-rose-400 transition cursor-pointer shrink-0" title="Remover Subtarefa">
                           <i data-lucide="x" class="w-3.5 h-3.5"></i>
                         </button>
                       </div>
@@ -2836,9 +3622,17 @@
                 </div>
 
                 <!-- Formulário de Adição de Nova Subtarefa -->
-                <div class="flex items-center gap-2 pt-2 border-t border-slate-800/60">
-                  <input type="text" id="inputNewSubtask_${sIdx}" placeholder="Nova subtarefa para esta etapa..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); addSubtaskToStage(${sIdx}); }" />
-                  <button type="button" onclick="addSubtaskToStage(${sIdx})" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer">
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 pt-2 border-t border-slate-800/60">
+                  <input type="text" id="inputNewSubtask_${sIdx}" placeholder="Nova subtarefa para esta etapa..." class="flex-1 min-w-[180px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); addSubtaskToStage(${sIdx}); }" />
+                  
+                  <select id="selectNewSubtaskAssignee_${sIdx}" class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer max-w-[190px]">
+                    <option value="">👤 Responsável padrão...</option>
+                    ${activeUsers.map(u => `
+                      <option value="${u.email}">${escapeHtml(u.nome || u.email)} (${escapeHtml(u.cargo || 'Membro')})</option>
+                    `).join("")}
+                  </select>
+
+                  <button type="button" onclick="addSubtaskToStage(${sIdx})" class="px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer shrink-0">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                     <span>Adicionar</span>
                   </button>
@@ -2876,7 +3670,7 @@
         nome: "Nova Etapa " + (editingPipeline.length + 1),
         cor: randomColor,
         subtarefas: [
-          "Primeira ação desta etapa"
+          { id: newId + "_sub_1", titulo: "Primeira ação desta etapa", responsavelPadrao: "" }
         ]
       });
 
@@ -2916,7 +3710,6 @@
       const stage = editingPipeline[stageIdx];
       if (!stage) return;
 
-      // Verificação de segurança: Checa se há clientes vinculados a esta etapa
       const stagesSnapshot = getPipelineStages();
       const clientsInStage = state.clients.filter(c => isClientInStage(c, stage, stageIdx, stagesSnapshot));
 
@@ -2939,25 +3732,45 @@
 
     function addSubtaskToStage(stageIdx) {
       const input = document.getElementById("inputNewSubtask_" + stageIdx);
+      const select = document.getElementById("selectNewSubtaskAssignee_" + stageIdx);
       if (!input) return;
       const title = input.value.trim();
       if (!title) {
-        showToast("Digite o nome da subtarefa.");
+        showToast("Digite o título da subtarefa.");
         return;
       }
 
-      if (!Array.isArray(editingPipeline[stageIdx].subtarefas)) {
-        editingPipeline[stageIdx].subtarefas = [];
+      const defaultAssignee = select ? select.value : "";
+      const stage = editingPipeline[stageIdx];
+      if (!Array.isArray(stage.subtarefas)) {
+        stage.subtarefas = [];
       }
 
-      editingPipeline[stageIdx].subtarefas.push(title);
+      const newSubId = (stage.id || "sub") + "_" + (stage.subtarefas.length + 1) + "_" + Date.now().toString(36);
+      stage.subtarefas.push({
+        id: newSubId,
+        titulo: title,
+        responsavelPadrao: defaultAssignee
+      });
+
       input.value = "";
+      if (select) select.value = "";
       renderPipelineEditor();
     }
 
-    function updateSubtaskText(stageIdx, subIdx, val) {
+    function updateSubtaskTitle(stageIdx, subIdx, val) {
       if (editingPipeline[stageIdx] && Array.isArray(editingPipeline[stageIdx].subtarefas)) {
-        editingPipeline[stageIdx].subtarefas[subIdx] = val;
+        const cur = normalizeSubtaskItem(editingPipeline[stageIdx].subtarefas[subIdx], subIdx, editingPipeline[stageIdx].id);
+        cur.titulo = val;
+        editingPipeline[stageIdx].subtarefas[subIdx] = cur;
+      }
+    }
+
+    function updateSubtaskDefaultAssignee(stageIdx, subIdx, email) {
+      if (editingPipeline[stageIdx] && Array.isArray(editingPipeline[stageIdx].subtarefas)) {
+        const cur = normalizeSubtaskItem(editingPipeline[stageIdx].subtarefas[subIdx], subIdx, editingPipeline[stageIdx].id);
+        cur.responsavelPadrao = email;
+        editingPipeline[stageIdx].subtarefas[subIdx] = cur;
       }
     }
 
@@ -3007,7 +3820,6 @@
         return;
       }
 
-      // Validação: nomes das etapas não podem ficar vazios
       for (let i = 0; i < editingPipeline.length; i++) {
         const name = (editingPipeline[i].nome || "").trim();
         if (!name) {
@@ -3050,7 +3862,34 @@
         .replace(/'/g, "&#039;");
     }
 
+    // 10. NOTIFICAÇÕES TOAST
+    function showToast(msg) {
+      const toast = document.getElementById("toastNotification");
+      const text = document.getElementById("toastText");
+      if (!toast || !text) return;
 
+      text.textContent = msg;
+      toast.classList.remove("translate-y-24", "opacity-0");
+      toast.classList.add("translate-y-0", "opacity-100");
+
+      setTimeout(() => {
+        toast.classList.remove("translate-y-0", "opacity-100");
+        toast.classList.add("translate-y-24", "opacity-0");
+      }, 3500);
+    }
+
+    function getInitials(name) {
+      if (!name) return "HP";
+      const parts = String(name).trim().split(/\s+/);
+      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    // 11. BOOTSTRAP AO CARREGAR
+    window.addEventListener("DOMContentLoaded", () => {
+      initAuth();
+      lucide.createIcons();
+    });
   </script>
 </body>
 </html>
