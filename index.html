@@ -1564,11 +1564,12 @@
       if (statusStr === String(stage.id)) return true;
       if (statusStr === ("etapa_" + (stageIndex + 1))) return true;
       if (statusStr === String(stageIndex + 1)) return true;
+      if (stage.nome && statusStr.toLowerCase() === stage.nome.toLowerCase()) return true;
 
       if (stageIndex === 0) {
         const matchesAny = (allStages || []).some((s, idx) => {
           const sid = String(s.id);
-          return statusStr === sid || statusStr === ("etapa_" + (idx + 1)) || statusStr === String(idx + 1);
+          return statusStr === sid || statusStr === ("etapa_" + (idx + 1)) || statusStr === String(idx + 1) || (s.nome && statusStr.toLowerCase() === s.nome.toLowerCase());
         });
         if (!matchesAny) return true;
       }
@@ -2058,6 +2059,7 @@
         });
 
         state.clients = clientList;
+        populateAssigneeFilterOptions();
         renderKanban();
         renderTable();
         renderMetrics();
@@ -2260,21 +2262,74 @@
     function populateAssigneeFilterOptions() {
       const select = document.getElementById("filterAssignee");
       if (!select) return;
+
+      const currentVal = state.kanbanFilterAssignee || select.value || "all";
+
+      // Preserva as 3 opções base
       while (select.options.length > 3) {
         select.remove(3);
       }
-      state.users.forEach(u => {
-        const opt = document.createElement("option");
-        opt.value = u.email;
-        opt.textContent = "👤 " + (u.nome || u.email.split("@")[0]);
-        select.appendChild(opt);
+
+      const added = new Set(["all", "my_actions", "unassigned"]);
+
+      // 1. Membros da equipe registrados
+      (state.users || []).forEach(u => {
+        const email = (u.email || "").trim();
+        const nome = (u.nome || email.split("@")[0] || "Membro").trim();
+        if (email && !added.has(email.toLowerCase())) {
+          added.add(email.toLowerCase());
+          const opt = document.createElement("option");
+          opt.value = email;
+          opt.textContent = "👤 " + nome + (u.cargo ? " (" + u.cargo + ")" : "");
+          select.appendChild(opt);
+        }
       });
+
+      // 2. Outros responsáveis nas subtarefas (ex: "Cliente", nomes avulsos)
+      const stages = getPipelineStages();
+      stages.forEach(st => {
+        (st.subtarefas || []).forEach((sub, subIdx) => {
+          const norm = normalizeSubtaskItem(sub, subIdx, st.id);
+          const resp = (norm.responsavelPadrao || "").trim();
+          if (resp && !added.has(resp.toLowerCase())) {
+            added.add(resp.toLowerCase());
+            const opt = document.createElement("option");
+            opt.value = resp;
+            opt.textContent = "👤 " + resp;
+            select.appendChild(opt);
+          }
+        });
+      });
+
+      (state.clients || []).forEach(c => {
+        const nextTask = getClientNextPendingTask(c);
+        const resp = (nextTask?.assignee || "").trim();
+        if (resp && !added.has(resp.toLowerCase())) {
+          added.add(resp.toLowerCase());
+          const opt = document.createElement("option");
+          opt.value = resp;
+          opt.textContent = "👤 " + resp;
+          select.appendChild(opt);
+        }
+      });
+
+      select.value = currentVal;
     }
 
-    // 7. KANBAN, CARDS & GAVETA DO CLIENTE
+    function getClientNextPendingTask(client) {
+      if (!client) return null;
+      const stage = getClientCurrentStage(client);
+      const allTasks = getClientMergedTasks(client);
+      const phaseTasks = allTasks.filter(t => t.stageId === stage.id);
+      const nextTask = phaseTasks.find(t => t.status !== "Concluída");
+      return nextTask || null;
+    }
+
     function renderKanban() {
       const container = document.getElementById("kanbanContainer");
       if (!container) return;
+
+      populateAssigneeFilterOptions();
 
       const search = (document.getElementById("kanbanSearch")?.value || "").toLowerCase().trim();
       const filterAssignee = state.kanbanFilterAssignee || "all";
@@ -2283,9 +2338,13 @@
       const stages = getPipelineStages();
 
       const filtered = state.clients.filter(c => {
-        const matchSearch = (c.name || "").toLowerCase().includes(search) || (c.specialty || "").toLowerCase().includes(search);
+        // 1. Busca textual por nome ou especialidade/nicho/telefone
+        const matchSearch = (c.name || "").toLowerCase().includes(search) ||
+                            (c.specialty || c.niche || "").toLowerCase().includes(search) ||
+                            (c.phone || "").includes(search);
         if (!matchSearch) return false;
 
+        // 2. Filtro de Prazos / Aging (0-15d, 16-30d, 31-45d, 46-60d, 61+d)
         const aging = getClientAgingInfo(c);
         if (filterAging !== "all") {
           if (filterAging === "0-15" && aging.category !== "0-15") return false;
@@ -2295,16 +2354,55 @@
           if (filterAging === "61+" && aging.category !== "61+") return false;
         }
 
-        if (filterAssignee === "my_actions") {
-          const mergedTasks = getClientMergedTasks(c);
-          const currentStage = getClientCurrentStage(c);
-          const hasMine = mergedTasks.some(t => t.stageId === currentStage.id && t.status !== "Concluída" && t.assignee === state.currentUser?.email);
-          if (!hasMine) return false;
-        } else if (filterAssignee === "unassigned") {
-          const mergedTasks = getClientMergedTasks(c);
-          const currentStage = getClientCurrentStage(c);
-          const hasUnassigned = mergedTasks.some(t => t.stageId === currentStage.id && t.status !== "Concluída" && !t.assignee);
-          if (!hasUnassigned) return false;
+        // 3. NOVA LÓGICA ESTREITA: Filtro por Responsável da Próxima Ação Pendente da Fase Atual
+        if (filterAssignee !== "all") {
+          const nextTask = getClientNextPendingTask(c);
+
+          if (filterAssignee === "unassigned") {
+            // "Sem Atribuição": apenas clientes cuja próxima ação pendente não tem responsável
+            if (!nextTask) return false;
+            const taskAssignee = (nextTask.assignee || "").trim();
+            if (taskAssignee && taskAssignee.toLowerCase() !== "sem responsável" && taskAssignee.toLowerCase() !== "não atribuído") {
+              return false;
+            }
+          } else if (filterAssignee === "my_actions") {
+            // "Minhas Ações": apenas clientes cuja próxima ação pendente está atribuída ao usuário logado
+            if (!nextTask) return false;
+            const taskAssignee = (nextTask.assignee || "").trim().toLowerCase();
+            if (!taskAssignee) return false;
+
+            const myEmail = (state.currentUser?.email || "").trim().toLowerCase();
+            const myName = (state.currentUser?.name || "").trim().toLowerCase();
+            const myFirst = myName ? myName.split(" ")[0] : "";
+
+            const isMine = (myEmail && taskAssignee === myEmail) ||
+                           (myName && taskAssignee === myName) ||
+                           (myFirst && taskAssignee === myFirst) ||
+                           (myEmail && taskAssignee === myEmail.split("@")[0]);
+            if (!isMine) return false;
+          } else {
+            // Membro Selecionado (ex.: "Erica", "Arthur", "Marcelo", "Cliente" ou e-mail correspondente)
+            if (!nextTask) return false;
+            const taskAssignee = (nextTask.assignee || "").trim().toLowerCase();
+            if (!taskAssignee) return false;
+
+            const filterVal = filterAssignee.trim().toLowerCase();
+            const memberRecord = (state.users || []).find(u => 
+              (u.email || "").toLowerCase().trim() === filterVal ||
+              (u.nome || "").toLowerCase().trim() === filterVal
+            );
+
+            const targetEmail = (memberRecord?.email || filterVal).toLowerCase().trim();
+            const targetName = (memberRecord?.nome || filterVal).toLowerCase().trim();
+            const targetFirst = targetName ? targetName.split(" ")[0] : "";
+
+            const isMatch = taskAssignee === targetEmail ||
+                            taskAssignee === targetName ||
+                            (targetFirst && taskAssignee === targetFirst) ||
+                            (targetEmail.includes("@") && taskAssignee === targetEmail.split("@")[0]) ||
+                            taskAssignee.includes(targetFirst || targetEmail);
+            if (!isMatch) return false;
+          }
         }
 
         return true;
@@ -2315,32 +2413,40 @@
         const stageColor = stage.cor || "#3b82f6";
 
         return `
-          <div class="kanban-col flex-shrink-0 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-col max-h-[calc(100vh-160px)] shadow-lg"
+          <div class="kanban-col flex-shrink-0 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-col max-h-[calc(100vh-140px)] shadow-lg snap-start"
+               style="scroll-snap-align: start;"
                ondragover="handleDragOver(event)"
                ondragleave="handleDragLeave(event)"
                ondrop="handleDrop(event, '${stage.id}')">
             
-            <div class="p-3.5 border-b border-slate-800 bg-slate-950/70 rounded-t-2xl flex items-center justify-between">
+            <div class="p-3.5 border-b border-slate-800 bg-slate-950/70 rounded-t-2xl flex items-center justify-between gap-2 shrink-0">
               <div class="flex items-center gap-2 min-w-0">
                 <span class="w-6 h-6 rounded-lg text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm" style="background-color: ${stageColor}33; border: 1px solid ${stageColor}88; color: ${stageColor}">
                   ${stageIndex + 1}
                 </span>
                 <div class="min-w-0">
-                  <h3 class="font-bold text-xs text-white leading-tight truncate max-w-[170px]" title="${escapeHtml(stage.nome)}">${escapeHtml(stage.nome)}</h3>
-                  <p class="text-[10px] text-slate-400 truncate max-w-[170px] font-normal" title="${escapeHtml(stage.subtitulo || '')}">${stage.subtitulo ? escapeHtml(stage.subtitulo) : (stage.subtarefas || []).length + ' subtarefas'}</p>
+                  <h3 class="font-bold text-xs text-white leading-tight truncate max-w-[170px]" title="${escapeHtml(stage.nome)}">
+                    ${stageIndex + 1}. ${escapeHtml(stage.nome)} <span class="text-sky-400 font-mono text-[11px] font-bold">(${colClients.length})</span>
+                  </h3>
+                  <p class="text-[10px] text-slate-400 truncate max-w-[170px] font-normal" title="${escapeHtml(stage.subtitulo || '')}">
+                    ${stage.subtitulo ? escapeHtml(stage.subtitulo) : (stage.subtarefas || []).length + ' subtarefas'}
+                  </p>
                 </div>
               </div>
-              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold shrink-0">${colClients.length}</span>
+              <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700/60 shrink-0" title="Total visível nesta coluna">
+                ${colClients.length}
+              </span>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-3 space-y-3 min-h-[140px]">
+            <div id="col-${stage.id}" class="flex-1 p-2 sm:p-2.5 overflow-y-auto space-y-2.5 min-h-[150px]">
+              ${colClients.map(c => renderClientCard(c, canDrag, stage, stageIndex)).join("")}
               ${colClients.length === 0 ? `
-                <div class="border border-dashed border-slate-800/70 rounded-xl py-8 px-3 text-center text-slate-500 text-xs flex flex-col items-center justify-center gap-1.5 select-none">
-                  <i data-lucide="inbox" class="w-5 h-5 text-slate-600 opacity-60"></i>
-                  <span>Nenhum cliente nesta etapa</span>
+                <div class="h-28 border border-dashed border-slate-800/80 rounded-xl flex items-center justify-center text-slate-600 text-xs italic">
+                  Nenhum cliente
                 </div>
-              ` : colClients.map(client => renderClientCard(client, canDrag, stage, stageIndex)).join("")}
+              ` : ''}
             </div>
+
           </div>
         `;
       }).join("");
