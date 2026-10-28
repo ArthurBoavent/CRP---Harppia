@@ -471,38 +471,85 @@
     <!-- VIEW: TABELA GERAL (COM FILTROS COMBINADOS & ORDENAÇÃO) -->
     <div id="view-table" class="hidden flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
       
-      <!-- Barra de Filtros Combinados da Tabela -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
+      <!-- Barra de Filtros Reativos da Tabela -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md space-y-3 text-xs">
         
-        <!-- Busca de Texto -->
-        <div class="relative flex-1 min-w-[200px] max-w-sm">
-          <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
-          <input type="text" id="tableFilterSearch" oninput="renderTable();" placeholder="Filtrar por nome ou nicho..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 shadow-inner">
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          <!-- 1. Busca Textual por Nome, Telefone ou E-mail -->
+          <div class="relative flex-1 max-w-md">
+            <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <input type="text"
+                   id="tableFilterSearch"
+                   oninput="renderTable();"
+                   placeholder="Buscar por nome, telefone ou e-mail..."
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 shadow-inner">
+          </div>
+
+          <!-- Botões de Ação da Barra: Limpar Filtros & Exportar CSV -->
+          <div class="flex items-center gap-2 self-end lg:self-auto shrink-0">
+            <button type="button"
+                    onclick="clearTableFilters()"
+                    class="px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white font-medium text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                    title="Restaurar todos os filtros para o padrão">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              <span>Limpar Filtros</span>
+            </button>
+
+            <button type="button"
+                    onclick="exportFilteredClientsCSV()"
+                    class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm shadow-emerald-950/40"
+                    title="Baixar arquivo CSV com os registros e colunas atualmente filtrados">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Exportar CSV</span>
+            </button>
+          </div>
         </div>
 
-        <!-- Filtros em Dropdown -->
-        <div class="flex flex-wrap items-center gap-2">
+        <!-- Linha de Seletores Contextuais -->
+        <div class="flex flex-wrap items-center gap-2.5 pt-2 border-t border-slate-800/60">
           
-          <!-- Filtro por Fase -->
-          <div class="relative inline-flex items-center">
-            <select id="tableFilterPhase" onchange="renderTable();" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
-              <option value="all">Todas as Fases</option>
+          <!-- 2. Filtro por Período de Início -->
+          <div class="relative inline-flex items-center min-w-[150px]">
+            <select id="tableFilterPeriod" onchange="handleTablePeriodChange(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
+              <option value="all">📅 Todo o período</option>
+              <option value="today">Hoje</option>
+              <option value="7days">Últimos 7 dias</option>
+              <option value="this_month">Este mês</option>
+              <option value="last_month">Mês anterior</option>
+              <option value="custom">Personalizado...</option>
+            </select>
+          </div>
+
+          <!-- Campos de Data Personalizada (Aparecem quando 'Personalizado' é selecionado) -->
+          <div id="tableFilterCustomDates" class="hidden flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1">
+            <span class="text-[11px] text-slate-400">De:</span>
+            <input type="date" id="tableFilterDateStart" onchange="renderTable();" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer">
+            <span class="text-[11px] text-slate-400">Até:</span>
+            <input type="date" id="tableFilterDateEnd" onchange="renderTable();" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer">
+          </div>
+
+          <!-- 3. Filtro por Fase -->
+          <div class="relative inline-flex items-center min-w-[160px]">
+            <select id="tableFilterPhase" onchange="renderTable();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
+              <option value="all">Fase: Todas as Fases</option>
+              <!-- Preenchido dinamicamente com as 9 etapas oficiais -->
+            </select>
+          </div>
+
+          <!-- 4. Filtro por Responsável da Próxima Ação -->
+          <div class="relative inline-flex items-center min-w-[170px]">
+            <select id="tableFilterAssignee" onchange="renderTable();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
+              <option value="all">👤 Todos os Responsáveis</option>
+              <option value="my_actions">Minhas Ações</option>
+              <option value="unassigned">Sem Responsável</option>
               <!-- Preenchido dinamicamente via JS -->
             </select>
           </div>
 
-          <!-- Filtro por Responsável -->
-          <div class="relative inline-flex items-center">
-            <select id="tableFilterAssignee" onchange="renderTable();" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
-              <option value="all">Todos os Responsáveis</option>
-              <!-- Preenchido dinamicamente via JS -->
-            </select>
-          </div>
-
-          <!-- Filtro de Aging -->
-          <div class="relative inline-flex items-center">
-            <select id="tableFilterAging" onchange="renderTable();" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
-              <option value="all">Todos os Prazos</option>
+          <!-- 5. Filtro por Tempo Total (Aging) -->
+          <div class="relative inline-flex items-center min-w-[150px]">
+            <select id="tableFilterAging" onchange="renderTable();" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
+              <option value="all">⏱️ Todos os Prazos</option>
               <option value="0-15">🟢 0 a 15 dias (Início Regular)</option>
               <option value="16-30">🟡 16 a 30 dias (Prazo Padrão)</option>
               <option value="31-45">🟠 31 a 45 dias (Atenção)</option>
@@ -511,56 +558,88 @@
             </select>
           </div>
 
-          <!-- Botão Limpar Filtros -->
-          <button type="button" onclick="clearTableFilters()" class="p-2 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 hover:text-white transition cursor-pointer" title="Limpar Filtros da Tabela">
-            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-          </button>
+          <!-- Contador de Resultados -->
+          <div class="ml-auto text-slate-400 text-xs flex items-center gap-1.5 font-medium shrink-0">
+            <span>Resultados:</span>
+            <span id="tableResultsCount" class="font-mono font-bold text-sky-400">0</span>
+          </div>
+
         </div>
 
       </div>
 
-      <!-- Tabela com Cabeçalhos Clicáveis para Ordenação -->
+      <!-- Tabela com Cabeçalho e Linhas 100% Sincronizados (9 Colunas Oficiais) -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300">
+          <table class="w-full text-left text-xs text-slate-300 border-collapse">
             <thead class="bg-slate-950 text-slate-400 border-b border-slate-800 font-semibold uppercase text-[10px] tracking-wider select-none">
               <tr>
+                <!-- Col 1: CLIENTE -->
                 <th onclick="sortTableBy('name')" class="p-3.5 cursor-pointer hover:text-white transition">
                   <div class="flex items-center gap-1.5">
                     <span>Cliente</span>
-                    <span id="sortIndicator-name" class="text-sky-400">↕</span>
+                    <span id="sortIndicator-name" class="text-sky-400 font-bold">↕</span>
                   </div>
                 </th>
-                <th onclick="sortTableBy('specialty')" class="p-3.5 cursor-pointer hover:text-white transition">
+
+                <!-- Col 2: DATA DE INÍCIO -->
+                <th onclick="sortTableBy('startDate')" class="p-3.5 cursor-pointer hover:text-white transition whitespace-nowrap">
                   <div class="flex items-center gap-1.5">
-                    <span>Especialidade / Nicho</span>
-                    <span id="sortIndicator-specialty" class="text-slate-600">↕</span>
+                    <span>Data de Início</span>
+                    <span id="sortIndicator-startDate" class="text-slate-600">↕</span>
                   </div>
                 </th>
-                <th onclick="sortTableBy('phase')" class="p-3.5 cursor-pointer hover:text-white transition">
+
+                <!-- Col 3: FASE ATUAL -->
+                <th onclick="sortTableBy('phase')" class="p-3.5 cursor-pointer hover:text-white transition whitespace-nowrap">
                   <div class="flex items-center gap-1.5">
                     <span>Fase Atual</span>
                     <span id="sortIndicator-phase" class="text-slate-600">↕</span>
                   </div>
                 </th>
-                <th onclick="sortTableBy('aging')" class="p-3.5 cursor-pointer hover:text-white transition">
+
+                <!-- Col 4: TEMPO NA FASE -->
+                <th onclick="sortTableBy('phaseDays')" class="p-3.5 cursor-pointer hover:text-white transition whitespace-nowrap">
                   <div class="flex items-center gap-1.5">
-                    <span>Tempo na Esteira</span>
-                    <span id="sortIndicator-aging" class="text-slate-600">↕</span>
+                    <span>Tempo na Fase</span>
+                    <span id="sortIndicator-phaseDays" class="text-slate-600">↕</span>
                   </div>
                 </th>
-                <th onclick="sortTableBy('progress')" class="p-3.5 cursor-pointer hover:text-white transition">
+
+                <!-- Col 5: TEMPO TOTAL -->
+                <th onclick="sortTableBy('totalDays')" class="p-3.5 cursor-pointer hover:text-white transition whitespace-nowrap">
+                  <div class="flex items-center gap-1.5">
+                    <span>Tempo Total</span>
+                    <span id="sortIndicator-totalDays" class="text-slate-600">↕</span>
+                  </div>
+                </th>
+
+                <!-- Col 6: PRÓXIMA AÇÃO -->
+                <th class="p-3.5 whitespace-nowrap">
+                  <span>Próxima Ação</span>
+                </th>
+
+                <!-- Col 7: PROGRESSO -->
+                <th onclick="sortTableBy('progress')" class="p-3.5 cursor-pointer hover:text-white transition whitespace-nowrap">
                   <div class="flex items-center gap-1.5">
                     <span>Progresso</span>
                     <span id="sortIndicator-progress" class="text-slate-600">↕</span>
                   </div>
                 </th>
-                <th class="p-3.5">WhatsApp</th>
-                <th class="p-3.5 text-right">Ações</th>
+
+                <!-- Col 8: LINKS RÁPIDOS -->
+                <th class="p-3.5 text-center whitespace-nowrap">
+                  <span>Links Rápidos</span>
+                </th>
+
+                <!-- Col 9: AÇÕES -->
+                <th class="p-3.5 text-right whitespace-nowrap">
+                  <span>Ações</span>
+                </th>
               </tr>
             </thead>
             <tbody id="tableBodyClients" class="divide-y divide-slate-800/60 font-medium">
-              <!-- Linhas geradas dinamicamente -->
+              <!-- Linhas geradas dinamicamente com 9 células correspondentes -->
             </tbody>
           </table>
         </div>
@@ -754,6 +833,7 @@
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2 mb-1 flex-wrap">
           <span id="drawerClientPhaseBadge" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800">Fase 1: Questionário</span>
+          <span id="drawerClientStageDaysBadge" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-amber-950/70 border-amber-800/80 text-amber-300">📍 0d nesta fase</span>
           <span id="drawerClientSemaforo" class="text-[10px] font-semibold px-2 py-0.5 rounded-full border">🟢 No Prazo</span>
           <button id="drawerBtnPriority" onclick="toggleDrawerPriority()" title="Alternar Prioridade" class="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition">
             ⭐ Prioridade
@@ -1711,6 +1791,65 @@
       return found || stages[0] || { id: "etapa_1", nome: "Etapa Inicial", cor: "#0ea5e9", subtarefas: [] };
     }
 
+    
+    function parseSafeDate(rawDate) {
+      if (!rawDate) return null;
+      if (rawDate instanceof Date) return isNaN(rawDate.getTime()) ? null : rawDate;
+      if (typeof rawDate.toDate === "function") {
+        try {
+          const d = rawDate.toDate();
+          return isNaN(d.getTime()) ? null : d;
+        } catch (e) {}
+      }
+      if (typeof rawDate === "object" && typeof rawDate.seconds === "number") {
+        return new Date(rawDate.seconds * 1000);
+      }
+      const d = new Date(rawDate);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function getClientStageAndTotalDays(client) {
+      if (!client) {
+        return {
+          diasNaFase: 0,
+          diasTotais: 0,
+          dataInicioFormatada: "-",
+          dataFaseFormatada: "-",
+          dateTotalObj: new Date(),
+          dateFaseObj: new Date()
+        };
+      }
+
+      const now = new Date();
+
+      // Data de entrada na fase atual com fallback seguro
+      const rawDataFase = client.dataEntradaFase || client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt;
+      const dateFaseObj = parseSafeDate(rawDataFase) || now;
+      const diasNaFase = Math.max(0, Math.floor((now.getTime() - dateFaseObj.getTime()) / 86400000));
+
+      // Data de início total com fallback seguro
+      const rawDataTotal = client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt || client.dataEntradaFase;
+      const dateTotalObj = parseSafeDate(rawDataTotal) || dateFaseObj || now;
+      const diasTotais = Math.max(0, Math.floor((now.getTime() - dateTotalObj.getTime()) / 86400000));
+
+      const formatDateDMY = (d) => {
+        if (!d || isNaN(d.getTime())) return "-";
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return day + "/" + month + "/" + year;
+      };
+
+      return {
+        diasNaFase,
+        diasTotais,
+        dataInicioFormatada: formatDateDMY(dateTotalObj),
+        dataFaseFormatada: formatDateDMY(dateFaseObj),
+        dateTotalObj,
+        dateFaseObj
+      };
+    }
+
     function getClientAgingInfo(client) {
       if (!client) {
         return {
@@ -2635,6 +2774,7 @@
 
     function renderClientCard(client, canDrag, currentStage, stageIndex) {
       const aging = getClientAgingInfo(client);
+      const daysInfo = getClientStageAndTotalDays(client);
       const isPriority = !!client.priority;
       const allTasks = getClientMergedTasks(client);
       const stage = currentStage || getClientCurrentStage(client);
@@ -2677,11 +2817,17 @@
               <p class="text-[11px] text-slate-400 truncate">${escapeHtml(client.specialty || client.niche || client.phone || '')}</p>
             </div>
             
-            <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${aging.badgeClass} flex items-center gap-1 shadow-sm" title="${aging.days} dias na esteira (${aging.statusText})">
-              <span>${aging.dotEmoji}</span>
-              <span>${aging.days}d</span>
-              <span class="opacity-80 hidden sm:inline text-[8px]">(${aging.statusText})</span>
-            </span>
+            <div class="shrink-0 flex flex-col items-end gap-1">
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${aging.badgeClass} flex items-center gap-1 shadow-sm" title="${daysInfo.diasTotais} dias na esteira (${aging.statusText}) | ${daysInfo.diasNaFase} dias nesta fase">
+                <span>${aging.dotEmoji}</span>
+                <span>⏱️ ${daysInfo.diasTotais}d</span>
+                <span class="opacity-60 hidden sm:inline">|</span>
+                <span class="text-amber-300 font-bold hidden sm:inline">📍 ${daysInfo.diasNaFase}d fase</span>
+              </span>
+              <span class="text-[8px] font-semibold px-1.5 py-0.2 rounded-full border bg-amber-950/70 border-amber-800/80 text-amber-300 inline-flex sm:hidden items-center gap-0.5">
+                📍 ${daysInfo.diasNaFase}d fase
+              </span>
+            </div>
           </div>
 
           <!-- Bloco Visual: Próxima Ação com Responsável -->
@@ -2850,6 +2996,12 @@
         stageBadge.style.borderColor = stageColor + "66";
         stageBadge.style.color = stageColor;
         stageBadge.style.backgroundColor = stageColor + "22";
+      }
+
+      const daysInfo = getClientStageAndTotalDays(client);
+      const stageDaysEl = document.getElementById("drawerClientStageDaysBadge");
+      if (stageDaysEl) {
+        stageDaysEl.textContent = "📍 " + daysInfo.diasNaFase + "d nesta fase";
       }
 
       const tasksFilterSelect = document.getElementById("drawerTasksFilter");
@@ -3839,45 +3991,181 @@
       }
     }
 
-    function renderTable() {
-      const tbody = document.getElementById("tableBodyClients");
-      if (!tbody) return;
-
-      populateTableFilterOptions();
-
-      // Atualiza indicadores de ordenação no thead
-      ["name", "specialty", "phase", "aging", "progress"].forEach(col => {
-        const ind = document.getElementById("sortIndicator-" + col);
-        if (ind) {
-          if (state.tableSortColumn === col) {
-            ind.textContent = state.tableSortOrder === "asc" ? "▲" : "▼";
-            ind.className = "text-sky-400 font-bold";
-          } else {
-            ind.textContent = "↕";
-            ind.className = "text-slate-600";
-          }
+    function handleTablePeriodChange(val) {
+      const customBox = document.getElementById("tableFilterCustomDates");
+      if (customBox) {
+        if (val === "custom") {
+          customBox.classList.remove("hidden");
+        } else {
+          customBox.classList.add("hidden");
         }
-      });
+      }
+      renderTable();
+    }
 
-      // Filtros combinados
-      const search = (document.getElementById("tableFilterSearch")?.value || document.getElementById("kanbanSearch")?.value || "").toLowerCase().trim();
+    function sortTableBy(col) {
+      if (state.tableSortColumn === col) {
+        state.tableSortOrder = state.tableSortOrder === "asc" ? "desc" : "asc";
+      } else {
+        state.tableSortColumn = col;
+        state.tableSortOrder = (col === "startDate" || col === "phaseDays" || col === "totalDays" || col === "progress") ? "desc" : "asc";
+      }
+      renderTable();
+    }
+
+    function clearTableFilters() {
+      const search = document.getElementById("tableFilterSearch");
+      if (search) search.value = "";
+      const period = document.getElementById("tableFilterPeriod");
+      if (period) period.value = "all";
+      const customBox = document.getElementById("tableFilterCustomDates");
+      if (customBox) customBox.classList.add("hidden");
+      const dStart = document.getElementById("tableFilterDateStart");
+      if (dStart) dStart.value = "";
+      const dEnd = document.getElementById("tableFilterDateEnd");
+      if (dEnd) dEnd.value = "";
+      const phase = document.getElementById("tableFilterPhase");
+      if (phase) phase.value = "all";
+      const assignee = document.getElementById("tableFilterAssignee");
+      if (assignee) assignee.value = "all";
+      const aging = document.getElementById("tableFilterAging");
+      if (aging) aging.value = "all";
+      renderTable();
+      showToast("Filtros da tabela restaurados.");
+    }
+
+    function populateTableFilterOptions() {
+      const phaseSelect = document.getElementById("tableFilterPhase");
+      const stages = getPipelineStages();
+      if (phaseSelect) {
+        const curPhase = phaseSelect.value || "all";
+        while (phaseSelect.options.length > 1) {
+          phaseSelect.remove(1);
+        }
+        stages.forEach((st, idx) => {
+          const opt = document.createElement("option");
+          opt.value = st.id;
+          opt.textContent = (idx + 1) + ". " + st.nome;
+          phaseSelect.appendChild(opt);
+        });
+        phaseSelect.value = curPhase;
+      }
+
+      const assigneeSelect = document.getElementById("tableFilterAssignee");
+      if (assigneeSelect) {
+        const curVal = assigneeSelect.value || "all";
+        while (assigneeSelect.options.length > 3) {
+          assigneeSelect.remove(3);
+        }
+
+        const added = new Set(["all", "my_actions", "unassigned"]);
+        (state.users || []).forEach(u => {
+          const email = (u.email || "").trim();
+          const nome = (u.nome || email.split("@")[0] || "Membro").trim();
+          if (email && !added.has(email.toLowerCase())) {
+            added.add(email.toLowerCase());
+            const opt = document.createElement("option");
+            opt.value = email;
+            opt.textContent = "👤 " + nome + (u.cargo ? " (" + u.cargo + ")" : "");
+            assigneeSelect.appendChild(opt);
+          }
+        });
+
+        stages.forEach(st => {
+          (st.subtarefas || []).forEach((sub, subIdx) => {
+            const norm = normalizeSubtaskItem(sub, subIdx, st.id);
+            const resp = (norm.responsavelPadrao || "").trim();
+            if (resp && !added.has(resp.toLowerCase())) {
+              added.add(resp.toLowerCase());
+              const opt = document.createElement("option");
+              opt.value = resp;
+              opt.textContent = "👤 " + resp;
+              assigneeSelect.appendChild(opt);
+            }
+          });
+        });
+
+        (state.clients || []).forEach(c => {
+          const nextTask = getNextPendingTask(c, stages);
+          const resp = (nextTask?.assignee || "").trim();
+          if (resp && !added.has(resp.toLowerCase())) {
+            added.add(resp.toLowerCase());
+            const opt = document.createElement("option");
+            opt.value = resp;
+            opt.textContent = "👤 " + resp;
+            assigneeSelect.appendChild(opt);
+          }
+        });
+
+        assigneeSelect.value = curVal;
+      }
+    }
+
+    function getFilteredClientsForTable() {
+      const search = (document.getElementById("tableFilterSearch")?.value || "").toLowerCase().trim();
+      const filterPeriod = document.getElementById("tableFilterPeriod")?.value || "all";
+      const dateStartVal = document.getElementById("tableFilterDateStart")?.value;
+      const dateEndVal = document.getElementById("tableFilterDateEnd")?.value;
       const filterPhase = document.getElementById("tableFilterPhase")?.value || "all";
       const filterAssignee = document.getElementById("tableFilterAssignee")?.value || "all";
       const filterAging = document.getElementById("tableFilterAging")?.value || "all";
       const stages = getPipelineStages();
 
-      let filtered = state.clients.filter(c => {
-        // 1. Busca textual
-        const matchSearch = (c.name || "").toLowerCase().includes(search) || (c.specialty || c.niche || "").toLowerCase().includes(search) || (c.phone || "").includes(search);
-        if (!matchSearch) return false;
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const endOfToday = startOfToday + 86400000 - 1;
+      const sevenDaysAgo = now.getTime() - (7 * 86400000);
 
-        // 2. Filtro de fase
+      const thisMonthYear = now.getFullYear();
+      const thisMonthIdx = now.getMonth();
+
+      const lastMonthYear = thisMonthIdx === 0 ? thisMonthYear - 1 : thisMonthYear;
+      const lastMonthIdx = thisMonthIdx === 0 ? 11 : thisMonthIdx - 1;
+
+      return (state.clients || []).filter(c => {
+        const daysInfo = getClientStageAndTotalDays(c);
+
+        // 1. Busca Textual por nome, telefone ou e-mail
+        if (search) {
+          const matchName = (c.name || "").toLowerCase().includes(search);
+          const matchPhone = (c.phone || "").includes(search);
+          const matchEmail = (c.email || "").toLowerCase().includes(search);
+          const matchNiche = (c.specialty || c.niche || "").toLowerCase().includes(search);
+          if (!matchName && !matchPhone && !matchEmail && !matchNiche) return false;
+        }
+
+        // 2. Filtro por Período de Início
+        if (filterPeriod !== "all") {
+          const dTime = daysInfo.dateTotalObj.getTime();
+          const dObj = daysInfo.dateTotalObj;
+
+          if (filterPeriod === "today") {
+            if (dTime < startOfToday || dTime > endOfToday) return false;
+          } else if (filterPeriod === "7days") {
+            if (dTime < sevenDaysAgo) return false;
+          } else if (filterPeriod === "this_month") {
+            if (dObj.getFullYear() !== thisMonthYear || dObj.getMonth() !== thisMonthIdx) return false;
+          } else if (filterPeriod === "last_month") {
+            if (dObj.getFullYear() !== lastMonthYear || dObj.getMonth() !== lastMonthIdx) return false;
+          } else if (filterPeriod === "custom") {
+            if (dateStartVal) {
+              const startLimit = new Date(dateStartVal + "T00:00:00").getTime();
+              if (dTime < startLimit) return false;
+            }
+            if (dateEndVal) {
+              const endLimit = new Date(dateEndVal + "T23:59:59").getTime();
+              if (dTime > endLimit) return false;
+            }
+          }
+        }
+
+        // 3. Filtro por Fase
         if (filterPhase !== "all") {
           const currentStage = getClientCurrentStage(c);
           if (String(currentStage.id) !== String(filterPhase)) return false;
         }
 
-        // 3. Filtro de responsável baseado na Próxima Subtarefa Pendente da Fase Atual
+        // 4. Filtro por Responsável da Próxima Ação
         if (filterAssignee !== "all") {
           const nextTask = getNextPendingTask(c, stages);
 
@@ -3925,7 +4213,7 @@
           }
         }
 
-        // 4. Filtro de aging (nova escala oficial de 5 faixas)
+        // 5. Filtro de Aging Total
         if (filterAging !== "all") {
           const aging = getClientAgingInfo(c);
           if (filterAging === "0-15" && aging.category !== "0-15") return false;
@@ -3937,26 +4225,68 @@
 
         return true;
       });
+    }
 
-      // Ordenação
+    function renderTable() {
+      const tbody = document.getElementById("tableBodyClients");
+      if (!tbody) return;
+
+      populateTableFilterOptions();
+
+      // Indicadores de Ordenação no THEAD
+      ["name", "startDate", "phase", "phaseDays", "totalDays", "progress"].forEach(col => {
+        const ind = document.getElementById("sortIndicator-" + col);
+        if (ind) {
+          if (state.tableSortColumn === col) {
+            ind.textContent = state.tableSortOrder === "asc" ? "▲" : "▼";
+            ind.className = "text-sky-400 font-bold";
+          } else {
+            ind.textContent = "↕";
+            ind.className = "text-slate-600";
+          }
+        }
+      });
+
+      const stages = getPipelineStages();
+      const filtered = getFilteredClientsForTable();
+
+      const countBadge = document.getElementById("tableResultsCount");
+      if (countBadge) {
+        countBadge.textContent = filtered.length;
+      }
+
+      // Ordenação das linhas
       filtered.sort((a, b) => {
         const orderFactor = state.tableSortOrder === "asc" ? 1 : -1;
+        
         if (state.tableSortColumn === "name") {
           return orderFactor * (a.name || "").localeCompare(b.name || "");
         }
-        if (state.tableSortColumn === "specialty") {
-          return orderFactor * (a.specialty || a.niche || "").localeCompare(b.specialty || b.niche || "");
+        
+        if (state.tableSortColumn === "startDate") {
+          const tA = getClientStageAndTotalDays(a).dateTotalObj.getTime();
+          const tB = getClientStageAndTotalDays(b).dateTotalObj.getTime();
+          return orderFactor * (tA - tB);
         }
+
         if (state.tableSortColumn === "phase") {
           const sA = stages.findIndex(s => isClientInStage(a, s, 0, stages));
           const sB = stages.findIndex(s => isClientInStage(b, s, 0, stages));
           return orderFactor * (sA - sB);
         }
-        if (state.tableSortColumn === "aging") {
-          const agA = getClientAgingInfo(a).days;
-          const agB = getClientAgingInfo(b).days;
-          return orderFactor * (agA - agB);
+
+        if (state.tableSortColumn === "phaseDays") {
+          const dA = getClientStageAndTotalDays(a).diasNaFase;
+          const dB = getClientStageAndTotalDays(b).diasNaFase;
+          return orderFactor * (dA - dB);
         }
+
+        if (state.tableSortColumn === "totalDays" || state.tableSortColumn === "aging") {
+          const dA = getClientStageAndTotalDays(a).diasTotais;
+          const dB = getClientStageAndTotalDays(b).diasTotais;
+          return orderFactor * (dA - dB);
+        }
+
         if (state.tableSortColumn === "progress") {
           const tA = getClientMergedTasks(a);
           const tB = getClientMergedTasks(b);
@@ -3964,68 +4294,232 @@
           const pB = tB.length > 0 ? (tB.filter(t => t.status === "Concluída").length / tB.length) : 0;
           return orderFactor * (pA - pB);
         }
+
         return 0;
       });
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-500 text-xs italic">Nenhum cliente corresponde aos filtros selecionados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-slate-500 text-xs italic">Nenhum cliente corresponde aos filtros selecionados.</td></tr>';
         return;
       }
 
       tbody.innerHTML = filtered.map(c => {
+        const daysInfo = getClientStageAndTotalDays(c);
         const aging = getClientAgingInfo(c);
         const stage = getClientCurrentStage(c);
         const allTasks = getClientMergedTasks(c);
         const doneTasks = allTasks.filter(t => t.status === "Concluída").length;
         const percent = allTasks.length > 0 ? Math.round((doneTasks / allTasks.length) * 100) : 0;
         const stageColor = stage.cor || "#3b82f6";
+        const nextTask = getNextPendingTask(c, stages);
+
+        let nextTaskAssigneeName = "";
+        if (nextTask && nextTask.assignee) {
+          const member = (state.users || []).find(u => 
+            (u.email || "").toLowerCase() === nextTask.assignee.toLowerCase() ||
+            (u.nome || "").toLowerCase() === nextTask.assignee.toLowerCase()
+          );
+          nextTaskAssigneeName = member?.nome || nextTask.assignee.split("@")[0] || nextTask.assignee;
+        }
 
         const waLink = c.whatsappGroup && c.whatsappGroup.trim()
           ? c.whatsappGroup.trim()
           : (c.phone ? ("https://wa.me/55" + c.phone.replace(/\D/g, '')) : '');
+        const driveLink = c.driveUrl || c.googleDriveUrl || "";
+        const websiteLink = c.websiteUrl || c.siteUrl || "";
 
         return `
-          <tr onclick="openClientDrawer('${c.id}')" class="hover:bg-slate-800/40 transition cursor-pointer group">
-            <td class="p-3.5 font-bold text-white group-hover:text-sky-400 transition">
-              ${escapeHtml(c.name)}
-              ${c.priority ? '<span class="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800">Alta</span>' : ''}
-            </td>
-            <td class="p-3.5 text-slate-400">${escapeHtml(c.specialty || c.niche || '-')}</t
-            <td class="p-3.5">
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" style="background-color: ${stageColor}22; border: 1px solid ${stageColor}66; color: ${stageColor}">
-                ${escapeHtml(stage.nome)}
-              </span>
-            </td>
-            <td class="p-3.5">
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${aging.badgeClass}">
-                ${aging.dotEmoji} ${aging.days}d (${aging.label})
-              </span>
-            </td>
-            <td class="p-3.5">
-              <div class="flex items-center gap-2">
-                <div class="w-16 bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                  <div class="bg-sky-500 h-1.5 rounded-full" style="width: ${percent}%"></div>
-                </div>
-                <span class="text-[10px] text-slate-400 font-medium">${percent}%</span>
+          <tr onclick="openClientDrawer('${c.id}')" class="hover:bg-slate-800/40 transition cursor-pointer group border-b border-slate-800/50">
+            
+            <!-- Col 1: CLIENTE -->
+            <td class="p-3.5 min-w-[200px]">
+              <div class="font-bold text-white group-hover:text-sky-400 transition text-xs flex items-center gap-1.5">
+                <span>${escapeHtml(c.name)}</span>
+                ${c.priority ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-400 border border-rose-800 font-bold">ALTA</span>' : ''}
+              </div>
+              <div class="text-[11px] text-slate-400 mt-0.5 truncate">
+                ${escapeHtml(c.phone || '')}${c.phone && c.email ? ' • ' : ''}${escapeHtml(c.email || '')}
               </div>
             </td>
-            <td class="p-3.5" onclick="event.stopPropagation()">
-              ${waLink ? `
-                <button onclick="window.open('${waLink}', '_blank')" class="touch-target p-1.5 rounded-xl text-emerald-400 hover:bg-emerald-950/50 transition cursor-pointer" title="Abrir WhatsApp">
-                  <i data-lucide="message-circle" class="w-4 h-4"></i>
-                </button>
-              ` : '<span class="text-slate-600">-</span>'}
+
+            <!-- Col 2: DATA DE INÍCIO -->
+            <td class="p-3.5 whitespace-nowrap text-slate-300 font-mono text-xs">
+              ${daysInfo.dataInicioFormatada}
             </td>
-            <td class="p-3.5 text-right" onclick="event.stopPropagation()">
-              <button onclick="openClientDrawer('${c.id}')" class="min-h-[44px] px-3.5 py-2 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 text-xs font-semibold transition cursor-pointer shadow-sm">
-                Abrir Gaveta
+
+            <!-- Col 3: FASE ATUAL -->
+            <td class="p-3.5 whitespace-nowrap">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-bold shadow-sm inline-flex items-center gap-1.5" style="background-color: ${stageColor}22; border: 1px solid ${stageColor}66; color: ${stageColor}">
+                <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${stageColor}"></span>
+                <span>${escapeHtml(stage.nome)}</span>
+              </span>
+            </td>
+
+            <!-- Col 4: TEMPO NA FASE -->
+            <td class="p-3.5 whitespace-nowrap">
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-amber-950/70 border-amber-800/80 text-amber-300 inline-flex items-center gap-1 shadow-sm">
+                <span>📍</span>
+                <span>${daysInfo.diasNaFase}d na fase</span>
+              </span>
+            </td>
+
+            <!-- Col 5: TEMPO TOTAL -->
+            <td class="p-3.5 whitespace-nowrap">
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border ${aging.badgeClass} inline-flex items-center gap-1 shadow-sm">
+                <span>${aging.dotEmoji}</span>
+                <span>${daysInfo.diasTotais}d (${aging.statusText})</span>
+              </span>
+            </td>
+
+            <!-- Col 6: PRÓXIMA AÇÃO -->
+            <td class="p-3.5 min-w-[200px] max-w-[280px]">
+              <div class="text-xs text-slate-200 font-semibold truncate leading-tight mb-1" title="${nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas'}">
+                ${nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas 🎉'}
+              </div>
+              ${nextTask ? `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${nextTaskAssigneeName ? 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80' : 'bg-slate-950 text-slate-400 border-slate-800'}">
+                  <span>👤</span>
+                  <span class="truncate max-w-[130px]">${nextTaskAssigneeName ? escapeHtml(nextTaskAssigneeName) : 'Sem responsável'}</span>
+                </span>
+              ` : ''}
+            </td>
+
+            <!-- Col 7: PROGRESSO -->
+            <td class="p-3.5 whitespace-nowrap">
+              <div class="flex items-center gap-2">
+                <div class="w-16 sm:w-20 bg-slate-800 rounded-full h-2 overflow-hidden shrink-0">
+                  <div class="bg-sky-500 h-2 rounded-full transition-all duration-300" style="width: ${percent}%"></div>
+                </div>
+                <span class="text-xs text-slate-300 font-mono font-bold">${percent}%</span>
+                <span class="text-[10px] text-slate-500 font-mono">(${doneTasks}/${allTasks.length})</span>
+              </div>
+            </td>
+
+            <!-- Col 8: LINKS RÁPIDOS -->
+            <td class="p-3.5 whitespace-nowrap text-center" onclick="event.stopPropagation()">
+              <div class="flex items-center justify-center gap-1.5">
+                ${waLink ? `
+                  <button type="button" onclick="window.open('${waLink}', '_blank')" class="touch-target p-1.5 rounded-xl text-emerald-400 hover:bg-emerald-950/50 hover:text-emerald-300 transition cursor-pointer" title="WhatsApp">
+                    <i data-lucide="message-circle" class="w-4 h-4"></i>
+                  </button>
+                ` : ''}
+                ${driveLink ? `
+                  <button type="button" onclick="window.open('${driveLink}', '_blank')" class="touch-target p-1.5 rounded-xl text-amber-400 hover:bg-amber-950/50 hover:text-amber-300 transition cursor-pointer" title="Google Drive">
+                    <i data-lucide="folder" class="w-4 h-4"></i>
+                  </button>
+                ` : ''}
+                ${websiteLink ? `
+                  <button type="button" onclick="window.open('${websiteLink}', '_blank')" class="touch-target p-1.5 rounded-xl text-sky-400 hover:bg-sky-950/50 hover:text-sky-300 transition cursor-pointer" title="Abrir Site">
+                    <i data-lucide="globe" class="w-4 h-4"></i>
+                  </button>
+                ` : ''}
+                ${(!waLink && !driveLink && !websiteLink) ? '<span class="text-slate-600">-</span>' : ''}
+              </div>
+            </td>
+
+            <!-- Col 9: AÇÕES -->
+            <td class="p-3.5 text-right whitespace-nowrap" onclick="event.stopPropagation()">
+              <button type="button" onclick="openClientDrawer('${c.id}')" class="min-h-[36px] px-3 py-1.5 rounded-xl bg-sky-600/20 hover:bg-sky-600 text-sky-400 hover:text-white border border-sky-500/30 text-xs font-semibold transition cursor-pointer shadow-sm inline-flex items-center gap-1">
+                <span>Abrir Gaveta</span>
+                <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
               </button>
             </td>
+
           </tr>
         `;
       }).join("");
 
       lucide.createIcons();
+    }
+
+    function exportFilteredClientsCSV() {
+      const stages = getPipelineStages();
+      const filtered = getFilteredClientsForTable();
+      if (filtered.length === 0) {
+        showToast("Nenhum cliente disponível para exportação.");
+        return;
+      }
+
+      const headers = [
+        "Cliente",
+        "Telefone",
+        "Email",
+        "Data de Inicio",
+        "Fase Atual",
+        "Tempo na Fase (dias)",
+        "Tempo Total (dias)",
+        "Faixa de Aging",
+        "Proxima Acao",
+        "Responsavel Proxima Acao",
+        "Progresso (%)",
+        "Tarefas Concluidas",
+        "Total Tarefas",
+        "WhatsApp Link",
+        "Drive Link",
+        "Site Link"
+      ];
+
+      const escapeCsv = (val) => {
+        const s = String(val ?? "").replace(/"/g, '""');
+        return '"' + s + '"';
+      };
+
+      const rows = filtered.map(c => {
+        const daysInfo = getClientStageAndTotalDays(c);
+        const aging = getClientAgingInfo(c);
+        const stage = getClientCurrentStage(c);
+        const allTasks = getClientMergedTasks(c);
+        const doneTasks = allTasks.filter(t => t.status === "Concluída").length;
+        const percent = allTasks.length > 0 ? Math.round((doneTasks / allTasks.length) * 100) : 0;
+        const nextTask = getNextPendingTask(c, stages);
+
+        let nextTaskAssigneeName = "";
+        if (nextTask && nextTask.assignee) {
+          const member = (state.users || []).find(u => 
+            (u.email || "").toLowerCase() === nextTask.assignee.toLowerCase() ||
+            (u.nome || "").toLowerCase() === nextTask.assignee.toLowerCase()
+          );
+          nextTaskAssigneeName = member?.nome || nextTask.assignee.split("@")[0] || nextTask.assignee;
+        }
+
+        const waLink = c.whatsappGroup && c.whatsappGroup.trim()
+          ? c.whatsappGroup.trim()
+          : (c.phone ? ("https://wa.me/55" + c.phone.replace(/\D/g, '')) : '');
+        const driveLink = c.driveUrl || c.googleDriveUrl || "";
+        const websiteLink = c.websiteUrl || c.siteUrl || "";
+
+        return [
+          escapeCsv(c.name || ""),
+          escapeCsv(c.phone || ""),
+          escapeCsv(c.email || ""),
+          escapeCsv(daysInfo.dataInicioFormatada),
+          escapeCsv(stage.nome),
+          daysInfo.diasNaFase,
+          daysInfo.diasTotais,
+          escapeCsv(aging.statusText),
+          escapeCsv(nextTask ? nextTask.title : "Todas concluídas"),
+          escapeCsv(nextTaskAssigneeName || "-"),
+          percent + "%",
+          doneTasks,
+          allTasks.length,
+          escapeCsv(waLink),
+          escapeCsv(driveLink),
+          escapeCsv(websiteLink)
+        ].join(";");
+      });
+
+      const csvContent = "\uFEFF" + [headers.join(";"), ...rows].join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const nowStr = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = "relatorio-clientes-harppia_" + nowStr + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Relatório CSV exportado com sucesso!");
     }
 
     /**
