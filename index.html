@@ -934,12 +934,10 @@
   <!-- =========================================================================
        GAVETA LATERAL DO CLIENTE (DRAWER DE OPERAÇÃO & SUBTAREFAS)
        ========================================================================= -->
-  <div id="clientDrawerBackdrop" onclick="closeClientDrawer()" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm transition-opacity"></div>
-  <aside id="clientDrawer" class="fixed inset-x-0 bottom-0 md:inset-auto md:top-0 md:right-0 md:bottom-0 z-50 w-full md:max-w-2xl max-h-[90vh] md:max-h-full rounded-t-2xl md:rounded-none bg-slate-900 border-t md:border-t-0 md:border-l border-slate-700 md:border-slate-800 shadow-2xl flex flex-col transform translate-y-full md:translate-y-0 md:translate-x-full transition-transform duration-300 ease-in-out">
-    <!-- Barra de tração superior ("drag handle") decorativo exclusivo no mobile -->
-    <div class="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto my-2.5 md:hidden shrink-0"></div>
-    <!-- Cabeçalho da Gaveta -->
-    <div class="p-4 sm:p-5 border-b border-slate-800 bg-slate-950/80 flex items-start justify-between gap-3">
+  <div id="clientDrawerBackdrop" onclick="closeClientDrawer()" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity"></div>
+  <aside id="clientDrawer" class="fixed top-0 bottom-0 right-0 h-full h-[100dvh] z-50 w-[88vw] sm:w-[90vw] max-w-[420px] md:w-full md:max-w-2xl rounded-l-2xl md:rounded-none bg-slate-900 border-l border-slate-700 md:border-slate-800 shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-out">
+    <!-- Cabeçalho Fixo da Gaveta Mobile & Desktop -->
+    <div class="sticky top-0 bg-slate-900 z-10 p-4 sm:p-5 border-b border-slate-800 flex items-start justify-between gap-3 shrink-0">
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2 mb-1 flex-wrap">
           <span id="drawerClientPhaseBadge" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800">Fase 1: Questionário</span>
@@ -993,7 +991,7 @@
     </div>
 
     <!-- Conteúdo da Gaveta: Subtarefas -->
-    <div id="drawerContent-tasks" class="flex-1 overflow-y-auto p-4 space-y-3">
+    <div id="drawerContent-tasks" class="flex-1 overflow-y-auto p-4 pb-24 space-y-3" style="-webkit-overflow-scrolling: touch;">
       <!-- Seletor de visualização de tarefas e Ação de Adicionar Subtarefa Personalizada -->
       <div class="flex items-center justify-between pb-2 border-b border-slate-800/60 gap-2 flex-wrap">
         <div class="flex items-center gap-2">
@@ -1024,7 +1022,7 @@
     </div>
 
     <!-- Conteúdo da Gaveta: Notas -->
-    <div id="drawerContent-notes" class="hidden flex-1 overflow-y-auto p-4 space-y-3">
+    <div id="drawerContent-notes" class="hidden flex-1 overflow-y-auto p-4 pb-24 space-y-3" style="-webkit-overflow-scrolling: touch;">
       <label class="text-xs text-slate-400 block font-medium">Histórico, preferências e observações gerais do cliente:</label>
       <textarea id="drawerInputNotes" rows="12" oninput="handleNotesInputDebounced()" placeholder="Escreva aqui anotações importantes sobre o cliente, equipe de apoio, preferências visuais..." class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-xs text-white focus:outline-none focus:border-sky-500 leading-relaxed shadow-inner"></textarea>
       <div class="flex items-center justify-between text-xs">
@@ -1036,7 +1034,7 @@
     </div>
 
     <!-- Conteúdo da Gaveta: Dados & Contatos -->
-    <div id="drawerContent-info" class="hidden flex-1 overflow-y-auto p-4 space-y-4">
+    <div id="drawerContent-info" class="hidden flex-1 overflow-y-auto p-4 pb-24 space-y-4" style="-webkit-overflow-scrolling: touch;">
       <form id="drawerInfoForm" onsubmit="saveDrawerClientInfo(event)" class="space-y-3 text-xs">
         <div>
           <label class="block text-slate-400 mb-1">Nome Completo</label>
@@ -1098,7 +1096,7 @@
       </form>
     </div>
   <!-- Conteúdo da Gaveta: Histórico & Auditoria -->
-    <div id="drawerContent-history" class="hidden flex-1 overflow-y-auto p-4 space-y-3">
+    <div id="drawerContent-history" class="hidden flex-1 overflow-y-auto p-4 pb-24 space-y-3" style="-webkit-overflow-scrolling: touch;">
       <div class="flex items-center justify-between pb-2 border-b border-slate-800/60 mb-2">
         <span class="text-xs text-slate-400 font-medium">Timeline de Auditoria:</span>
         <span class="text-[11px] text-slate-500">Histórico de ações e movimentações</span>
@@ -3084,6 +3082,13 @@
         }).join("");
       }
 
+      // Garantia de cursor pointer e listeners nos cards Desktop
+      if (kanbanContainer) {
+        kanbanContainer.querySelectorAll(".kanban-card").forEach(card => {
+          card.style.cursor = "pointer";
+        });
+      }
+
       // 2. RENDERIZAÇÃO MOBILE: Seletor Deslizante + Lista Vertical de Cards (< 768px)
       const mobileTabs = document.getElementById("kanbanMobilePhaseTabs");
       const mobileContent = document.getElementById("kanbanMobileStageContent");
@@ -3296,13 +3301,13 @@
       }
 
       return `
-        <div class="w-full bg-slate-900/95 border ${isPriority ? 'priority-card border-rose-500/60 bg-rose-950/10' : 'border-slate-800/90'} rounded-2xl p-4 shadow-md space-y-3 text-left transition"
+        <div class="w-full bg-slate-900/95 border ${isPriority ? 'priority-card border-rose-500/60 bg-rose-950/10' : 'border-slate-800/90'} rounded-2xl p-4 shadow-md space-y-3 text-left transition cursor-pointer"
              draggable="false"
              onclick="openClientDrawer('${client.id}')">
           
           <!-- Topo do Card: Nome, Prioridade e Especialidade/Nicho -->
           <div class="flex items-start justify-between gap-2">
-            <div class="min-w-0 flex-1" onclick="event.stopPropagation(); openClientDrawer('${client.id}')">
+            <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5 flex-wrap mb-1">
                 <h4 class="font-bold text-sm text-white truncate max-w-[210px]" title="${escapeHtml(client.name)}">
                   ${escapeHtml(client.name)}
@@ -3455,10 +3460,12 @@
       return `
         <div id="card-${client.id}"
              data-id="${client.id}"
-             class="kanban-card p-3.5 bg-slate-950 border ${isPriority ? 'priority-card' : 'border-slate-800/80 hover:border-sky-500/60'} rounded-2xl shadow-sm transition ${canDrag ? 'cursor-grab active:cursor-grabbing hover:scale-[1.01]' : 'cursor-pointer'} select-none relative overflow-hidden"
+             class="kanban-card p-3.5 bg-slate-950 border ${isPriority ? 'priority-card' : 'border-slate-800/80 hover:border-sky-500/60'} rounded-2xl shadow-sm transition cursor-pointer hover:border-sky-400/80 ${canDrag ? 'hover:scale-[1.01]' : ''} select-none relative overflow-hidden"
              draggable="${canDrag ? 'true' : 'false'}"
-             ${canDrag ? `ondragstart="handleDragStart(event, '${client.id}')"` : ''}
-             onclick="openClientDrawer('${client.id}')">
+             ${canDrag ? `ondragstart="handleDragStart(event, '${client.id}')" ondragend="handleDragEnd(event, '${client.id}')"` : ''}
+             onmousedown="handleCardMouseDown(event, '${client.id}')"
+             onmouseup="handleCardMouseUp(event, '${client.id}')"
+             onclick="handleCardClick(event, '${client.id}')">
           
           ${isPriority ? `
             <div class="mb-2 -mx-3.5 -mt-3.5 px-3 py-1 bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 text-white text-[10px] font-black tracking-wider uppercase flex items-center justify-between priority-badge-blink shadow-md">
@@ -3470,7 +3477,7 @@
           ` : ''}
 
           <div class="flex items-start justify-between gap-2 mb-2">
-            <div class="min-w-0" onclick="event.stopPropagation(); openClientDrawer('${client.id}')">
+            <div class="min-w-0">
               <h4 class="font-bold text-xs text-white truncate hover:text-sky-400 transition cursor-pointer" title="${escapeHtml(client.name)}">${escapeHtml(client.name)}</h4>
               <p class="text-[11px] text-slate-400 truncate">${escapeHtml(client.specialty || client.niche || client.phone || '')}</p>
             </div>
@@ -3538,16 +3545,60 @@
 
     /**
      * =========================================================================
-     * DRAG AND DROP KANBAN (COM FASE & DATA_ENTRADA_FASE NO FIRESTORE)
+     * DRAG AND DROP E CLIQUE NOS CARDS DO KANBAN (COM PREVENÇÃO DE CONFLITO)
      * =========================================================================
      */
     let draggedClientId = null;
+    const cardPointerState = {
+      startX: 0,
+      startY: 0,
+      isDragging: false,
+      hasMoved: false,
+      clientId: null,
+      preventClickUntil: 0
+    };
+
+    function handleCardMouseDown(e, clientId) {
+      // Ignora botões de ação rápida internos (WhatsApp, prioridade, etc.)
+      if (e.target.closest("button, a, input, select, textarea")) return;
+      cardPointerState.startX = e.clientX;
+      cardPointerState.startY = e.clientY;
+      cardPointerState.isDragging = false;
+      cardPointerState.hasMoved = false;
+      cardPointerState.clientId = clientId;
+    }
+
+    function handleCardMouseUp(e, clientId) {
+      if (e.target.closest("button, a, input, select, textarea")) return;
+      if (cardPointerState.clientId !== clientId) return;
+
+      const deltaX = Math.abs(e.clientX - cardPointerState.startX);
+      const deltaY = Math.abs(e.clientY - cardPointerState.startY);
+      const distance = Math.hypot(deltaX, deltaY);
+
+      // Se o usuário apenas clicou sem arrastar (distância < 5px) e não houve drag ativo:
+      if (distance < 5 && !cardPointerState.isDragging && !cardPointerState.hasMoved) {
+        cardPointerState.preventClickUntil = Date.now() + 350;
+        openClientDrawer(clientId);
+      }
+    }
+
+    function handleCardClick(e, clientId) {
+      if (e.target.closest("button, a, input, select, textarea")) return;
+      if (Date.now() < cardPointerState.preventClickUntil || cardPointerState.isDragging || cardPointerState.hasMoved) {
+        e.preventDefault();
+        return;
+      }
+      openClientDrawer(clientId);
+    }
 
     function handleDragStart(e, clientId) {
       if (!state.currentUser?.permissions?.canAdvancePhases) {
         e.preventDefault();
         return;
       }
+      cardPointerState.isDragging = true;
+      cardPointerState.hasMoved = true;
       draggedClientId = clientId;
       e.dataTransfer.setData("text/plain", clientId);
       e.dataTransfer.effectAllowed = "move";
@@ -3555,6 +3606,19 @@
       if (card) {
         card.classList.add("opacity-50", "scale-[0.98]");
       }
+    }
+
+    function handleDragEnd(e, clientId) {
+      const card = document.getElementById("card-" + clientId);
+      if (card) {
+        card.classList.remove("opacity-50", "scale-[0.98]");
+      }
+      draggedClientId = null;
+      setTimeout(() => {
+        cardPointerState.isDragging = false;
+        cardPointerState.hasMoved = false;
+        cardPointerState.clientId = null;
+      }, 80);
     }
 
     function handleDragOver(e) {
@@ -3722,7 +3786,11 @@
         const backdrop = document.getElementById("clientDrawerBackdrop");
         if (backdrop) backdrop.classList.remove("hidden");
         const drawer = document.getElementById("clientDrawer");
-        if (drawer) drawer.classList.remove("translate-x-full", "translate-y-full");
+        if (drawer) {
+          drawer.style.transform = "";
+          drawer.classList.remove("translate-x-full", "translate-y-full");
+          drawer.classList.add("translate-x-0");
+        }
 
         if (window.lucide && typeof lucide.createIcons === "function") {
           lucide.createIcons();
@@ -3732,7 +3800,11 @@
         const backdrop = document.getElementById("clientDrawerBackdrop");
         if (backdrop) backdrop.classList.remove("hidden");
         const drawer = document.getElementById("clientDrawer");
-        if (drawer) drawer.classList.remove("translate-x-full", "translate-y-full");
+        if (drawer) {
+          drawer.style.transform = "";
+          drawer.classList.remove("translate-x-full", "translate-y-full");
+          drawer.classList.add("translate-x-0");
+        }
       }
     }
 
@@ -3740,7 +3812,11 @@
       const backdrop = document.getElementById("clientDrawerBackdrop");
       if (backdrop) backdrop.classList.add("hidden");
       const drawer = document.getElementById("clientDrawer");
-      if (drawer) drawer.classList.add("translate-x-full", "translate-y-full");
+      if (drawer) {
+        drawer.style.transform = "";
+        drawer.classList.remove("translate-x-0");
+        drawer.classList.add("translate-x-full");
+      }
       state.selectedClientId = null;
     }
 
@@ -6550,9 +6626,68 @@ lucide.createIcons();
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
 
+    /**
+     * Gesto de Fechamento por Toque / Swipe (Arrastar para a Direita no Mobile)
+     */
+    let drawerTouchStartX = 0;
+    let drawerTouchStartY = 0;
+    let drawerTouchCurrentX = 0;
+    let isDrawerSwiping = false;
+
+    function initDrawerSwipeGesture() {
+      const drawer = document.getElementById("clientDrawer");
+      if (!drawer) return;
+
+      drawer.addEventListener("touchstart", (e) => {
+        if (window.innerWidth >= 768) return;
+        if (e.touches.length !== 1) return;
+        drawerTouchStartX = e.touches[0].clientX;
+        drawerTouchStartY = e.touches[0].clientY;
+        drawerTouchCurrentX = drawerTouchStartX;
+        isDrawerSwiping = true;
+      }, { passive: true });
+
+      drawer.addEventListener("touchmove", (e) => {
+        if (!isDrawerSwiping || window.innerWidth >= 768) return;
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const deltaX = currentX - drawerTouchStartX;
+        const deltaY = currentY - drawerTouchStartY;
+
+        // Se o movimento for vertical, não intercepta para não travar a rolagem interna do drawer
+        if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaX) < 15) {
+          return;
+        }
+
+        // Se estiver arrastando para a direita (movimento de fechar)
+        if (deltaX > 0) {
+          drawerTouchCurrentX = currentX;
+          drawer.style.transform = `translateX(${deltaX}px)`;
+        }
+      }, { passive: true });
+
+      drawer.addEventListener("touchend", (e) => {
+        if (!isDrawerSwiping || window.innerWidth >= 768) return;
+        isDrawerSwiping = false;
+        const deltaX = drawerTouchCurrentX - drawerTouchStartX;
+        drawer.style.transform = "";
+
+        // Se arrastou mais de 70px para a direita, fecha a gaveta suavemente
+        if (deltaX > 70) {
+          closeClientDrawer();
+        }
+      }, { passive: true });
+
+      drawer.addEventListener("touchcancel", () => {
+        isDrawerSwiping = false;
+        drawer.style.transform = "";
+      }, { passive: true });
+    }
+
     // 11. BOOTSTRAP AO CARREGAR
     window.addEventListener("DOMContentLoaded", () => {
       initAuth();
+      initDrawerSwipeGesture();
       lucide.createIcons();
     });
   </script>
