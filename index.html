@@ -403,7 +403,7 @@
         <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
         <input type="text"
                id="kanbanSearch"
-               oninput="renderKanban(); renderTable();"
+               oninput="debouncedRenderKanban()"
                placeholder="Buscar cliente por nome ou nicho..."
                class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 h-10 md:h-9 text-sm md:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition shadow-inner">
       </div>
@@ -513,7 +513,7 @@
             <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
             <input type="text"
                    id="tableFilterSearch"
-                   oninput="renderTable();"
+                   oninput="debouncedRenderTable()"
                    placeholder="Buscar por nome, telefone ou e-mail..."
                    class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 h-10 md:h-9 text-sm md:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 shadow-inner">
           </div>
@@ -880,7 +880,7 @@
           <!-- Busca Textual -->
           <div class="relative">
             <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
-            <input type="text" id="historySearchInput" oninput="renderGlobalHistory()" placeholder="Buscar por cliente ou ação..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition shadow-inner">
+            <input type="text" id="historySearchInput" oninput="debouncedRenderGlobalHistory()" placeholder="Buscar por cliente ou ação..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition shadow-inner">
           </div>
 
           <!-- Filtro por Responsável/Autor (Normalizado e Sem Duplicatas) -->
@@ -2270,11 +2270,12 @@
     function openDrawerWhatsApp() {
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
-      const link = client.whatsappGroup && client.whatsappGroup.trim()
+      const raw = client.whatsappGroup && client.whatsappGroup.trim()
         ? client.whatsappGroup.trim()
         : (client.phone ? ("https://wa.me/55" + client.phone.replace(/\D/g, '')) : '');
+      const link = sanitizeUrl(raw);
       if (link) {
-        window.open(link, '_blank');
+        safeOpenUrl(link);
       } else {
         showToast("Nenhum telefone ou grupo de WhatsApp cadastrado.");
       }
@@ -2601,8 +2602,10 @@
         const currentEtapas = (docData && Array.isArray(docData.etapas)) ? docData.etapas : [];
         const subCount = currentEtapas.reduce((acc, s) => acc + (Array.isArray(s.subtarefas) ? s.subtarefas.length : 0), 0);
 
-        if (!doc.exists || currentEtapas.length !== 9 || subCount !== 54) {
-          console.log("Sincronizando pipeline oficial de 9 fases e 54 subtarefas no Firestore...");
+        const isMaster = PRIMARY_ADMIN_EMAILS.includes((state.currentUser?.email || "").toLowerCase().trim());
+        const canSeed = state.currentUser?.permissions?.isAdmin || isMaster;
+
+        if ((!doc.exists || currentEtapas.length !== 9 || subCount !== 54) && canSeed) {
           try {
             const updatedEtapas = DEFAULT_PIPELINE_STAGES.map((defStage, sIdx) => {
               const matchStage = currentEtapas[sIdx];
@@ -2627,9 +2630,11 @@
             await db.collection("settings").doc("pipeline").set(initialDoc);
             state.pipeline = initialDoc;
           } catch (err) {
-            console.error("Erro ao atualizar seed em settings/pipeline:", err);
+            console.error("Erro ao atualizar seed em settings/pipeline:", err.message || err);
             state.pipeline = { etapas: DEFAULT_PIPELINE_STAGES };
           }
+        } else if (!doc.exists) {
+          state.pipeline = { etapas: DEFAULT_PIPELINE_STAGES };
         } else {
           state.pipeline = docData;
         }
@@ -2675,10 +2680,15 @@
 
         state.clients = clientList;
         populateAssigneeFilterOptions();
-        renderKanban();
-        renderTable();
-        renderMetrics();
-        if (state.currentView === "history") {
+
+        // Otimização de Performance: renderiza estritamente a view visível
+        if (state.currentView === "kanban") {
+          renderKanban();
+        } else if (state.currentView === "table") {
+          renderTable();
+        } else if (state.currentView === "metrics") {
+          renderMetrics();
+        } else if (state.currentView === "history") {
           renderGlobalHistory();
         }
 
@@ -3391,7 +3401,7 @@
               <div class="flex items-center gap-1.5">
                 ${waLink ? `
                   <button type="button"
-                          onclick="event.stopPropagation(); window.open('${waLink}', '_blank')"
+                          onclick="event.stopPropagation(); safeOpenUrl('${escapeJsString(waLink)}')"
                           title="Abrir WhatsApp"
                           class="touch-target min-w-[44px] min-h-[44px] p-2 rounded-xl text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 hover:bg-emerald-900/60 transition cursor-pointer flex items-center justify-center">
                     <i data-lucide="message-circle" class="w-4 h-4"></i>
@@ -3506,7 +3516,7 @@
           <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800/60">
             <div class="flex items-center gap-1">
               ${waLink ? `
-                <button onclick="event.stopPropagation(); window.open('${waLink}', '_blank')" title="Abrir WhatsApp" class="touch-target p-1.5 rounded-xl text-emerald-400 hover:bg-emerald-950/50 transition cursor-pointer">
+                <button onclick="event.stopPropagation(); safeOpenUrl('${escapeJsString(waLink)}')" title="Abrir WhatsApp" class="touch-target p-1.5 rounded-xl text-emerald-400 hover:bg-emerald-950/50 transition cursor-pointer">
                   <i data-lucide="message-circle" class="w-4 h-4"></i>
                 </button>
               ` : ''}
@@ -3801,7 +3811,7 @@
         ` : '';
 
         const assigneeBadge = task.assignee ? `
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800/80 shrink-0 shadow-sm" title="Responsável: ${escapeHtml(assigneeName)} (${task.assignee})">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800/80 shrink-0 shadow-sm" title="Responsável: ${escapeHtml(assigneeName)} (${escapeHtml(task.assignee)})">
             <span class="w-4 h-4 rounded-full bg-indigo-900 border border-indigo-700 text-indigo-200 text-[9px] font-bold flex items-center justify-center">${assigneeInitials}</span>
             <span class="truncate max-w-[130px]">${escapeHtml(assigneeName)}</span>
           </span>
@@ -3826,7 +3836,7 @@
                 <select onchange="updateTaskAssignee('${task.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-0.5 text-[10px] text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer ml-auto" title="Reatribuir responsável para este cliente">
                   <option value="">👤 Não atribuído</option>
                   ${state.users.map(u => `
-                    <option value="${u.email}" ${task.assignee === u.email ? 'selected' : ''}>${escapeHtml(u.nome || u.email.split('@')[0])} (${escapeHtml(u.cargo || 'Membro')})</option>
+                    <option value="${escapeHtml(u.email)}" ${task.assignee === u.email ? 'selected' : ''}>${escapeHtml(u.nome || u.email.split('@')[0])} (${escapeHtml(u.cargo || 'Membro')})</option>
                   `).join("")}
                 </select>
                 ${task.isCustom ? `
@@ -3898,6 +3908,10 @@
     }
 
     async function submitAddCustomSubtask() {
+      if (!state.currentUser?.permissions?.canEditClients && !state.currentUser?.permissions?.isAdmin && !state.currentUser?.permissions?.isManager) {
+        showToast("Seu cargo não possui permissão para adicionar subtarefas personalizadas.");
+        return;
+      }
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
 
@@ -3980,6 +3994,10 @@
     }
 
     async function removeCustomSubtask(taskId) {
+      if (!state.currentUser?.permissions?.canEditClients && !state.currentUser?.permissions?.isAdmin && !state.currentUser?.permissions?.isManager) {
+        showToast("Seu cargo não possui permissão para remover subtarefas personalizadas.");
+        return;
+      }
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
 
@@ -4030,6 +4048,10 @@
     }
 
     async function toggleTaskStatus(taskId) {
+      if (!state.currentUser?.permissions?.canToggleTasks) {
+        showToast("Seu cargo não possui permissão para alterar status de tarefas.");
+        return;
+      }
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
 
@@ -4137,6 +4159,10 @@
     }
 
     async function updateTaskAssignee(taskId, assigneeEmail) {
+      if (!state.currentUser?.permissions?.canEditClients && !state.currentUser?.permissions?.isAdmin && !state.currentUser?.permissions?.isManager) {
+        showToast("Seu cargo não possui permissão para alterar o responsável da subtarefa.");
+        return;
+      }
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
 
@@ -4304,24 +4330,29 @@
       const loadMoreBtn = document.getElementById("historyLoadMoreContainer");
       if (!container) return;
 
-      // 1. Agregação em memória dos arrays 'historico' de todos os clientes em tempo real
+      // 1. Agregação otimizada com timestamp numérico pré-calculado (evita alocações de Date no sort)
       const allEvents = [];
-      (state.clients || []).forEach(client => {
+      const clients = state.clients || [];
+      for (let i = 0; i < clients.length; i++) {
+        const client = clients[i];
         const clientHistory = Array.isArray(client.historico) ? client.historico : [];
-        clientHistory.forEach(item => {
+        for (let j = 0; j < clientHistory.length; j++) {
+          const item = clientHistory[j];
+          if (!item) continue;
           allEvents.push({
             clientId: client.id,
             clientName: client.name || "Sem Nome",
             clientNiche: client.specialty || client.niche || "",
             data: item.data,
+            timestamp: item.data ? new Date(item.data).getTime() : 0,
             autor: item.autor || "Usuário",
             acao: item.acao || "Ação realizada"
           });
-        });
-      });
+        }
+      }
 
-      // 2. Ordenação decrescente: do mais recente para o mais antigo
-      allEvents.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
+      // 2. Ordenação numérica direta: O(N log N) sem alocação de objetos Date
+      allEvents.sort((a, b) => b.timestamp - a.timestamp);
 
       // Atualiza opções do dropdown de autores
       populateHistoryAuthorFilter(allEvents);
@@ -4371,11 +4402,11 @@
           </div>
         `;
         if (loadMoreBtn) loadMoreBtn.classList.add("hidden");
-        lucide.createIcons();
+        scheduleLucideIcons();
         return;
       }
 
-      // Limite de 100 registros com paginação
+      // Limite de registros com paginação
       const displayed = filtered.slice(0, globalHistoryLimit);
 
       container.innerHTML = displayed.map(event => {
@@ -4385,13 +4416,13 @@
         return `
           <div class="bg-slate-900 border border-slate-800/90 hover:border-slate-700/80 rounded-2xl p-4 shadow-sm transition flex items-start gap-3.5 group">
             <div class="w-9 h-9 rounded-xl bg-sky-950/80 border border-sky-800/80 text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 shadow-sm mt-0.5">
-              ${authorInitials}
+              ${escapeHtml(authorInitials)}
             </div>
 
             <div class="flex-1 min-w-0">
               <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
                 <div class="flex items-center gap-2 min-w-0">
-                  <button type="button" onclick="openClientDrawer('${event.clientId}')" class="font-bold text-white hover:text-sky-400 transition cursor-pointer text-xs truncate max-w-[240px] sm:max-w-md text-left flex items-center gap-1 group-hover:underline" title="Abrir perfil de ${escapeHtml(event.clientName)}">
+                  <button type="button" onclick="openClientDrawer('${escapeJsString(event.clientId)}')" class="font-bold text-white hover:text-sky-400 transition cursor-pointer text-xs truncate max-w-[240px] sm:max-w-md text-left flex items-center gap-1 group-hover:underline" title="Abrir perfil de ${escapeHtml(event.clientName)}">
                     <span>${escapeHtml(event.clientName)}</span>
                     <i data-lucide="external-link" class="w-3 h-3 text-sky-400 opacity-70"></i>
                   </button>
@@ -4401,7 +4432,7 @@
                 </div>
 
                 <span class="text-[11px] font-mono text-slate-400 shrink-0">
-                  ${formattedDate}
+                  ${escapeHtml(formattedDate)}
                 </span>
               </div>
 
@@ -4428,7 +4459,7 @@
         }
       }
 
-      lucide.createIcons();
+      scheduleLucideIcons();
     }
 
     function loadMoreGlobalHistory() {
@@ -4468,6 +4499,7 @@
 
     async function saveDrawerNotes() {
       if (!state.selectedClientId) return;
+      if (!state.currentUser?.permissions?.canEditClients && !state.currentUser?.permissions?.isAdmin) return;
       const notesVal = document.getElementById("drawerInputNotes")?.value || "";
       const statusIndicator = document.getElementById("notesStatusIndicator");
 
@@ -5225,17 +5257,17 @@
             <td data-col="col_quickLinks" class="p-3.5 whitespace-nowrap text-center" onclick="event.stopPropagation()">
               <div class="flex items-center justify-center gap-1.5">
                 ${waLink ? `
-                  <button type="button" onclick="window.open('${waLink}', '_blank')" class="touch-target p-1.5 rounded-xl text-emerald-400 hover:bg-emerald-950/50 hover:text-emerald-300 transition cursor-pointer" title="WhatsApp">
+                  <button type="button" onclick="safeOpenUrl('${escapeJsString(waLink)}')" class="touch-target p-1.5 rounded-xl text-emerald-400 hover:bg-emerald-950/50 hover:text-emerald-300 transition cursor-pointer" title="WhatsApp">
                     <i data-lucide="message-circle" class="w-4 h-4"></i>
                   </button>
                 ` : ''}
                 ${driveLink ? `
-                  <button type="button" onclick="window.open('${driveLink}', '_blank')" class="touch-target p-1.5 rounded-xl text-amber-400 hover:bg-amber-950/50 hover:text-amber-300 transition cursor-pointer" title="Google Drive">
+                  <button type="button" onclick="safeOpenUrl('${escapeJsString(driveLink)}')" class="touch-target p-1.5 rounded-xl text-amber-400 hover:bg-amber-950/50 hover:text-amber-300 transition cursor-pointer" title="Google Drive">
                     <i data-lucide="folder" class="w-4 h-4"></i>
                   </button>
                 ` : ''}
                 ${websiteLink ? `
-                  <button type="button" onclick="window.open('${websiteLink}', '_blank')" class="touch-target p-1.5 rounded-xl text-sky-400 hover:bg-sky-950/50 hover:text-sky-300 transition cursor-pointer" title="Abrir Site">
+                  <button type="button" onclick="safeOpenUrl('${escapeJsString(websiteLink)}')" class="touch-target p-1.5 rounded-xl text-sky-400 hover:bg-sky-950/50 hover:text-sky-300 transition cursor-pointer" title="Abrir Site">
                     <i data-lucide="globe" class="w-4 h-4"></i>
                   </button>
                 ` : ''}
@@ -5353,7 +5385,7 @@
                   ${waLink ? `
                     <div data-col="col_quickLinks">
                       <button type="button"
-                              onclick="window.open('${waLink}', '_blank')"
+                              onclick="safeOpenUrl('${escapeJsString(waLink)}')"
                               title="WhatsApp"
                               class="min-h-[42px] min-w-[42px] px-2.5 py-1.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/40 transition cursor-pointer flex items-center justify-center">
                         <i data-lucide="message-circle" class="w-4 h-4"></i>
@@ -6230,6 +6262,10 @@ lucide.createIcons();
     }
 
     async function executeDeleteStage() {
+      if (!state.currentUser?.permissions?.isAdmin) {
+        showToast("Apenas administradores podem excluir etapas.");
+        return;
+      }
       if (stageToDeleteIdx === null) return;
       const stageIdx = stageToDeleteIdx;
       const stage = editingPipeline[stageIdx];
@@ -6300,6 +6336,10 @@ lucide.createIcons();
     let pendingSubtaskDelete = null;
 
     async function deleteSubtask(stageIdx, subIdx) {
+      if (!state.currentUser?.permissions?.isAdmin) {
+        showToast("Apenas administradores podem remover subtarefas do pipeline.");
+        return;
+      }
       if (pendingSubtaskDelete && pendingSubtaskDelete.sIdx === stageIdx && pendingSubtaskDelete.subIdx === subIdx) {
         // Segundo clique: executa e salva imediatamente no Firestore
         if (editingPipeline[stageIdx] && Array.isArray(editingPipeline[stageIdx].subtarefas)) {
@@ -6398,13 +6438,78 @@ lucide.createIcons();
     }
 
     function escapeHtml(str) {
-      if (!str) return "";
+      if (str === null || str === undefined) return "";
       return String(str)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(/'/g, "&#039;")
+        .replace(/`/g, "&#096;");
+    }
+
+    function escapeJsString(str) {
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/</g, '\\x3c')
+        .replace(/>/g, '\\x3e');
+    }
+
+    function sanitizeUrl(raw) {
+      if (!raw) return "";
+      const s = String(raw).trim();
+      if (/^(javascript|data|vbscript):/i.test(s)) {
+        return "";
+      }
+      if (/^https?:\/\//i.test(s)) {
+        return s;
+      }
+      if (/^wa\.me\//i.test(s)) {
+        return "https://" + s;
+      }
+      if (/^\+?\d{8,15}$/.test(s.replace(/[\s()-]/g, ""))) {
+        return "https://wa.me/55" + s.replace(/\D/g, "");
+      }
+      if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/.*)?$/.test(s)) {
+        return "https://" + s;
+      }
+      return "";
+    }
+
+    function safeOpenUrl(rawUrl) {
+      const safe = sanitizeUrl(rawUrl);
+      if (safe) {
+        window.open(safe, "_blank", "noopener,noreferrer");
+      } else {
+        showToast("Link inválido ou não seguro.");
+      }
+    }
+
+    function debounce(fn, wait = 200) {
+      let timer = null;
+      return function(...args) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), wait);
+      };
+    }
+
+    const debouncedRenderKanban = debounce(() => renderKanban(), 200);
+    const debouncedRenderTable = debounce(() => renderTable(), 200);
+    const debouncedRenderGlobalHistory = debounce(() => renderGlobalHistory(), 200);
+
+    let lucideDebounceTimer = null;
+    function scheduleLucideIcons() {
+      if (lucideDebounceTimer) clearTimeout(lucideDebounceTimer);
+      lucideDebounceTimer = setTimeout(() => {
+        if (window.lucide && typeof lucide.createIcons === "function") {
+          lucide.createIcons();
+        }
+      }, 50);
     }
 
     // 10. NOTIFICAÇÕES TOAST
