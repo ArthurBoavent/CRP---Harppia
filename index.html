@@ -992,26 +992,39 @@
           ⭐ Prioridade
         </button>
       </div>
+
+      <!-- Linha 4: Barra de Progresso Geral e Contador de Tarefas no Cabeçalho -->
+      <div class="mt-3 pt-2.5 border-t border-slate-800/80">
+        <div class="flex items-center justify-between text-[11px] leading-none">
+          <span id="drawerTasksCount" class="text-slate-300 font-medium">
+            Progresso Geral: 0 de 54 subtarefas concluídas
+          </span>
+          <span id="drawerTasksProgressPct" class="text-xs font-bold text-cyan-400">0%</span>
+        </div>
+        <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden mt-1">
+          <div id="drawerTasksProgressBar" class="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-300" style="width: 0%;"></div>
+        </div>
+      </div>
     </div>
 
-    <!-- Navegação de Abas da Gaveta: Segmented Control de 4 Colunas (100% visíveis sem rolagem horizontal) -->
+    <!-- Navegação de Abas da Gaveta: Segmented Control Simétrico de 4 Colunas (Sem números nos botões) -->
     <div class="p-3 bg-slate-900 border-b border-slate-800 shrink-0">
-      <div class="grid grid-cols-4 gap-1 p-1 bg-slate-950/90 rounded-xl border border-slate-800/90">
-        <button type="button" onclick="switchDrawerTab('tasks')" id="drawerTabBtn-tasks" class="py-2 px-1 text-xs font-semibold rounded-lg text-sky-400 bg-sky-950/60 border border-sky-800/50 flex flex-col sm:flex-row items-center justify-center gap-1 transition cursor-pointer text-center">
-          <i data-lucide="check-square" class="w-3.5 h-3.5"></i>
-          <span class="truncate">Tarefas (<span id="drawerTasksCount">0/0</span>)</span>
+      <div class="grid grid-cols-4 gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
+        <button type="button" onclick="switchDrawerTab('tasks')" id="drawerTabBtn-tasks" class="py-2 px-1.5 text-xs font-semibold rounded-lg text-sky-400 bg-sky-950/60 border border-sky-800/50 flex items-center justify-center gap-1.5 transition cursor-pointer text-center">
+          <i data-lucide="check-square" class="w-3.5 h-3.5 shrink-0"></i>
+          <span class="truncate">Tarefas</span>
         </button>
-        <button type="button" onclick="switchDrawerTab('notes')" id="drawerTabBtn-notes" class="py-2 px-1 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 flex flex-col sm:flex-row items-center justify-center gap-1 transition cursor-pointer text-center">
-          <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+        <button type="button" onclick="switchDrawerTab('notes')" id="drawerTabBtn-notes" class="py-2 px-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition cursor-pointer text-center">
+          <i data-lucide="file-text" class="w-3.5 h-3.5 shrink-0"></i>
           <span class="truncate">Notas</span>
         </button>
-        <button type="button" onclick="switchDrawerTab('info')" id="drawerTabBtn-info" class="py-2 px-1 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 flex flex-col sm:flex-row items-center justify-center gap-1 transition cursor-pointer text-center">
-          <i data-lucide="info" class="w-3.5 h-3.5"></i>
+        <button type="button" onclick="switchDrawerTab('info')" id="drawerTabBtn-info" class="py-2 px-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition cursor-pointer text-center">
+          <i data-lucide="info" class="w-3.5 h-3.5 shrink-0"></i>
           <span class="truncate">Dados</span>
         </button>
-        <button type="button" onclick="switchDrawerTab('history')" id="drawerTabBtn-history" class="py-2 px-1 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 flex flex-col sm:flex-row items-center justify-center gap-1 transition cursor-pointer text-center">
-          <i data-lucide="history" class="w-3.5 h-3.5 text-amber-400"></i>
-          <span class="truncate">Histórico (<span id="drawerHistoryCount">0</span>)</span>
+        <button type="button" onclick="switchDrawerTab('history')" id="drawerTabBtn-history" class="py-2 px-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1.5 transition cursor-pointer text-center">
+          <i data-lucide="history" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+          <span class="truncate">Histórico</span>
         </button>
       </div>
     </div>
@@ -1037,8 +1050,7 @@
           </select>
         </div>
 
-        <button type="button" onclick="openAddCustomSubtaskModal()" class="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm">
-          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+        <button type="button" onclick="openAddCustomSubtaskModal()" class="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center justify-center transition cursor-pointer shadow-sm">
           <span>+ Adicionar Subtarefa Personalizada</span>
         </button>
       </div>
@@ -1124,9 +1136,14 @@
     </div>
   <!-- Conteúdo da Gaveta: Histórico & Auditoria -->
     <div id="drawerContent-history" class="hidden flex-1 overflow-y-auto p-4 pb-24 space-y-3" style="-webkit-overflow-scrolling: touch;">
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800/60 mb-2">
-        <span class="text-xs text-slate-400 font-medium">Timeline de Auditoria:</span>
-        <span class="text-[11px] text-slate-500">Histórico de ações e movimentações</span>
+      <div class="flex items-center justify-between pb-2.5 border-b border-slate-800/80 mb-2">
+        <span class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+          <i data-lucide="history" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Timeline de Auditoria</span>
+        </span>
+        <span id="drawerHistoryCount" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-950 text-slate-300 border border-slate-800">
+          Total de atividades: 0 registros
+        </span>
       </div>
 
       <div id="drawerHistoryList" class="relative pl-5 border-l-2 border-slate-800 space-y-3 my-2">
@@ -3920,8 +3937,17 @@
       }
 
       const doneCount = allTasks.filter(t => t.status === "Concluída").length;
+      const totalCount = allTasks.length;
+      const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
       const countEl = document.getElementById("drawerTasksCount");
-      if (countEl) countEl.textContent = doneCount + "/" + allTasks.length;
+      if (countEl) countEl.textContent = "Progresso Geral: " + doneCount + " de " + totalCount + " subtarefas concluídas";
+
+      const pctEl = document.getElementById("drawerTasksProgressPct");
+      if (pctEl) pctEl.textContent = progressPct + "%";
+
+      const barEl = document.getElementById("drawerTasksProgressBar");
+      if (barEl) barEl.style.width = progressPct + "%";
 
       if (filteredTasks.length === 0) {
         listEl.innerHTML = '<div class="p-6 text-center text-slate-500 text-xs">Nenhuma subtarefa encontrada para este filtro.</div>';
@@ -4283,6 +4309,13 @@
         }
       }
 
+      // Atualização otimista local imediata para barra de progresso e lista de tarefas
+      client.tasks = tasks;
+      if (targetTask.isCustom && updatePayload.subtarefasCustomizadas) {
+        client.subtarefasCustomizadas = updatePayload.subtarefasCustomizadas;
+      }
+      renderDrawerTasks();
+
       try {
         await db.collection("clients").doc(client.id).update(updatePayload);
       } catch (err) {
@@ -4363,7 +4396,7 @@
       const countEl = document.getElementById("drawerHistoryCount");
       const history = Array.isArray(client.historico) ? [...client.historico] : [];
 
-      if (countEl) countEl.textContent = history.length;
+      if (countEl) countEl.textContent = "Total de atividades: " + history.length + " registros";
       if (!listEl) return;
 
       if (history.length === 0) {
