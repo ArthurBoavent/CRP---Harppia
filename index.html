@@ -1135,7 +1135,12 @@
       </form>
     </div>
   <!-- Conteúdo da Gaveta: Histórico & Auditoria -->
-    <div id="drawerContent-history" class="hidden flex-1 overflow-y-auto p-4 pb-24 space-y-3" style="-webkit-overflow-scrolling: touch;">
+    <div id="drawerContent-history" class="hidden flex-1 overflow-y-auto p-4 pb-24 space-y-4" style="-webkit-overflow-scrolling: touch;">
+      <!-- Bloco em Destaque: Jornada da Esteira (Duração por Etapa) -->
+      <div id="drawerPipelineJourneyBox" class="bg-slate-950/90 border border-slate-800 rounded-2xl p-3.5 shadow-inner">
+        <!-- Renderizado dinamicamente via renderDrawerJourney() -->
+      </div>
+
       <div class="flex items-center justify-between pb-2.5 border-b border-slate-800/80 mb-2">
         <span class="text-xs text-slate-400 font-medium flex items-center gap-1.5">
           <i data-lucide="history" class="w-3.5 h-3.5 text-amber-400"></i>
@@ -2079,6 +2084,119 @@
       return isNaN(d.getTime()) ? null : d;
     }
 
+    // Formata string de data (YYYY-MM-DD ou ISO) em DD/MM sem desvios de fuso horário
+    function formatDayMonth(rawDate) {
+      if (!rawDate) return "";
+      const str = String(rawDate).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        const parts = str.split("-");
+        return parts[2] + "/" + parts[1];
+      }
+      const d = parseSafeDate(rawDate);
+      if (!d) return str;
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      return day + "/" + month;
+    }
+
+    // Formata string de data em DD/MM/AAAA
+    function formatDayMonthYear(rawDate) {
+      if (!rawDate) return "-";
+      const str = String(rawDate).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        const parts = str.split("-");
+        return parts[2] + "/" + parts[1] + "/" + parts[0];
+      }
+      const d = parseSafeDate(rawDate);
+      if (!d) return "-";
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return day + "/" + month + "/" + year;
+    }
+
+    // Converte string de data para formato YYYY-MM-DD compatível com <input type="date">
+    function toInputDateValue(rawDate) {
+      if (!rawDate) return "";
+      const str = String(rawDate).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+      const d = parseSafeDate(rawDate);
+      if (!d) return "";
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + day;
+    }
+
+    // Verifica se dataPrevista é anterior à data de hoje (em atraso)
+    function isTaskOverdue(dataPrevista) {
+      if (!dataPrevista) return false;
+      const targetYMD = toInputDateValue(dataPrevista);
+      if (!targetYMD) return false;
+      const now = new Date();
+      const todayYMD = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+      return targetYMD < todayYMD;
+    }
+
+    // Constrói e atualiza o array fasesHistory ao avançar ou trocar a fase do cliente
+    function buildUpdatedFasesHistory(client, oldStage, newStage, nowIso) {
+      const exitIso = nowIso || new Date().toISOString();
+      const history = Array.isArray(client?.fasesHistory)
+        ? JSON.parse(JSON.stringify(client.fasesHistory))
+        : [];
+
+      const fallbackEnteredObj = parseSafeDate(
+        client?.dataEntradaFase || client?.paymentDate || client?.dataPagamento || client?.entryDate || client?.dataEntrada || client?.createdAt
+      ) || new Date(exitIso);
+      const fallbackEnteredIso = fallbackEnteredObj.toISOString();
+
+      if (history.length === 0 && oldStage) {
+        const diasGastos = Math.max(0, Math.floor((new Date(exitIso) - new Date(fallbackEnteredIso)) / 86400000));
+        history.push({
+          faseId: oldStage.id,
+          faseNome: oldStage.nome,
+          entrouEm: fallbackEnteredIso,
+          saiuEm: exitIso,
+          diasGastos: diasGastos
+        });
+      } else if (history.length > 0) {
+        let closedAny = false;
+        for (let i = history.length - 1; i >= 0; i--) {
+          if (!history[i].saiuEm) {
+            const enteredIso = history[i].entrouEm || fallbackEnteredIso;
+            const enteredDate = parseSafeDate(enteredIso) || new Date(exitIso);
+            const diasGastos = Math.max(0, Math.floor((new Date(exitIso) - enteredDate) / 86400000));
+            history[i].saiuEm = exitIso;
+            history[i].diasGastos = diasGastos;
+            closedAny = true;
+            break;
+          }
+        }
+        if (!closedAny && oldStage) {
+          const diasGastos = Math.max(0, Math.floor((new Date(exitIso) - new Date(fallbackEnteredIso)) / 86400000));
+          history.push({
+            faseId: oldStage.id,
+            faseNome: oldStage.nome,
+            entrouEm: fallbackEnteredIso,
+            saiuEm: exitIso,
+            diasGastos: diasGastos
+          });
+        }
+      }
+
+      if (newStage) {
+        history.push({
+          faseId: newStage.id,
+          faseNome: newStage.nome,
+          entrouEm: exitIso,
+          saiuEm: null,
+          diasGastos: null
+        });
+      }
+
+      return history;
+    }
+
     function getClientStageAndTotalDays(client) {
       if (!client) {
         return {
@@ -2239,9 +2357,10 @@
           });
 
           const taskId = existing?.id || (client.id + "_" + stage.id + "_" + taskIdx);
-          const isDone = existing ? (existing.status === "Concluída" || existing.status === "checked" || existing.completed === true) : false;
+          const isDone = existing ? (existing.concluida === true || existing.status === "Concluída" || existing.status === "checked" || existing.completed === true) : false;
           const effectiveAssignee = (existing && existing.assignee) ? existing.assignee : (norm.responsavelPadrao || "");
-          const completedAt = existing?.completedAt || "";
+          const concluidaEm = existing?.concluidaEm || existing?.completedAt || "";
+          const dataPrevista = existing?.dataPrevista || "";
           const department = existing?.department || stage.nome;
 
           merged.push({
@@ -2253,9 +2372,12 @@
             title: taskTitle,
             department: department,
             status: isDone ? "Concluída" : "Pendente",
+            concluida: isDone,
+            concluidaEm: isDone ? concluidaEm : "",
+            completedAt: isDone ? concluidaEm : "",
+            dataPrevista: dataPrevista,
             assignee: effectiveAssignee,
             defaultAssignee: norm.responsavelPadrao || "",
-            completedAt: completedAt,
             isCustom: false
           });
         });
@@ -2265,10 +2387,11 @@
         stageCustom.forEach((ct) => {
           const existing = clientTasks.find(t => t && t.id === ct.id);
           const isDone = existing
-            ? (existing.status === "Concluída" || existing.status === "checked" || existing.completed === true)
-            : (ct.status === "Concluída" || ct.status === "checked" || ct.completed === true);
+            ? (existing.concluida === true || existing.status === "Concluída" || existing.status === "checked" || existing.completed === true)
+            : (ct.concluida === true || ct.status === "Concluída" || ct.status === "checked" || ct.completed === true);
           const effectiveAssignee = (existing && existing.assignee !== undefined) ? existing.assignee : (ct.assignee || "");
-          const completedAt = existing?.completedAt || ct.completedAt || "";
+          const concluidaEm = existing?.concluidaEm || existing?.completedAt || ct.concluidaEm || ct.completedAt || "";
+          const dataPrevista = (existing && existing.dataPrevista !== undefined) ? existing.dataPrevista : (ct.dataPrevista || "");
 
           merged.push({
             id: ct.id,
@@ -2279,9 +2402,12 @@
             title: ct.title || "Subtarefa personalizada",
             department: stage.nome,
             status: isDone ? "Concluída" : "Pendente",
+            concluida: isDone,
+            concluidaEm: isDone ? concluidaEm : "",
+            completedAt: isDone ? concluidaEm : "",
+            dataPrevista: dataPrevista,
             assignee: effectiveAssignee,
             defaultAssignee: ct.assignee || "",
-            completedAt: completedAt,
             isCustom: true
           });
         });
@@ -3271,14 +3397,17 @@
         return;
       }
 
+      const currentStage = stages[currentIdx];
       const nextStage = stages[currentIdx + 1];
       const nowIso = new Date().toISOString();
+      const updatedFasesHistory = buildUpdatedFasesHistory(client, currentStage, nextStage, nowIso);
 
       try {
         await db.collection("clients").doc(client.id).update({
           fase: nextStage.id,
           status: nextStage.id,
           dataEntradaFase: nowIso,
+          fasesHistory: updatedFasesHistory,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           historico: firebase.firestore.FieldValue.arrayUnion({
             data: nowIso,
@@ -3286,6 +3415,11 @@
             acao: 'Avançou fase para "' + nextStage.nome + '"'
           })
         });
+
+        client.fase = nextStage.id;
+        client.status = nextStage.id;
+        client.dataEntradaFase = nowIso;
+        client.fasesHistory = updatedFasesHistory;
 
         try {
           if (typeof confetti === "function") {
@@ -3318,13 +3452,16 @@
         return; // Já está nesta fase
       }
 
+      const currentStage = currentIdx !== -1 ? stages[currentIdx] : getClientCurrentStage(client);
       const nowIso = new Date().toISOString();
+      const updatedFasesHistory = buildUpdatedFasesHistory(client, currentStage, targetStage, nowIso);
 
       try {
         await db.collection("clients").doc(client.id).update({
           fase: targetStage.id,
           status: targetStage.id,
           dataEntradaFase: nowIso,
+          fasesHistory: updatedFasesHistory,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           historico: firebase.firestore.FieldValue.arrayUnion({
             data: nowIso,
@@ -3332,6 +3469,11 @@
             acao: 'Moveu para a fase "' + targetStage.nome + '"'
           })
         });
+
+        client.fase = targetStage.id;
+        client.status = targetStage.id;
+        client.dataEntradaFase = nowIso;
+        client.fasesHistory = updatedFasesHistory;
 
         const isLast = stages[stages.length - 1].id === targetStage.id;
         if (isLast) {
@@ -3732,12 +3874,14 @@
       const targetStage = stages.find(s => s.id === targetStageId);
       const stageName = targetStage ? targetStage.nome : targetStageId;
       const nowIso = new Date().toISOString();
+      const updatedFasesHistory = buildUpdatedFasesHistory(client, currentStage, targetStage || { id: targetStageId, nome: stageName }, nowIso);
 
       try {
         await db.collection("clients").doc(clientId).update({
           fase: targetStageId,
           status: targetStageId,
           dataEntradaFase: nowIso,
+          fasesHistory: updatedFasesHistory,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           historico: firebase.firestore.FieldValue.arrayUnion({
             data: nowIso,
@@ -3745,6 +3889,11 @@
             acao: 'Moveu cliente da etapa "' + currentStage.nome + '" para "' + stageName + '" (Drag-and-Drop)'
           })
         });
+
+        client.fase = targetStageId;
+        client.status = targetStageId;
+        client.dataEntradaFase = nowIso;
+        client.fasesHistory = updatedFasesHistory;
 
         showToast('Cliente movido para "' + stageName + '"!');
       } catch (err) {
@@ -3955,7 +4104,51 @@
       }
 
       listEl.innerHTML = filteredTasks.map(task => {
-        const isDone = task.status === "Concluída";
+        const isDone = task.concluida === true || task.status === "Concluída";
+        const concluidaEmIso = task.concluidaEm || task.completedAt || "";
+        const dataPrevistaStr = task.dataPrevista || "";
+        const overdue = !isDone && isTaskOverdue(dataPrevistaStr);
+
+        let dateChipHtml = "";
+        let currentPickerVal = "";
+        const hasDateToClear = isDone ? !!concluidaEmIso : !!dataPrevistaStr;
+
+        if (isDone) {
+          const displayDoneDate = formatDayMonth(concluidaEmIso || new Date().toISOString());
+          currentPickerVal = toInputDateValue(concluidaEmIso || new Date().toISOString());
+          dateChipHtml = `
+            <button type="button"
+                    onclick="openSubtaskDatePopover('${task.id}', event)"
+                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-950/60 border border-emerald-800/70 text-emerald-300 cursor-pointer hover:border-slate-500 transition-colors"
+                    title="Clique para alterar ou remover a data de conclusão">
+              <span>✓ Concluído em ${displayDoneDate}</span>
+            </button>
+          `;
+        } else if (dataPrevistaStr) {
+          const displayPlannedDate = formatDayMonth(dataPrevistaStr);
+          currentPickerVal = toInputDateValue(dataPrevistaStr);
+          const chipStyle = overdue
+            ? "bg-red-500/15 border-red-500/40 text-red-300"
+            : "bg-sky-950/60 border-sky-800/70 text-sky-300";
+          dateChipHtml = `
+            <button type="button"
+                    onclick="openSubtaskDatePopover('${task.id}', event)"
+                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${chipStyle} cursor-pointer hover:border-slate-500 transition-colors"
+                    title="${overdue ? 'Prazo em atraso! Clique para reagendar ou remover' : 'Clique para alterar ou remover o prazo previsto'}">
+              <span>📅 Previsto: ${displayPlannedDate}</span>
+            </button>
+          `;
+        } else {
+          currentPickerVal = "";
+          dateChipHtml = `
+            <button type="button"
+                    onclick="openSubtaskDatePopover('${task.id}', event)"
+                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-900 border border-slate-700/60 text-slate-400 hover:text-slate-200 cursor-pointer hover:border-slate-500 transition-colors"
+                    title="Clique para definir um prazo previsto">
+              <span>📅 + Prazo</span>
+            </button>
+          `;
+        }
 
         const customBadge = task.isCustom ? `
           <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-950/80 text-amber-400 border border-amber-800/80 shrink-0">
@@ -3975,7 +4168,7 @@
               </span>
             </button>
 
-            <!-- Título em Destaque Principal e Mini-chip Discreto de Responsável -->
+            <!-- Título em Destaque Principal e Linha Inferior de Metadados (Responsável + Chip de Data) -->
             <div class="flex-1 min-w-0">
               <div class="flex items-start justify-between gap-2">
                 <p class="text-sm font-semibold leading-snug flex-1 ${isDone ? 'line-through text-slate-400' : 'text-slate-100'}">
@@ -3991,8 +4184,8 @@
                 </div>
               </div>
 
-              <!-- Mini-chip / Badge Discreto e Compacto com Select Embutido e Chevron -->
-              <div class="mt-2 flex items-center gap-2 flex-wrap">
+              <!-- Linha Inferior Flexível com Metadados Compactos (Responsável + Data Interativa) -->
+              <div class="flex items-center gap-2 flex-wrap text-xs mt-1.5">
                 <div class="relative inline-flex items-center">
                   <select onchange="updateTaskAssignee('${task.id}', this.value)"
                           class="appearance-none text-xs text-slate-300 bg-slate-900 hover:bg-slate-850 hover:text-white border border-slate-700/60 rounded-full pl-2 pr-5 py-0.5 cursor-pointer focus:outline-none focus:border-sky-500 font-medium transition"
@@ -4005,6 +4198,36 @@
                     `).join("")}
                   </select>
                   <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400 absolute right-1.5 pointer-events-none"></i>
+                </div>
+
+                <!-- Chip Interativo de Data + Popover de Calendário Suspenso -->
+                <div class="relative inline-flex items-center subtask-date-wrapper" data-task-id="${task.id}">
+                  ${dateChipHtml}
+
+                  <div id="subtaskDatePopover_${task.id}"
+                       onclick="event.stopPropagation()"
+                       class="subtask-date-popover hidden absolute left-0 top-full mt-1.5 z-30 w-52 max-w-[78vw] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2.5 space-y-2 text-xs">
+                    <div class="flex items-center justify-between text-[11px] font-semibold text-slate-300">
+                      <span>${isDone ? 'Data de Conclusão' : 'Prazo Previsto'}</span>
+                      <button type="button" onclick="closeAllSubtaskDatePopovers()" class="text-slate-400 hover:text-white px-1 rounded cursor-pointer">
+                        ✕
+                      </button>
+                    </div>
+                    <input type="date"
+                           id="subtaskDateInput_${task.id}"
+                           value="${currentPickerVal}"
+                           onchange="handleSubtaskDateChange('${task.id}', this.value, ${isDone})"
+                           class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500 cursor-pointer"
+                           style="color-scheme: dark;" />
+                    ${hasDateToClear ? `
+                      <button type="button"
+                              onclick="clearSubtaskDate('${task.id}', ${isDone})"
+                              class="w-full py-1.5 px-2 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 font-semibold text-[11px] flex items-center justify-center gap-1 transition cursor-pointer">
+                        <i data-lucide="calendar-x" class="w-3.5 h-3.5"></i>
+                        <span>Remover Data</span>
+                      </button>
+                    ` : ''}
+                  </div>
                 </div>
               </div>
             </div>
@@ -4219,28 +4442,45 @@
       if (!targetTask) return;
 
       const nowIso = new Date().toISOString();
-      const newStatus = targetTask.status === "Concluída" ? "Pendente" : "Concluída";
-      const newCompletedAt = newStatus === "Concluída" ? nowIso : "";
+      const wasDone = targetTask.concluida === true || targetTask.status === "Concluída";
+      const newConcluida = !wasDone;
+      const newStatus = newConcluida ? "Concluída" : "Pendente";
+      const newCompletedAt = newConcluida ? nowIso : "";
 
       let tasks = Array.isArray(client.tasks) ? [...client.tasks] : [];
       const existingIdx = tasks.findIndex(t => t.id === taskId || (t.title && t.title.trim().toLowerCase() === targetTask.title.trim().toLowerCase()));
 
       if (existingIdx !== -1) {
-        tasks[existingIdx].status = newStatus;
-        tasks[existingIdx].completedAt = newCompletedAt;
+        tasks[existingIdx] = {
+          ...tasks[existingIdx],
+          status: newStatus,
+          concluida: newConcluida,
+          completedAt: newCompletedAt
+        };
+        if (newConcluida) {
+          tasks[existingIdx].concluidaEm = nowIso;
+        } else {
+          delete tasks[existingIdx].concluidaEm;
+        }
       } else {
-        tasks.push({
+        const newEntry = {
           id: taskId,
           stageId: targetTask.stageId,
           phase: targetTask.stageIndex,
           title: targetTask.title,
           status: newStatus,
+          concluida: newConcluida,
           assignee: targetTask.assignee || "",
+          dataPrevista: targetTask.dataPrevista || "",
           completedAt: newCompletedAt
-        });
+        };
+        if (newConcluida) {
+          newEntry.concluidaEm = nowIso;
+        }
+        tasks.push(newEntry);
       }
 
-      const actionText = newStatus === "Concluída"
+      const actionText = newConcluida
         ? 'Concluiu a subtarefa: "' + targetTask.title + '"'
         : 'Reabriu a subtarefa: "' + targetTask.title + '"';
 
@@ -4258,7 +4498,18 @@
         const customSubtasks = Array.isArray(client.subtarefasCustomizadas) ? [...client.subtarefasCustomizadas] : [];
         const cIdx = customSubtasks.findIndex(ct => ct && ct.id === taskId);
         if (cIdx !== -1) {
-          customSubtasks[cIdx] = { ...customSubtasks[cIdx], status: newStatus, completedAt: newCompletedAt };
+          const updatedCustom = {
+            ...customSubtasks[cIdx],
+            status: newStatus,
+            concluida: newConcluida,
+            completedAt: newCompletedAt
+          };
+          if (newConcluida) {
+            updatedCustom.concluidaEm = nowIso;
+          } else {
+            delete updatedCustom.concluidaEm;
+          }
+          customSubtasks[cIdx] = updatedCustom;
           updatePayload.subtarefasCustomizadas = customSubtasks;
         }
       }
@@ -4268,14 +4519,16 @@
       const currentStage = getClientCurrentStage(client);
       const currentIdx = stages.findIndex(s => s.id === currentStage.id);
 
-      const currentStageTasks = merged.map(t => t.id === taskId ? { ...t, status: newStatus } : t).filter(t => t.stageId === currentStage.id);
-      const allDone = currentStageTasks.length > 0 && currentStageTasks.every(t => t.status === "Concluída");
+      const currentStageTasks = merged.map(t => t.id === taskId ? { ...t, status: newStatus, concluida: newConcluida } : t).filter(t => t.stageId === currentStage.id);
+      const allDone = currentStageTasks.length > 0 && currentStageTasks.every(t => t.status === "Concluída" || t.concluida === true);
 
-      if (newStatus === "Concluída" && allDone && currentIdx !== -1 && currentIdx < 8) {
+      if (newConcluida && allDone && currentIdx !== -1 && currentIdx < 8) {
         const nextStage = stages[currentIdx + 1];
+        const updatedFasesHistory = buildUpdatedFasesHistory(client, currentStage, nextStage, nowIso);
         updatePayload.fase = nextStage.id;
         updatePayload.status = nextStage.id;
         updatePayload.dataEntradaFase = nowIso;
+        updatePayload.fasesHistory = updatedFasesHistory;
         updatePayload.historico = firebase.firestore.FieldValue.arrayUnion(
           {
             data: nowIso,
@@ -4288,6 +4541,11 @@
             acao: 'Auto-avanço para "' + nextStage.nome + '" após conclusão de todas as subtarefas da fase'
           }
         );
+
+        client.fase = nextStage.id;
+        client.status = nextStage.id;
+        client.dataEntradaFase = nowIso;
+        client.fasesHistory = updatedFasesHistory;
 
         showToast('🎉 Todas as subtarefas concluídas! Cliente avançado para "' + nextStage.nome + '"!');
 
@@ -4315,12 +4573,236 @@
         client.subtarefasCustomizadas = updatePayload.subtarefasCustomizadas;
       }
       renderDrawerTasks();
+      renderDrawerHistory();
 
       try {
         await db.collection("clients").doc(client.id).update(updatePayload);
       } catch (err) {
         console.error("Erro ao atualizar tarefa:", err);
         showToast("Erro ao gravar tarefa.");
+      }
+    }
+
+    function closeAllSubtaskDatePopovers() {
+      document.querySelectorAll(".subtask-date-popover").forEach(el => {
+        el.classList.add("hidden");
+      });
+    }
+
+    function openSubtaskDatePopover(taskId, event) {
+      if (event && typeof event.stopPropagation === "function") {
+        event.stopPropagation();
+      }
+      if (!state.currentUser?.permissions?.canToggleTasks && !state.currentUser?.permissions?.canEditClients && !state.currentUser?.permissions?.isAdmin) {
+        showToast("Seu cargo não possui permissão para editar datas de subtarefas.");
+        return;
+      }
+
+      const popover = document.getElementById("subtaskDatePopover_" + taskId);
+      const input = document.getElementById("subtaskDateInput_" + taskId);
+      if (!popover) return;
+
+      const wasHidden = popover.classList.contains("hidden");
+      closeAllSubtaskDatePopovers();
+
+      if (wasHidden) {
+        popover.classList.remove("hidden");
+        if (input) {
+          setTimeout(() => {
+            input.focus();
+            if (typeof input.showPicker === "function") {
+              try {
+                input.showPicker();
+              } catch (e) {}
+            }
+          }, 20);
+        }
+      }
+    }
+
+    async function handleSubtaskDateChange(taskId, newDateYMD, isCompletionDate) {
+      if (!newDateYMD) return;
+      if (!state.currentUser?.permissions?.canToggleTasks && !state.currentUser?.permissions?.canEditClients && !state.currentUser?.permissions?.isAdmin) {
+        showToast("Seu cargo não possui permissão para alterar datas de subtarefas.");
+        return;
+      }
+
+      const client = state.clients.find(c => c.id === state.selectedClientId);
+      if (!client) return;
+
+      const merged = getClientMergedTasks(client);
+      const targetTask = merged.find(t => t.id === taskId);
+      if (!targetTask) return;
+
+      const nowIso = new Date().toISOString();
+      const selectedIso = new Date(newDateYMD + "T12:00:00").toISOString();
+      const formattedDM = formatDayMonth(newDateYMD);
+
+      let tasks = Array.isArray(client.tasks) ? [...client.tasks] : [];
+      const existingIdx = tasks.findIndex(t => t.id === taskId || (t.title && t.title.trim().toLowerCase() === targetTask.title.trim().toLowerCase()));
+
+      if (existingIdx !== -1) {
+        tasks[existingIdx] = { ...tasks[existingIdx] };
+        if (isCompletionDate) {
+          tasks[existingIdx].concluida = true;
+          tasks[existingIdx].status = "Concluída";
+          tasks[existingIdx].concluidaEm = selectedIso;
+          tasks[existingIdx].completedAt = selectedIso;
+        } else {
+          tasks[existingIdx].dataPrevista = newDateYMD;
+        }
+      } else {
+        const newEntry = {
+          id: taskId,
+          stageId: targetTask.stageId,
+          phase: targetTask.stageIndex,
+          title: targetTask.title,
+          status: isCompletionDate ? "Concluída" : targetTask.status,
+          concluida: isCompletionDate ? true : !!targetTask.concluida,
+          assignee: targetTask.assignee || "",
+          completedAt: isCompletionDate ? selectedIso : (targetTask.completedAt || ""),
+          dataPrevista: isCompletionDate ? (targetTask.dataPrevista || "") : newDateYMD
+        };
+        if (isCompletionDate) {
+          newEntry.concluidaEm = selectedIso;
+        }
+        tasks.push(newEntry);
+      }
+
+      const actionText = isCompletionDate
+        ? 'Atualizou a data de conclusão da subtarefa "' + targetTask.title + '" para ' + formattedDM
+        : 'Agendou prazo previsto da subtarefa "' + targetTask.title + '" para ' + formattedDM;
+
+      const historyItem = {
+        data: nowIso,
+        autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+        acao: actionText
+      };
+
+      const updatePayload = {
+        tasks: tasks,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        historico: firebase.firestore.FieldValue.arrayUnion(historyItem)
+      };
+
+      if (targetTask.isCustom) {
+        const customSubtasks = Array.isArray(client.subtarefasCustomizadas) ? [...client.subtarefasCustomizadas] : [];
+        const cIdx = customSubtasks.findIndex(ct => ct && ct.id === taskId);
+        if (cIdx !== -1) {
+          customSubtasks[cIdx] = { ...customSubtasks[cIdx] };
+          if (isCompletionDate) {
+            customSubtasks[cIdx].concluida = true;
+            customSubtasks[cIdx].status = "Concluída";
+            customSubtasks[cIdx].concluidaEm = selectedIso;
+            customSubtasks[cIdx].completedAt = selectedIso;
+          } else {
+            customSubtasks[cIdx].dataPrevista = newDateYMD;
+          }
+          updatePayload.subtarefasCustomizadas = customSubtasks;
+        }
+      }
+
+      client.tasks = tasks;
+      if (targetTask.isCustom && updatePayload.subtarefasCustomizadas) {
+        client.subtarefasCustomizadas = updatePayload.subtarefasCustomizadas;
+      }
+      if (!Array.isArray(client.historico)) client.historico = [];
+      client.historico.push(historyItem);
+
+      closeAllSubtaskDatePopovers();
+      renderDrawerTasks();
+      renderDrawerHistory();
+
+      try {
+        await db.collection("clients").doc(client.id).update(updatePayload);
+        showToast(isCompletionDate ? "Data de conclusão atualizada para " + formattedDM : "Prazo agendado para " + formattedDM);
+      } catch (err) {
+        console.error("Erro ao atualizar data da subtarefa:", err);
+        showToast("Erro ao gravar data no Firestore.");
+      }
+    }
+
+    async function clearSubtaskDate(taskId, isCompletionDate) {
+      if (!state.currentUser?.permissions?.canToggleTasks && !state.currentUser?.permissions?.canEditClients && !state.currentUser?.permissions?.isAdmin) {
+        showToast("Seu cargo não possui permissão para remover datas de subtarefas.");
+        return;
+      }
+
+      const client = state.clients.find(c => c.id === state.selectedClientId);
+      if (!client) return;
+
+      const merged = getClientMergedTasks(client);
+      const targetTask = merged.find(t => t.id === taskId);
+      if (!targetTask) return;
+
+      const nowIso = new Date().toISOString();
+      let tasks = Array.isArray(client.tasks) ? [...client.tasks] : [];
+      const existingIdx = tasks.findIndex(t => t.id === taskId || (t.title && t.title.trim().toLowerCase() === targetTask.title.trim().toLowerCase()));
+
+      if (existingIdx !== -1) {
+        tasks[existingIdx] = { ...tasks[existingIdx] };
+        if (isCompletionDate) {
+          tasks[existingIdx].concluida = false;
+          tasks[existingIdx].status = "Pendente";
+          tasks[existingIdx].completedAt = "";
+          delete tasks[existingIdx].concluidaEm;
+        } else {
+          tasks[existingIdx].dataPrevista = "";
+          delete tasks[existingIdx].dataPrevista;
+        }
+      }
+
+      const actionText = isCompletionDate
+        ? 'Removeu data de conclusão e reabriu a subtarefa "' + targetTask.title + '"'
+        : 'Removeu o prazo previsto da subtarefa "' + targetTask.title + '"';
+
+      const historyItem = {
+        data: nowIso,
+        autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+        acao: actionText
+      };
+
+      const updatePayload = {
+        tasks: tasks,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        historico: firebase.firestore.FieldValue.arrayUnion(historyItem)
+      };
+
+      if (targetTask.isCustom) {
+        const customSubtasks = Array.isArray(client.subtarefasCustomizadas) ? [...client.subtarefasCustomizadas] : [];
+        const cIdx = customSubtasks.findIndex(ct => ct && ct.id === taskId);
+        if (cIdx !== -1) {
+          customSubtasks[cIdx] = { ...customSubtasks[cIdx] };
+          if (isCompletionDate) {
+            customSubtasks[cIdx].concluida = false;
+            customSubtasks[cIdx].status = "Pendente";
+            customSubtasks[cIdx].completedAt = "";
+            delete customSubtasks[cIdx].concluidaEm;
+          } else {
+            customSubtasks[cIdx].dataPrevista = "";
+            delete customSubtasks[cIdx].dataPrevista;
+          }
+          updatePayload.subtarefasCustomizadas = customSubtasks;
+        }
+      }
+
+      client.tasks = tasks;
+      if (targetTask.isCustom && updatePayload.subtarefasCustomizadas) {
+        client.subtarefasCustomizadas = updatePayload.subtarefasCustomizadas;
+      }
+      if (!Array.isArray(client.historico)) client.historico = [];
+      client.historico.push(historyItem);
+
+      closeAllSubtaskDatePopovers();
+      renderDrawerTasks();
+      renderDrawerHistory();
+
+      try {
+        await db.collection("clients").doc(client.id).update(updatePayload);
+        showToast("Data removida com sucesso.");
+      } catch (err) {
+        console.error("Erro ao remover data da subtarefa:", err);
+        showToast("Erro ao atualizar no Firestore.");
       }
     }
 
@@ -4346,15 +4828,21 @@
       if (existingIdx !== -1) {
         tasks[existingIdx].assignee = assigneeEmail;
       } else {
-        tasks.push({
+        const newEntry = {
           id: taskId,
           stageId: targetTask.stageId,
           phase: targetTask.stageIndex,
           title: targetTask.title,
           status: targetTask.status,
+          concluida: !!targetTask.concluida,
           assignee: assigneeEmail,
+          dataPrevista: targetTask.dataPrevista || "",
           completedAt: targetTask.completedAt || ""
-        });
+        };
+        if (targetTask.concluidaEm) {
+          newEntry.concluidaEm = targetTask.concluidaEm;
+        }
+        tasks.push(newEntry);
       }
 
       const assigneePayload = {
@@ -4388,9 +4876,94 @@
       }
     }
 
+    function renderDrawerJourney(client) {
+      const journeyBox = document.getElementById("drawerPipelineJourneyBox");
+      if (!journeyBox || !client) return;
+
+      const currentStage = getClientCurrentStage(client);
+      const stageColor = currentStage.cor || "#0ea5e9";
+      const daysInfo = getClientStageAndTotalDays(client);
+
+      const rawHistory = Array.isArray(client.fasesHistory) ? client.fasesHistory : [];
+      const completedEntries = rawHistory.filter(item => item && item.saiuEm);
+      const activeEntryFromHistory = [...rawHistory].reverse().find(item => item && !item.saiuEm);
+
+      const activeEnteredIso = activeEntryFromHistory?.entrouEm || client.dataEntradaFase || client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt || new Date().toISOString();
+      const activeEnteredDate = parseSafeDate(activeEnteredIso) || new Date();
+      const activeDays = Math.max(0, Math.floor((new Date().getTime() - activeEnteredDate.getTime()) / 86400000));
+      const activeStageName = activeEntryFromHistory?.faseNome || currentStage.nome;
+
+      const completedStepsHtml = completedEntries.map(item => {
+        const duracao = (typeof item.diasGastos === "number" && !isNaN(item.diasGastos))
+          ? item.diasGastos
+          : Math.max(0, Math.floor(((parseSafeDate(item.saiuEm) || new Date()) - (parseSafeDate(item.entrouEm) || new Date())) / 86400000));
+        const entrouStr = formatDayMonthYear(item.entrouEm);
+        const saiuStr = formatDayMonthYear(item.saiuEm);
+
+        return `
+          <div class="relative pl-5 pb-3 last:pb-1">
+            <span class="w-5 h-5 rounded-full bg-emerald-950 border border-emerald-500 text-emerald-400 flex items-center justify-center text-[10px] font-bold absolute -left-[11px] top-0.5 shadow-sm">
+              ✓
+            </span>
+            <div class="bg-slate-900/90 border border-slate-800/90 rounded-xl p-2.5 flex items-center justify-between gap-2 flex-wrap">
+              <div class="min-w-0">
+                <p class="text-xs font-semibold text-slate-200 truncate">${escapeHtml(item.faseNome || item.faseId || "Etapa Concluída")}</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Entrada: ${entrouStr} • Saída: ${saiuStr}</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-800/70 shrink-0">
+                Duração: ${duracao} dias
+              </span>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      const activeStepHtml = `
+        <div class="relative pl-5">
+          <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold absolute -left-[11px] top-0.5 shadow-sm animate-pulse"
+                style="background-color: ${stageColor}33; border: 2px solid ${stageColor}; color: ${stageColor};">
+            ●
+          </span>
+          <div class="bg-slate-900 border border-sky-500/40 rounded-xl p-2.5 flex items-center justify-between gap-2 flex-wrap shadow-sm">
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-white truncate">${escapeHtml(activeStageName)}</p>
+              <p class="text-[10px] text-slate-400 mt-0.5">Entrada: ${formatDayMonthYear(activeEnteredIso)} • Fase Atual</p>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-700/80 shrink-0">
+              📍 Há ${activeDays} dias nesta fase
+            </span>
+          </div>
+        </div>
+      `;
+
+      journeyBox.innerHTML = `
+        <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-800/80">
+          <span class="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+            <i data-lucide="git-commit" class="w-4 h-4 text-sky-400"></i>
+            <span>Jornada da Esteira</span>
+          </span>
+          <span class="text-[10px] font-medium text-slate-400">Tempo por etapa</span>
+        </div>
+
+        <div class="relative ml-2.5 border-l-2 border-slate-800 space-y-2 my-1">
+          ${completedStepsHtml}
+          ${activeStepHtml}
+        </div>
+
+        <div class="pt-2.5 mt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+          <span class="text-slate-400 text-[11px]">Tempo acumulado na esteira:</span>
+          <span class="font-bold text-sky-400 text-[11px] bg-sky-950/60 border border-sky-800/60 px-2.5 py-0.5 rounded-full">
+            Total: ${daysInfo.diasTotais} dias corridos
+          </span>
+        </div>
+      `;
+    }
+
     function renderDrawerHistory() {
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
+
+      renderDrawerJourney(client);
 
       const listEl = document.getElementById("drawerHistoryList");
       const countEl = document.getElementById("drawerHistoryCount");
@@ -4401,6 +4974,7 @@
 
       if (history.length === 0) {
         listEl.innerHTML = '<div class="text-slate-500 text-xs py-4 italic">Nenhum evento registrado no histórico ainda. As alterações de fase, conclusão de tarefas e edições aparecerão aqui automaticamente.</div>';
+        lucide.createIcons();
         return;
       }
 
@@ -5875,8 +6449,10 @@ lucide.createIcons();
             department: stage.nome,
             description: "",
             status: "Pendente",
+            concluida: false,
             assignee: norm.responsavelPadrao || "",
-            completedAt: ""
+            completedAt: "",
+            dataPrevista: ""
           });
         });
       });
@@ -5913,6 +6489,7 @@ lucide.createIcons();
       try {
         const stages = getPipelineStages();
         const initialStageId = stages[0]?.id || "etapa_1";
+        const initialStageName = stages[0]?.nome || "Fase 1: Questionário";
         const newId = "cli_" + Date.now();
         const initialTasks = buildDefaultTasks(newId);
         const nowIso = new Date().toISOString();
@@ -5929,6 +6506,15 @@ lucide.createIcons();
           fase: initialStageId,
           status: initialStageId,
           dataEntradaFase: nowIso,
+          fasesHistory: [
+            {
+              faseId: initialStageId,
+              faseNome: initialStageName,
+              entrouEm: nowIso,
+              saiuEm: null,
+              diasGastos: null
+            }
+          ],
           priority: false,
           notes: "",
           tasks: initialTasks,
@@ -6151,6 +6737,9 @@ lucide.createIcons();
       const wrapper = document.getElementById("userProfileMenuWrapper");
       if (wrapper && !wrapper.contains(e.target)) {
         closeProfileDropdown();
+      }
+      if (e.target && typeof e.target.closest === "function" && !e.target.closest(".subtask-date-wrapper")) {
+        closeAllSubtaskDatePopovers();
       }
     });
 
