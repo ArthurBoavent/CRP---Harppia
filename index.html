@@ -385,6 +385,9 @@
         <button onclick="switchView('metrics')" id="tab-metrics" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-slate-400 hover:text-white shrink-0 cursor-pointer">
           <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i> Métricas
         </button>
+        <button onclick="switchView('history')" id="tab-history" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-slate-400 hover:text-white shrink-0 cursor-pointer">
+          <i data-lucide="history" class="w-3.5 h-3.5"></i> 📋 Histórico Geral
+        </button>
       </nav>
     </div>
   </header>
@@ -678,6 +681,67 @@
       </div>
 
     </div>
+
+    <!-- =========================================================================
+         VISUALIZAÇÃO 4: HISTÓRICO GERAL (FEED DE AUDITORIA CONSOLIDADO)
+         ========================================================================= -->
+    <div id="view-history" class="hidden flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+      <!-- Barra Superior de Controles e Filtros -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+        <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="history" class="w-5 h-5 text-sky-400"></i>
+              Feed de Auditoria Consolidado
+            </h2>
+            <p class="text-xs text-slate-400">Linha do tempo em tempo real com todas as movimentações, tarefas concluídas e alterações dos clientes.</p>
+          </div>
+          
+          <div class="flex items-center gap-2 text-xs text-slate-400 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 self-start md:self-auto">
+            <span>Eventos exibidos:</span>
+            <span id="historyTotalCountBadge" class="font-mono font-bold text-sky-400">0</span>
+          </div>
+        </div>
+
+        <!-- Filtros: Busca, Responsável/Autor, Período -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-800/60 text-xs">
+          <!-- Busca Textual -->
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <input type="text" id="historySearchInput" oninput="renderGlobalHistory()" placeholder="Buscar por cliente ou ação..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition shadow-inner">
+          </div>
+
+          <!-- Filtro por Responsável/Autor -->
+          <div class="relative">
+            <select id="historyFilterAuthor" onchange="renderGlobalHistory()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
+              <option value="all">👤 Todos os Autores</option>
+              <!-- Preenchido dinamicamente via JS -->
+            </select>
+          </div>
+
+          <!-- Filtro por Período -->
+          <div class="relative">
+            <select id="historyFilterPeriod" onchange="renderGlobalHistory()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer shadow-inner">
+              <option value="all">📅 Todos os Períodos</option>
+              <option value="today">Hoje</option>
+              <option value="7days">Últimos 7 dias</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feed / Timeline Consolidada -->
+      <div id="globalHistoryFeed" class="space-y-3">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+
+      <!-- Botão Carregar Mais -->
+      <div id="historyLoadMoreContainer" class="text-center pt-2 pb-6 hidden">
+        <button type="button" onclick="loadMoreGlobalHistory()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-medium text-xs transition cursor-pointer border border-slate-700 shadow-md">
+          Carregar mais eventos (+100)
+        </button>
+      </div>
+    </div>
   </main>
 
   <!-- =========================================================================
@@ -689,7 +753,7 @@
     <div class="p-4 sm:p-5 border-b border-slate-800 bg-slate-950/80 flex items-start justify-between gap-3">
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2 mb-1 flex-wrap">
-          <span id="drawerClientPhaseBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800">Fase 1</span>
+          <span id="drawerClientPhaseBadge" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800">Fase 1: Questionário</span>
           <span id="drawerClientSemaforo" class="text-[10px] font-semibold px-2 py-0.5 rounded-full border">🟢 No Prazo</span>
           <button id="drawerBtnPriority" onclick="toggleDrawerPriority()" title="Alternar Prioridade" class="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition">
             ⭐ Prioridade
@@ -740,10 +804,11 @@
 
     <!-- Conteúdo da Gaveta: Subtarefas -->
     <div id="drawerContent-tasks" class="flex-1 overflow-y-auto p-4 space-y-3">
-      <!-- Seletor de visualização de tarefas (Fase atual vs Todas as fases) -->
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800/60">
-        <span class="text-xs text-slate-400 font-medium">Lista de Execução da Esteira:</span>
-        <select id="drawerTasksFilter" onchange="renderDrawerTasks()" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer font-medium">
+      <!-- Seletor de visualização de tarefas e Ação de Adicionar Subtarefa Personalizada -->
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800/60 gap-2 flex-wrap">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400 font-medium">Lista de Execução:</span>
+          <select id="drawerTasksFilter" onchange="renderDrawerTasks()" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer font-medium">
           <option value="current">Apenas Fase Atual (Padrão)</option>
           <option value="all">Todas as 54 Subtarefas</option>
           <option value="etapa_1">Fase 1: Questionário</option>
@@ -755,7 +820,12 @@
           <option value="etapa_7">Fase 7: Campanha</option>
           <option value="etapa_8">Fase 8: Acompanhamento</option>
           <option value="etapa_9">Fase 9: Concluído</option>
-        </select>
+          </select>
+        </div>
+        <button type="button" onclick="openAddCustomSubtaskModal()" class="px-2.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm shrink-0">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>+ Adicionar Subtarefa Personalizada</span>
+        </button>
       </div>
 
       <div id="drawerTasksList" class="space-y-2.5">
@@ -1052,6 +1122,64 @@
        MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE CLIENTE
        ========================================================================= -->
   <!-- MODAL DE EXCLUSÃO DE CLIENTE COM DUPLA CONFIRMAÇÃO POR DIGITAÇÃO -->
+  <!-- Modal: Adicionar Subtarefa Personalizada ao Cliente -->
+  <div id="modalAddCustomSubtask" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
+        <div class="w-10 h-10 rounded-2xl bg-sky-950/80 border border-sky-800/80 text-sky-400 flex items-center justify-center shrink-0">
+          <i data-lucide="plus-circle" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Nova Subtarefa Personalizada</h3>
+          <span class="text-[11px] text-slate-400 font-medium">Exclusiva para o checklist deste cliente</span>
+        </div>
+        <button type="button" onclick="closeAddCustomSubtaskModal()" class="ml-auto p-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Título da Subtarefa *</label>
+          <input type="text"
+                 id="customSubtaskTitle"
+                 placeholder="Ex: Enviar comprovante de registro do domínio"
+                 class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 text-xs shadow-inner">
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Etapa / Fase de Destino *</label>
+          <select id="customSubtaskStage" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-200 focus:outline-none focus:border-sky-500 text-xs cursor-pointer shadow-inner">
+            <!-- Preenchido dinamicamente com as 9 etapas -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Responsável</label>
+          <select id="customSubtaskAssignee" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-200 focus:outline-none focus:border-sky-500 text-xs cursor-pointer shadow-inner">
+            <!-- Preenchido dinamicamente com os membros da equipe -->
+          </select>
+        </div>
+
+        <div class="p-2.5 bg-slate-950/60 border border-slate-800/80 rounded-xl text-[11px] text-slate-400 leading-relaxed">
+          💡 Esta subtarefa será gravada exclusivamente para este cliente, sem alterar a esteira padrão global.
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2.5 pt-4 mt-4 border-t border-slate-800">
+        <button type="button" onclick="closeAddCustomSubtaskModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition cursor-pointer text-xs">
+          Cancelar
+        </button>
+        <button type="button"
+                id="btnSubmitCustomSubtask"
+                onclick="submitAddCustomSubtask()"
+                class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold transition cursor-pointer text-xs shadow-lg shadow-sky-950/40">
+          Adicionar Subtarefa
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="modalDeleteClient" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-rose-900/50 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto">
       <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
@@ -1683,6 +1811,7 @@
       if (!client) return [];
       const stages = (Array.isArray(customStages) && customStages.length > 0) ? customStages : getPipelineStages();
       const clientTasks = Array.isArray(client.tasks) ? client.tasks : [];
+      const customSubtasks = Array.isArray(client.subtarefasCustomizadas) ? client.subtarefasCustomizadas : [];
       const merged = [];
 
       stages.forEach((stage, stageIdx) => {
@@ -1700,7 +1829,7 @@
           });
 
           const taskId = existing?.id || (client.id + "_" + stage.id + "_" + taskIdx);
-          const isDone = existing ? (existing.status === "Concluída") : false;
+          const isDone = existing ? (existing.status === "Concluída" || existing.status === "checked" || existing.completed === true) : false;
           const effectiveAssignee = (existing && existing.assignee) ? existing.assignee : (norm.responsavelPadrao || "");
           const completedAt = existing?.completedAt || "";
           const department = existing?.department || stage.nome;
@@ -1716,7 +1845,34 @@
             status: isDone ? "Concluída" : "Pendente",
             assignee: effectiveAssignee,
             defaultAssignee: norm.responsavelPadrao || "",
-            completedAt: completedAt
+            completedAt: completedAt,
+            isCustom: false
+          });
+        });
+
+        // Subtarefas personalizadas pertencentes a esta etapa específica
+        const stageCustom = customSubtasks.filter(ct => ct && String(ct.stageId) === String(stage.id));
+        stageCustom.forEach((ct) => {
+          const existing = clientTasks.find(t => t && t.id === ct.id);
+          const isDone = existing
+            ? (existing.status === "Concluída" || existing.status === "checked" || existing.completed === true)
+            : (ct.status === "Concluída" || ct.status === "checked" || ct.completed === true);
+          const effectiveAssignee = (existing && existing.assignee !== undefined) ? existing.assignee : (ct.assignee || "");
+          const completedAt = existing?.completedAt || ct.completedAt || "";
+
+          merged.push({
+            id: ct.id,
+            configId: ct.id,
+            stageId: stage.id,
+            stageIndex: stageIdx + 1,
+            stageName: stage.nome,
+            title: ct.title || "Subtarefa personalizada",
+            department: stage.nome,
+            status: isDone ? "Concluída" : "Pendente",
+            assignee: effectiveAssignee,
+            defaultAssignee: ct.assignee || "",
+            completedAt: completedAt,
+            isCustom: true
           });
         });
       });
@@ -2063,10 +2219,14 @@
         renderKanban();
         renderTable();
         renderMetrics();
+        if (state.currentView === "history") {
+          renderGlobalHistory();
+        }
 
         if (state.selectedClientId) {
           const activeClient = state.clients.find(c => c.id === state.selectedClientId);
           if (activeClient) {
+            updateDrawerHeaderPhase(activeClient);
             renderDrawerTasks();
             renderDrawerHistory();
             updateDrawerPriorityUI(activeClient);
@@ -2674,6 +2834,30 @@
       }
     }
 
+    
+    function updateDrawerHeaderPhase(client) {
+      if (!client) return;
+      const stages = getPipelineStages();
+      const currentStage = getClientCurrentStage(client);
+      const stageIdx = stages.findIndex(s => s.id === currentStage.id);
+      const stageNum = stageIdx >= 0 ? (stageIdx + 1) : 1;
+      const stageFullName = "Fase " + stageNum + ": " + currentStage.nome;
+      const stageColor = currentStage.cor || "#3b82f6";
+
+      const stageBadge = document.getElementById("drawerClientPhaseBadge");
+      if (stageBadge) {
+        stageBadge.textContent = stageFullName;
+        stageBadge.style.borderColor = stageColor + "66";
+        stageBadge.style.color = stageColor;
+        stageBadge.style.backgroundColor = stageColor + "22";
+      }
+
+      const tasksFilterSelect = document.getElementById("drawerTasksFilter");
+      if (tasksFilterSelect && tasksFilterSelect.options && tasksFilterSelect.options.length > 0) {
+        tasksFilterSelect.options[0].textContent = "Apenas Fase Atual: " + currentStage.nome;
+      }
+    }
+
     function openClientDrawer(clientId) {
       try {
         const client = state.clients.find(c => c.id === clientId);
@@ -2690,13 +2874,7 @@
         const elNiche = document.getElementById("drawerClientNiche") || document.getElementById("drawerClientSpecialty");
         if (elNiche) elNiche.textContent = client.specialty || client.niche || client.phone || "Geral";
         
-        const currentStage = getClientCurrentStage(client);
-        const stageBadge = document.getElementById("drawerClientPhaseBadge");
-        if (stageBadge) {
-          stageBadge.textContent = currentStage.nome;
-          stageBadge.style.borderColor = (currentStage.cor || "#3b82f6") + "66";
-          stageBadge.style.color = currentStage.cor || "#3b82f6";
-        }
+        updateDrawerHeaderPhase(client);
 
         const aging = getClientAgingInfo(client);
         const semaforoEl = document.getElementById("drawerClientSemaforo");
@@ -2723,6 +2901,7 @@
 
         if (document.getElementById("drawerTasksFilter")) {
           document.getElementById("drawerTasksFilter").value = "current";
+          updateDrawerHeaderPhase(client);
         }
 
         switchDrawerTab("tasks");
@@ -2815,6 +2994,12 @@
           assigneeInitials = getInitials(assigneeName);
         }
 
+        const customBadge = task.isCustom ? `
+          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-950/80 text-amber-400 border border-amber-800/80 shrink-0">
+            Personalizada
+          </span>
+        ` : '';
+
         const assigneeBadge = task.assignee ? `
           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800/80 shrink-0 shadow-sm" title="Responsável: ${escapeHtml(assigneeName)} (${task.assignee})">
             <span class="w-4 h-4 rounded-full bg-indigo-900 border border-indigo-700 text-indigo-200 text-[9px] font-bold flex items-center justify-center">${assigneeInitials}</span>
@@ -2835,6 +3020,7 @@
 
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                ${customBadge}
                 ${assigneeBadge}
 
                 <select onchange="updateTaskAssignee('${task.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-0.5 text-[10px] text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer ml-auto" title="Reatribuir responsável para este cliente">
@@ -2843,6 +3029,11 @@
                     <option value="${u.email}" ${task.assignee === u.email ? 'selected' : ''}>${escapeHtml(u.nome || u.email.split('@')[0])} (${escapeHtml(u.cargo || 'Membro')})</option>
                   `).join("")}
                 </select>
+                ${task.isCustom ? `
+                  <button type="button" onclick="removeCustomSubtask('${task.id}')" title="Excluir subtarefa personalizada" class="p-1 text-slate-500 hover:text-rose-400 transition cursor-pointer shrink-0 ml-1">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                ` : ''}
               </div>
 
               <p class="text-xs font-semibold ${isDone ? 'line-through text-slate-400' : 'text-slate-100'}">${escapeHtml(task.title)}</p>
@@ -2852,6 +3043,190 @@
       }).join("");
 
       lucide.createIcons();
+    }
+
+    
+    function openAddCustomSubtaskModal() {
+      const client = state.clients.find(c => c.id === state.selectedClientId);
+      if (!client) {
+        showToast("Nenhum cliente selecionado.");
+        return;
+      }
+
+      const modal = document.getElementById("modalAddCustomSubtask");
+      if (!modal) return;
+
+      const currentStage = getClientCurrentStage(client);
+      const stages = getPipelineStages();
+
+      // Preenche as 9 etapas oficiais com a fase atual do cliente pré-selecionada
+      const stageSelect = document.getElementById("customSubtaskStage");
+      if (stageSelect) {
+        stageSelect.innerHTML = stages.map((st, idx) => `
+          <option value="${st.id}" ${st.id === currentStage.id ? 'selected' : ''}>
+            Fase ${idx + 1}: ${escapeHtml(st.nome)}
+          </option>
+        `).join("");
+      }
+
+      // Preenche responsáveis da equipe (team)
+      const assigneeSelect = document.getElementById("customSubtaskAssignee");
+      if (assigneeSelect) {
+        assigneeSelect.innerHTML = `
+          <option value="">👤 Sem responsável</option>
+          ${(state.users || []).map(u => `
+            <option value="${u.email}">${escapeHtml(u.nome || u.email.split('@')[0])} (${escapeHtml(u.cargo || 'Membro')})</option>
+          `).join("")}
+        `;
+      }
+
+      const titleInput = document.getElementById("customSubtaskTitle");
+      if (titleInput) {
+        titleInput.value = "";
+        if (typeof titleInput.focus === "function") {
+          setTimeout(() => titleInput.focus(), 50);
+        }
+      }
+
+      modal.classList.remove("hidden");
+      lucide.createIcons();
+    }
+
+    function closeAddCustomSubtaskModal() {
+      const modal = document.getElementById("modalAddCustomSubtask");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    async function submitAddCustomSubtask() {
+      const client = state.clients.find(c => c.id === state.selectedClientId);
+      if (!client) return;
+
+      const titleInput = document.getElementById("customSubtaskTitle");
+      const stageSelect = document.getElementById("customSubtaskStage");
+      const assigneeSelect = document.getElementById("customSubtaskAssignee");
+
+      const title = (titleInput?.value || "").trim();
+      if (!title) {
+        showToast("Por favor, digite o título da subtarefa.");
+        titleInput?.focus();
+        return;
+      }
+
+      const stageId = stageSelect?.value || getClientCurrentStage(client).id;
+      const stages = getPipelineStages();
+      const stageObj = stages.find(s => s.id === stageId) || stages[0];
+      const stageName = stageObj ? stageObj.nome : "Etapa";
+
+      const assignee = (assigneeSelect?.value || "").trim();
+      const nowIso = new Date().toISOString();
+      const author = state.currentUser?.name || state.currentUser?.email || "Usuário";
+
+      const newSubtask = {
+        id: "custom_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6),
+        title: title,
+        stageId: stageId,
+        assignee: assignee,
+        status: "Pendente",
+        createdAt: nowIso,
+        isCustom: true
+      };
+
+      const actionText = author + ' adicionou a subtarefa personalizada: "' + title + '" na etapa ' + stageName;
+      const historyItem = {
+        data: nowIso,
+        autor: author,
+        acao: actionText
+      };
+
+      const btnSubmit = document.getElementById("btnSubmitCustomSubtask");
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = "Adicionando...";
+      }
+
+      try {
+        await db.collection("clients").doc(client.id).update({
+          subtarefasCustomizadas: firebase.firestore.FieldValue.arrayUnion(newSubtask),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          historico: firebase.firestore.FieldValue.arrayUnion(historyItem)
+        });
+
+        // Atualização otimista local
+        if (!Array.isArray(client.subtarefasCustomizadas)) {
+          client.subtarefasCustomizadas = [];
+        }
+        client.subtarefasCustomizadas.push(newSubtask);
+
+        if (!Array.isArray(client.historico)) {
+          client.historico = [];
+        }
+        client.historico.push(historyItem);
+
+        closeAddCustomSubtaskModal();
+        renderDrawerTasks();
+        renderDrawerHistory();
+        renderKanban();
+        if (state.currentView === "history") renderGlobalHistory();
+        showToast("Subtarefa personalizada adicionada com sucesso!");
+      } catch (err) {
+        console.error("Erro ao adicionar subtarefa personalizada:", err);
+        showToast("Falha ao salvar subtarefa: " + (err.message || err));
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = "Adicionar Subtarefa";
+        }
+      }
+    }
+
+    async function removeCustomSubtask(taskId) {
+      const client = state.clients.find(c => c.id === state.selectedClientId);
+      if (!client) return;
+
+      const customList = Array.isArray(client.subtarefasCustomizadas) ? client.subtarefasCustomizadas : [];
+      const target = customList.find(t => t.id === taskId);
+      if (!target) return;
+
+      if (!confirm('Deseja remover a subtarefa personalizada "' + target.title + '"?')) return;
+
+      const nowIso = new Date().toISOString();
+      const author = state.currentUser?.name || state.currentUser?.email || "Usuário";
+      const stages = getPipelineStages();
+      const stageObj = stages.find(s => s.id === target.stageId) || stages[0];
+      const stageName = stageObj ? stageObj.nome : "Etapa";
+
+      const actionText = author + ' removeu a subtarefa personalizada: "' + target.title + '" da etapa ' + stageName;
+      const historyItem = {
+        data: nowIso,
+        autor: author,
+        acao: actionText
+      };
+
+      const updatedCustomList = customList.filter(t => t.id !== taskId);
+      const updatedTasks = (Array.isArray(client.tasks) ? client.tasks : []).filter(t => t.id !== taskId);
+
+      try {
+        await db.collection("clients").doc(client.id).update({
+          subtarefasCustomizadas: updatedCustomList,
+          tasks: updatedTasks,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          historico: firebase.firestore.FieldValue.arrayUnion(historyItem)
+        });
+
+        client.subtarefasCustomizadas = updatedCustomList;
+        client.tasks = updatedTasks;
+        if (!Array.isArray(client.historico)) client.historico = [];
+        client.historico.push(historyItem);
+
+        renderDrawerTasks();
+        renderDrawerHistory();
+        renderKanban();
+        if (state.currentView === "history") renderGlobalHistory();
+        showToast("Subtarefa personalizada removida.");
+      } catch (err) {
+        console.error("Erro ao remover subtarefa personalizada:", err);
+        showToast("Erro ao remover subtarefa: " + (err.message || err));
+      }
     }
 
     async function toggleTaskStatus(taskId) {
@@ -2897,6 +3272,15 @@
           acao: actionText
         })
       };
+
+      if (targetTask.isCustom) {
+        const customSubtasks = Array.isArray(client.subtarefasCustomizadas) ? [...client.subtarefasCustomizadas] : [];
+        const cIdx = customSubtasks.findIndex(ct => ct && ct.id === taskId);
+        if (cIdx !== -1) {
+          customSubtasks[cIdx] = { ...customSubtasks[cIdx], status: newStatus, completedAt: newCompletedAt };
+          updatePayload.subtarefasCustomizadas = customSubtasks;
+        }
+      }
 
       // Auto-avanço de fase: ao marcar a última pendente da fase atual se todas da fase estiverem concluídas e fase < 9
       const stages = getPipelineStages();
@@ -2981,10 +3365,23 @@
         });
       }
 
+      const assigneePayload = {
+        tasks: tasks,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+
+      if (targetTask.isCustom) {
+        const customSubtasks = Array.isArray(client.subtarefasCustomizadas) ? [...client.subtarefasCustomizadas] : [];
+        const cIdx = customSubtasks.findIndex(ct => ct && ct.id === taskId);
+        if (cIdx !== -1) {
+          customSubtasks[cIdx] = { ...customSubtasks[cIdx], assignee: assigneeEmail };
+          assigneePayload.subtarefasCustomizadas = customSubtasks;
+        }
+      }
+
       try {
         await db.collection("clients").doc(client.id).update({
-          tasks: tasks,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          ...assigneePayload,
           historico: firebase.firestore.FieldValue.arrayUnion({
             data: nowIso,
             autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
@@ -3038,6 +3435,193 @@
       }).join("");
 
       lucide.createIcons();
+    }
+
+    
+    let globalHistoryLimit = 100;
+
+    function formatTimelineDateTime(isoString) {
+      if (!isoString) return "";
+      try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return isoString;
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const hours = String(d.getHours()).padStart(2, "0");
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        return day + "/" + month + " às " + hours + ":" + minutes;
+      } catch (e) {
+        return isoString;
+      }
+    }
+
+    function populateHistoryAuthorFilter(events) {
+      const select = document.getElementById("historyFilterAuthor");
+      if (!select) return;
+
+      const currentVal = select.value || "all";
+      while (select.options.length > 1) {
+        select.remove(1);
+      }
+
+      const authors = new Set();
+      (state.users || []).forEach(u => {
+        if (u.nome) authors.add(u.nome.trim());
+        if (u.email) authors.add(u.email.trim());
+      });
+      events.forEach(e => {
+        if (e.autor && e.autor.trim()) authors.add(e.autor.trim());
+      });
+
+      Array.from(authors).sort().forEach(author => {
+        const opt = document.createElement("option");
+        opt.value = author;
+        opt.textContent = "👤 " + author;
+        select.appendChild(opt);
+      });
+
+      select.value = currentVal;
+    }
+
+    function renderGlobalHistory() {
+      const container = document.getElementById("globalHistoryFeed");
+      const countBadge = document.getElementById("historyTotalCountBadge");
+      const loadMoreBtn = document.getElementById("historyLoadMoreContainer");
+      if (!container) return;
+
+      // 1. Agregação em memória dos arrays 'historico' de todos os clientes em tempo real
+      const allEvents = [];
+      (state.clients || []).forEach(client => {
+        const clientHistory = Array.isArray(client.historico) ? client.historico : [];
+        clientHistory.forEach(item => {
+          allEvents.push({
+            clientId: client.id,
+            clientName: client.name || "Sem Nome",
+            clientNiche: client.specialty || client.niche || "",
+            data: item.data,
+            autor: item.autor || "Usuário",
+            acao: item.acao || "Ação realizada"
+          });
+        });
+      });
+
+      // 2. Ordenação decrescente: do mais recente para o mais antigo
+      allEvents.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
+
+      // Atualiza opções do dropdown de autores
+      populateHistoryAuthorFilter(allEvents);
+
+      // 3. Filtros: Autor, Período e Busca Textual
+      const authorFilter = (document.getElementById("historyFilterAuthor")?.value || "all").toLowerCase().trim();
+      const periodFilter = document.getElementById("historyFilterPeriod")?.value || "all";
+      const search = (document.getElementById("historySearchInput")?.value || "").toLowerCase().trim();
+
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const sevenDaysAgo = now.getTime() - (7 * 24 * 60 * 60 * 1000);
+
+      const filtered = allEvents.filter(event => {
+        // Busca textual por nome do cliente ou ação
+        if (search) {
+          const matchClient = (event.clientName || "").toLowerCase().includes(search);
+          const matchAction = (event.acao || "").toLowerCase().includes(search);
+          const matchAuthor = (event.autor || "").toLowerCase().includes(search);
+          if (!matchClient && !matchAction && !matchAuthor) return false;
+        }
+
+        // Filtro por autor
+        if (authorFilter !== "all") {
+          const evAuthor = (event.autor || "").toLowerCase().trim();
+          if (evAuthor !== authorFilter && !evAuthor.includes(authorFilter)) return false;
+        }
+
+        // Filtro por período
+        if (periodFilter === "today") {
+          const eventTime = new Date(event.data || 0).getTime();
+          if (eventTime < startOfToday) return false;
+        } else if (periodFilter === "7days") {
+          const eventTime = new Date(event.data || 0).getTime();
+          if (eventTime < sevenDaysAgo) return false;
+        }
+
+        return true;
+      });
+
+      if (countBadge) {
+        countBadge.textContent = Math.min(globalHistoryLimit, filtered.length) + " de " + filtered.length;
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500 text-xs">
+            <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+            Nenhum evento registrado ou encontrado para os filtros selecionados.
+          </div>
+        `;
+        if (loadMoreBtn) loadMoreBtn.classList.add("hidden");
+        lucide.createIcons();
+        return;
+      }
+
+      // Limite de 100 registros com paginação
+      const displayed = filtered.slice(0, globalHistoryLimit);
+
+      container.innerHTML = displayed.map(event => {
+        const formattedDate = formatTimelineDateTime(event.data);
+        const authorInitials = getInitials(event.autor);
+
+        return `
+          <div class="bg-slate-900 border border-slate-800/90 hover:border-slate-700/80 rounded-2xl p-4 shadow-sm transition flex items-start gap-3.5 group">
+            <div class="w-9 h-9 rounded-xl bg-sky-950/80 border border-sky-800/80 text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 shadow-sm mt-0.5">
+              ${authorInitials}
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+                <div class="flex items-center gap-2 min-w-0">
+                  <button type="button" onclick="openClientDrawer('${event.clientId}')" class="font-bold text-white hover:text-sky-400 transition cursor-pointer text-xs truncate max-w-[240px] sm:max-w-md text-left flex items-center gap-1 group-hover:underline" title="Abrir perfil de ${escapeHtml(event.clientName)}">
+                    <span>${escapeHtml(event.clientName)}</span>
+                    <i data-lucide="external-link" class="w-3 h-3 text-sky-400 opacity-70"></i>
+                  </button>
+                  ${event.clientNiche ? `
+                    <span class="text-[10px] text-slate-500 font-normal hidden sm:inline">• ${escapeHtml(event.clientNiche)}</span>
+                  ` : ''}
+                </div>
+
+                <span class="text-[11px] font-mono text-slate-400 shrink-0">
+                  ${formattedDate}
+                </span>
+              </div>
+
+              <p class="text-xs text-slate-200 font-medium leading-relaxed mb-1.5">
+                ${escapeHtml(event.acao)}
+              </p>
+
+              <div class="flex items-center gap-2 text-[10px] text-slate-400">
+                <span class="inline-flex items-center gap-1">
+                  <i data-lucide="user" class="w-3 h-3 text-slate-500"></i>
+                  Autor: <strong class="text-slate-300 font-semibold">${escapeHtml(event.autor)}</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      if (loadMoreBtn) {
+        if (filtered.length > globalHistoryLimit) {
+          loadMoreBtn.classList.remove("hidden");
+        } else {
+          loadMoreBtn.classList.add("hidden");
+        }
+      }
+
+      lucide.createIcons();
+    }
+
+    function loadMoreGlobalHistory() {
+      globalHistoryLimit += 100;
+      renderGlobalHistory();
     }
 
     function formatDateTime(isoString) {
@@ -3831,7 +4415,7 @@
 
     function switchView(view) {
       state.currentView = view;
-      ["kanban", "table", "metrics"].forEach(v => {
+      ["kanban", "table", "metrics", "history"].forEach(v => {
         const viewEl = document.getElementById("view-" + v);
         if (viewEl) viewEl.classList.add("hidden");
         const tab = document.getElementById("tab-" + v);
@@ -3851,6 +4435,7 @@
 
       if (view === "table") renderTable();
       if (view === "metrics") renderMetrics();
+      if (view === "history") renderGlobalHistory();
       lucide.createIcons();
     }
 
