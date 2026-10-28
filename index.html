@@ -258,7 +258,7 @@
   <!-- =========================================================================
        CABEÇALHO PRINCIPAL DO SISTEMA
        ========================================================================= -->
-  <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md px-3 md:px-6 py-2">
+  <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md px-3 md:px-6 pb-2" style="padding-top: max(env(safe-area-inset-top, 12px), 12px);">
     <div class="flex items-center justify-between gap-2 pb-1.5 md:pb-2">
       <!-- Canto Superior Esquerdo: Logo e Identidade da Marca Harppia CRM -->
       <div class="flex items-center gap-2 sm:gap-3">
@@ -936,36 +936,60 @@
        ========================================================================= -->
   <div id="clientDrawerBackdrop" onclick="closeClientDrawer()" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity"></div>
   <aside id="clientDrawer" class="fixed top-0 bottom-0 right-0 h-full h-[100dvh] z-50 w-[88vw] sm:w-[90vw] max-w-[420px] md:w-full md:max-w-2xl rounded-l-2xl md:rounded-none bg-slate-900 border-l border-slate-700 md:border-slate-800 shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-out">
-    <!-- Cabeçalho Fixo da Gaveta Mobile & Desktop -->
-    <div class="sticky top-0 bg-slate-900 z-10 p-4 sm:p-5 border-b border-slate-800 flex items-start justify-between gap-3 shrink-0">
-      <div class="min-w-0 flex-1">
-        <div class="flex items-center gap-2 mb-1 flex-wrap">
-          <span id="drawerClientPhaseBadge" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800">Fase 1: Questionário</span>
-          <span id="drawerClientStageDaysBadge" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-amber-950/70 border-amber-800/80 text-amber-300">📍 0d nesta fase</span>
-          <span id="drawerClientSemaforo" class="text-[10px] font-semibold px-2 py-0.5 rounded-full border">🟢 No Prazo</span>
-          <button id="drawerBtnPriority" onclick="toggleDrawerPriority()" title="Alternar Prioridade" class="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition">
-            ⭐ Prioridade
+    <!-- Cabeçalho da Gaveta Mobile & Desktop (3 Linhas Fluídas e Sem Quebras) -->
+    <div class="sticky top-0 bg-slate-900 z-10 p-4 sm:p-5 border-b border-slate-800 shrink-0">
+      <!-- Linha 1: Badge da Fase Atual com borda colorida à esquerda; Botões de Ação à direita -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <span id="drawerClientPhaseBadge"
+                class="inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-r-lg bg-sky-950 text-sky-300 border-l-4 border-sky-500 shadow-sm truncate max-w-[210px] sm:max-w-xs">
+            Fase 1: Questionário
+          </span>
+        </div>
+
+        <div class="flex items-center gap-1 shrink-0">
+          <!-- Avançar Fase (Verde) -->
+          <button id="btnAdvancePhaseDrawer"
+                  onclick="advanceClientPhaseDrawer()"
+                  title="Avançar para a próxima fase"
+                  class="touch-target px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer">
+            <i data-lucide="arrow-right-circle" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Avançar Fase</span>
+          </button>
+
+          <!-- Excluir Cliente (Apenas Admin - Lixeira Vermelha) -->
+          <button id="btnDeleteClientHeader"
+                  onclick="openDeleteClientModal()"
+                  title="Excluir Cliente"
+                  class="touch-target min-w-[40px] min-h-[40px] rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 flex items-center justify-center transition cursor-pointer">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+
+          <!-- Fechar Gaveta (✕ com área de toque mínima de 44x44px) -->
+          <button onclick="closeClientDrawer()"
+                  title="Fechar Gaveta"
+                  class="touch-target min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition cursor-pointer">
+            <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
-        <h2 id="drawerClientName" class="text-lg font-bold text-white truncate">Nome do Cliente</h2>
-        <p id="drawerClientNiche" class="text-xs text-slate-400 truncate">Especialidade / Nicho</p>
       </div>
 
-      <div class="flex items-center gap-1.5 shrink-0">
-        <!-- Avançar Fase -->
-        <button id="btnAdvancePhaseDrawer" onclick="advanceClientPhaseDrawer()" title="Avançar para a próxima fase" class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer">
-          <i data-lucide="arrow-right-circle" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">Avançar Fase</span>
-        </button>
+      <!-- Linha 2: Nome do cliente em destaque (text-xl font-bold text-white mt-2) -->
+      <div class="mt-2.5">
+        <h2 id="drawerClientName" class="text-xl font-bold text-white truncate">Nome do Cliente</h2>
+        <p id="drawerClientNiche" class="text-xs text-slate-400 truncate mt-0.5">Especialidade / Nicho</p>
+      </div>
 
-        <!-- Excluir Cliente (Apenas Admin) -->
-        <button id="btnDeleteClientHeader" onclick="openDeleteClientModal()" title="Excluir Cliente" class="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition cursor-pointer">
-          <i data-lucide="trash-2" class="w-4 h-4"></i>
-        </button>
-
-        <!-- Fechar Gaveta -->
-        <button onclick="closeClientDrawer()" title="Fechar" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer">
-          <i data-lucide="x" class="w-5 h-5"></i>
+      <!-- Linha 3: Chips organizados em linha flexível com quebra suave -->
+      <div class="flex flex-wrap items-center gap-2 mt-2">
+        <span id="drawerClientSemaforo" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border shadow-sm">
+          🟢 0d esteira
+        </span>
+        <span id="drawerClientStageDaysBadge" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-amber-950/70 border-amber-800/80 text-amber-300">
+          📍 0d fase
+        </span>
+        <button id="drawerBtnPriority" onclick="toggleDrawerPriority()" title="Alternar Prioridade" class="touch-target text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer">
+          ⭐ Prioridade
         </button>
       </div>
     </div>
@@ -993,25 +1017,26 @@
     <!-- Conteúdo da Gaveta: Subtarefas -->
     <div id="drawerContent-tasks" class="flex-1 overflow-y-auto p-4 pb-24 space-y-3" style="-webkit-overflow-scrolling: touch;">
       <!-- Seletor de visualização de tarefas e Ação de Adicionar Subtarefa Personalizada -->
-      <div class="flex items-center justify-between pb-2 border-b border-slate-800/60 gap-2 flex-wrap">
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-slate-400 font-medium">Lista de Execução:</span>
-          <select id="drawerTasksFilter" onchange="renderDrawerTasks()" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 cursor-pointer font-medium">
-          <option value="current">Apenas Fase Atual (Padrão)</option>
-          <option value="all">Todas as 54 Subtarefas</option>
-          <option value="etapa_1">Fase 1: Questionário</option>
-          <option value="etapa_2">Fase 2: Reunião Onboarding</option>
-          <option value="etapa_3">Fase 3: Fotos</option>
-          <option value="etapa_4">Fase 4: Planejamento Site</option>
-          <option value="etapa_5">Fase 5: Intermediária</option>
-          <option value="etapa_6">Fase 6: Site</option>
-          <option value="etapa_7">Fase 7: Campanha</option>
-          <option value="etapa_8">Fase 8: Acompanhamento</option>
-          <option value="etapa_9">Fase 9: Concluído</option>
+      <div class="pb-3 border-b border-slate-800/80 space-y-2.5">
+        <div>
+          <label for="drawerTasksFilter" class="block text-xs text-slate-400 font-medium mb-1">Lista de Execução:</label>
+          <select id="drawerTasksFilter" onchange="renderDrawerTasks()" class="w-full h-10 px-3 bg-slate-950 border border-slate-700 text-white rounded-lg text-sm focus:outline-none focus:border-sky-500 cursor-pointer font-medium">
+            <option value="current">Apenas Fase Atual (Padrão)</option>
+            <option value="all">Todas as 54 Subtarefas</option>
+            <option value="etapa_1">Fase 1: Questionário</option>
+            <option value="etapa_2">Fase 2: Reunião Onboarding</option>
+            <option value="etapa_3">Fase 3: Fotos</option>
+            <option value="etapa_4">Fase 4: Planejamento Site</option>
+            <option value="etapa_5">Fase 5: Intermediária</option>
+            <option value="etapa_6">Fase 6: Site</option>
+            <option value="etapa_7">Fase 7: Campanha</option>
+            <option value="etapa_8">Fase 8: Acompanhamento</option>
+            <option value="etapa_9">Fase 9: Concluído</option>
           </select>
         </div>
-        <button type="button" onclick="openAddCustomSubtaskModal()" class="px-2.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-sm shrink-0">
-          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+
+        <button type="button" onclick="openAddCustomSubtaskModal()" class="w-full min-h-[42px] px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
           <span>+ Adicionar Subtarefa Personalizada</span>
         </button>
       </div>
@@ -3036,50 +3061,73 @@
         return true;
       });
 
-      // 1. RENDERIZAÇÃO DESKTOP: 9 Colunas intactas no #kanbanContainer (≥ 768px)
+      // 1. RENDERIZAÇÃO DESKTOP: Colunas no #kanbanContainer (≥ 768px)
+      const isAssigneeFiltered = filterAssignee !== "all";
+
       if (container) {
-        container.innerHTML = stages.map((stage, stageIndex) => {
+        // Se houver filtro de responsável específico, oculta colunas vazias (0 cards)
+        const visibleStages = stages.map((stage, stageIndex) => {
           const colClients = filtered.filter(c => isClientInStage(c, stage, stageIndex, stages));
-          const stageColor = stage.cor || "#3b82f6";
+          return { stage, stageIndex, colClients };
+        }).filter(item => {
+          if (isAssigneeFiltered) {
+            return item.colClients.length > 0;
+          }
+          return true; // Se "Todos os Responsáveis", exibe todas as 9 colunas
+        });
 
-          return `
-            <div class="kanban-col flex-shrink-0 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-col max-h-[calc(100vh-140px)] shadow-lg snap-start"
-                 style="scroll-snap-align: start;"
-                 ondragover="handleDragOver(event)"
-                 ondragleave="handleDragLeave(event)"
-                 ondrop="handleDrop(event, '${stage.id}')">
-              
-              <div class="p-3.5 border-b border-slate-800 bg-slate-950/70 rounded-t-2xl flex items-center justify-between gap-2 shrink-0">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="w-6 h-6 rounded-lg text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm" style="background-color: ${stageColor}33; border: 1px solid ${stageColor}88; color: ${stageColor}">
-                    ${stageIndex + 1}
-                  </span>
-                  <div class="min-w-0">
-                    <h3 class="font-bold text-xs text-white leading-tight truncate max-w-[170px]" title="${escapeHtml(stage.nome)}">
-                      ${stageIndex + 1}. ${escapeHtml(stage.nome)} <span class="text-sky-400 font-mono text-[11px] font-bold">(${colClients.length})</span>
-                    </h3>
-                    <p class="text-[10px] text-slate-400 truncate max-w-[170px] font-normal" title="${escapeHtml(stage.subtitulo || '')}">
-                      ${stage.subtitulo ? escapeHtml(stage.subtitulo) : (stage.subtarefas || []).length + ' subtarefas'}
-                    </p>
-                  </div>
-                </div>
-                <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700/60 shrink-0" title="Total visível nesta coluna">
-                  ${colClients.length}
-                </span>
-              </div>
-
-              <div id="col-${stage.id}" class="flex-1 p-2 sm:p-2.5 overflow-y-auto space-y-2.5 min-h-[150px]">
-                ${colClients.map(c => renderClientCard(c, canDrag, stage, stageIndex)).join("")}
-                ${colClients.length === 0 ? `
-                  <div class="h-28 border border-dashed border-slate-800/80 rounded-xl flex items-center justify-center text-slate-600 text-xs italic">
-                    Nenhum cliente
-                  </div>
-                ` : ''}
-              </div>
-
+        if (visibleStages.length === 0 && isAssigneeFiltered) {
+          container.innerHTML = `
+            <div class="w-full py-16 text-center text-slate-500 bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl flex flex-col items-center justify-center p-6">
+              <i data-lucide="user-x" class="w-12 h-12 mb-3 text-slate-600"></i>
+              <h3 class="text-base font-bold text-slate-300">Nenhum cliente com ação pendente para este responsável</h3>
+              <p class="text-xs text-slate-500 mt-1">Selecione outro responsável no filtro acima ou volte para "Todos os Responsáveis".</p>
             </div>
           `;
-        }).join("");
+        } else {
+          container.innerHTML = visibleStages.map(({ stage, stageIndex, colClients }) => {
+            const stageColor = stage.cor || "#3b82f6";
+            const colWidthClass = isAssigneeFiltered ? "w-80 flex-1 min-w-[280px] max-w-md" : "w-72 sm:w-80 shrink-0";
+
+            return `
+              <div id="col-container-${stage.id}"
+                   class="kanban-column ${colWidthClass} bg-slate-900/90 rounded-2xl border border-slate-800 flex flex-col max-h-full transition-all duration-200"
+                   ondragover="handleDragOver(event)"
+                   ondragleave="handleDragLeave(event)"
+                   ondrop="handleDrop(event, '${stage.id}')">
+                
+                <div class="p-3.5 border-b border-slate-800 bg-slate-950/70 rounded-t-2xl flex items-center justify-between gap-2 shrink-0">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-6 h-6 rounded-lg text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm" style="background-color: ${stageColor}33; border: 1px solid ${stageColor}88; color: ${stageColor}">
+                      ${stageIndex + 1}
+                    </span>
+                    <div class="min-w-0">
+                      <h3 class="font-bold text-xs text-white leading-tight truncate max-w-[170px]" title="${escapeHtml(stage.nome)}">
+                        ${stageIndex + 1}. ${escapeHtml(stage.nome)} <span class="text-sky-400 font-mono text-[11px] font-bold">(${colClients.length})</span>
+                      </h3>
+                      <p class="text-[10px] text-slate-400 truncate max-w-[170px] font-normal" title="${escapeHtml(stage.subtitulo || '')}">
+                        ${stage.subtitulo ? escapeHtml(stage.subtitulo) : (stage.subtarefas || []).length + ' subtarefas'}
+                      </p>
+                    </div>
+                  </div>
+                  <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700/60 shrink-0" title="Total visível nesta coluna">
+                    ${colClients.length}
+                  </span>
+                </div>
+
+                <div id="col-${stage.id}" class="flex-1 p-2 sm:p-2.5 overflow-y-auto space-y-2.5 min-h-[150px]">
+                  ${colClients.map(c => renderClientCard(c, canDrag, stage, stageIndex)).join("")}
+                  ${colClients.length === 0 ? `
+                    <div class="h-28 border border-dashed border-slate-800/80 rounded-xl flex items-center justify-center text-slate-600 text-xs italic">
+                      Nenhum cliente
+                    </div>
+                  ` : ''}
+                </div>
+
+              </div>
+            `;
+          }).join("");
+        }
       }
 
       // Garantia de cursor pointer e listeners nos cards Desktop
@@ -3094,57 +3142,79 @@
       const mobileContent = document.getElementById("kanbanMobileStageContent");
 
       if (mobileTabs && mobileContent) {
-        if (!state.mobileActiveStageId && stages.length > 0) {
-          state.mobileActiveStageId = stages[0].id;
-        } else if (!stages.some(s => s.id === state.mobileActiveStageId) && stages.length > 0) {
-          state.mobileActiveStageId = stages[0].id;
-        }
-
-        // Top Sliding Phase Tabs
-        mobileTabs.innerHTML = stages.map((stage, stageIndex) => {
+        // Se houver filtro de responsável, filtra etapas mobile com colClients.length > 0
+        const mobileStages = stages.map((stage, stageIndex) => {
           const colClients = filtered.filter(c => isClientInStage(c, stage, stageIndex, stages));
-          const isActive = stage.id === state.mobileActiveStageId;
-          const stageColor = stage.cor || "#0ea5e9";
-          const shortName = getShortStageName(stage.nome, stageIndex);
+          return { stage, stageIndex, colClients };
+        }).filter(item => {
+          if (isAssigneeFiltered) {
+            return item.colClients.length > 0;
+          }
+          return true;
+        });
 
-          return `
-            <button type="button"
-                    data-stage-tab="${stage.id}"
-                    onclick="selectMobileStage('${stage.id}')"
-                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0 transition-all cursor-pointer border ${isActive ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-1 ring-sky-400/40' : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:text-white hover:bg-slate-800'}"
-                    ${isActive ? `style="border-color: ${stageColor}; background: linear-gradient(135deg, ${stageColor}33 0%, ${stageColor}11 100%); box-shadow: 0 0 10px ${stageColor}33;"` : ''}>
-              <span class="w-4 h-4 rounded-md text-[10px] font-bold flex items-center justify-center shrink-0 ${isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}" ${isActive ? `style="background-color: ${stageColor}; color: #ffffff;"` : ''}>
-                ${stageIndex + 1}
-              </span>
-              <span class="truncate max-w-[120px]">${escapeHtml(shortName)}</span>
-              <span class="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${isActive ? 'bg-white/25 text-white' : 'bg-slate-800 text-sky-400 border border-slate-700/60'}" ${isActive ? `style="background-color: ${stageColor}33; color: ${stageColor}; border: 1px solid ${stageColor}88;"` : ''}>
-                ${colClients.length}
-              </span>
-            </button>
-          `;
-        }).join("");
-
-        // Active Stage Body
-        const activeStageIndex = stages.findIndex(s => s.id === state.mobileActiveStageId);
-        const activeStage = stages[activeStageIndex >= 0 ? activeStageIndex : 0];
-        const stageSubtitleEl = document.getElementById("mobileActivePhaseSubtitle");
-        if (stageSubtitleEl && activeStage) {
-          stageSubtitleEl.textContent = activeStage.subtitulo || activeStage.nome;
+        // Se a etapa ativa mobile não estiver entre as disponíveis, seleciona a primeira disponível
+        if (mobileStages.length > 0) {
+          if (!mobileStages.some(item => item.stage.id === state.mobileActiveStageId)) {
+            state.mobileActiveStageId = mobileStages[0].stage.id;
+          }
         }
 
-        if (activeStage) {
-          const activeClients = filtered.filter(c => isClientInStage(c, activeStage, activeStageIndex >= 0 ? activeStageIndex : 0, stages));
-          
-          if (activeClients.length === 0) {
-            mobileContent.innerHTML = `
-              <div class="py-12 px-4 border border-dashed border-slate-800/80 rounded-2xl flex flex-col items-center justify-center text-center text-slate-500 bg-slate-950/40">
-                <i data-lucide="inbox" class="w-10 h-10 mb-2 opacity-40 text-slate-400"></i>
-                <p class="text-sm font-semibold text-slate-300">Nenhum cliente nesta etapa</p>
-                <span class="text-xs text-slate-500 mt-1">Selecione outra fase acima ou cadastre um novo cliente.</span>
-              </div>
+        // Renderiza os botões das abas móveis
+        if (mobileStages.length === 0) {
+          mobileTabs.innerHTML = '<span class="text-xs text-slate-500 italic p-1">Nenhuma etapa com clientes</span>';
+          mobileContent.innerHTML = `
+            <div class="py-12 px-4 border border-dashed border-slate-800/80 rounded-2xl flex flex-col items-center justify-center text-center text-slate-500 bg-slate-950/40">
+              <i data-lucide="user-x" class="w-10 h-10 mb-2 opacity-40 text-slate-400"></i>
+              <p class="text-sm font-semibold text-slate-300">Nenhum cliente para este responsável</p>
+              <span class="text-xs text-slate-500 mt-1">Selecione outro responsável no filtro acima ou volte para "Todos".</span>
+            </div>
+          `;
+        } else {
+          mobileTabs.innerHTML = mobileStages.map(({ stage, stageIndex, colClients }) => {
+            const isActive = stage.id === state.mobileActiveStageId;
+            const stageColor = stage.cor || "#0ea5e9";
+            const shortName = getShortStageName(stage.nome, stageIndex);
+
+            return `
+              <button type="button"
+                      data-stage-tab="${stage.id}"
+                      onclick="selectMobileStage('${stage.id}')"
+                      class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0 transition-all cursor-pointer border ${isActive ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-1 ring-sky-400/40' : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:text-white hover:bg-slate-800'}"
+                      ${isActive ? `style="border-color: ${stageColor}; background: linear-gradient(135deg, ${stageColor}33 0%, ${stageColor}11 100%); box-shadow: 0 0 10px ${stageColor}33;"` : ''}>
+                <span class="w-4 h-4 rounded-md text-[10px] font-bold flex items-center justify-center shrink-0 ${isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}" ${isActive ? `style="background-color: ${stageColor}; color: #ffffff;"` : ''}>
+                  ${stageIndex + 1}
+                </span>
+                <span class="truncate max-w-[120px]">${escapeHtml(shortName)}</span>
+                <span class="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${isActive ? 'bg-white/25 text-white' : 'bg-slate-800 text-sky-400 border border-slate-700/60'}" ${isActive ? `style="background-color: ${stageColor}33; color: ${stageColor}; border: 1px solid ${stageColor}88;"` : ''}>
+                  ${colClients.length}
+                </span>
+              </button>
             `;
-          } else {
-            mobileContent.innerHTML = activeClients.map(c => renderMobileClientCard(c, activeStage, activeStageIndex >= 0 ? activeStageIndex : 0, stages)).join("");
+          }).join("");
+
+          // Active Stage Body
+          const activeStageIndex = stages.findIndex(s => s.id === state.mobileActiveStageId);
+          const activeStage = stages[activeStageIndex >= 0 ? activeStageIndex : 0];
+          const stageSubtitleEl = document.getElementById("mobileActivePhaseSubtitle");
+          if (stageSubtitleEl && activeStage) {
+            stageSubtitleEl.textContent = activeStage.subtitulo || activeStage.nome;
+          }
+
+          if (activeStage) {
+            const activeClients = filtered.filter(c => isClientInStage(c, activeStage, activeStageIndex >= 0 ? activeStageIndex : 0, stages));
+            
+            if (activeClients.length === 0) {
+              mobileContent.innerHTML = `
+                <div class="py-12 px-4 border border-dashed border-slate-800/80 rounded-2xl flex flex-col items-center justify-center text-center text-slate-500 bg-slate-950/40">
+                  <i data-lucide="inbox" class="w-10 h-10 mb-2 opacity-40 text-slate-400"></i>
+                  <p class="text-sm font-semibold text-slate-300">Nenhum cliente nesta etapa</p>
+                  <span class="text-xs text-slate-500 mt-1">Selecione outra fase acima ou cadastre um novo cliente.</span>
+                </div>
+              `;
+            } else {
+              mobileContent.innerHTML = activeClients.map(c => renderMobileClientCard(c, activeStage, activeStageIndex >= 0 ? activeStageIndex : 0, stages)).join("");
+            }
           }
         }
       }
@@ -3715,7 +3785,7 @@
       const stageBadge = document.getElementById("drawerClientPhaseBadge");
       if (stageBadge) {
         stageBadge.textContent = stageFullName;
-        stageBadge.style.borderColor = stageColor + "66";
+        stageBadge.style.borderLeftColor = stageColor;
         stageBadge.style.color = stageColor;
         stageBadge.style.backgroundColor = stageColor + "22";
       }
@@ -3723,7 +3793,7 @@
       const daysInfo = getClientStageAndTotalDays(client);
       const stageDaysEl = document.getElementById("drawerClientStageDaysBadge");
       if (stageDaysEl) {
-        stageDaysEl.textContent = "📍 " + daysInfo.diasNaFase + "d nesta fase";
+        stageDaysEl.textContent = "📍 " + daysInfo.diasNaFase + "d fase";
       }
 
       const tasksFilterSelect = document.getElementById("drawerTasksFilter");
@@ -3753,7 +3823,7 @@
         const aging = getClientAgingInfo(client);
         const semaforoEl = document.getElementById("drawerClientSemaforo");
         if (semaforoEl) {
-          semaforoEl.textContent = aging.dotEmoji + " " + aging.days + "d na esteira (" + aging.statusText + ")";
+          semaforoEl.textContent = aging.dotEmoji + " " + aging.days + "d esteira";
           semaforoEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border shadow-sm " + aging.badgeClass;
         }
 
@@ -3899,30 +3969,43 @@
         `;
 
         return `
-          <div class="bg-slate-950 border ${isDone ? 'border-slate-800/50 bg-slate-950/40 opacity-75' : 'border-slate-800'} rounded-xl p-3 flex items-start justify-between gap-3 transition">
-            <button onclick="toggleTaskStatus('${task.id}')" class="mt-0.5 w-6 h-6 rounded-lg border ${isDone ? 'bg-sky-600 border-sky-500 text-white' : 'border-slate-700 bg-slate-900 text-transparent hover:border-sky-500'} flex items-center justify-center flex-shrink-0 transition cursor-pointer touch-target">
-              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+          <div class="bg-slate-950 border ${isDone ? 'border-slate-800/50 bg-slate-950/40 opacity-75' : 'border-slate-800'} rounded-xl p-3 flex items-start gap-3 transition">
+            <!-- Checkbox customizado com área confortável de clique (40x40px touch container) -->
+            <button type="button"
+                    onclick="toggleTaskStatus('${task.id}')"
+                    class="w-10 h-10 -ml-1 -mt-1 rounded-xl flex items-center justify-center flex-shrink-0 transition cursor-pointer hover:bg-slate-900"
+                    title="${isDone ? 'Marcar como pendente' : 'Marcar como concluída'}">
+              <span class="w-6 h-6 rounded-lg border ${isDone ? 'bg-sky-600 border-sky-500 text-white' : 'border-slate-700 bg-slate-900/90 text-transparent hover:border-sky-500'} flex items-center justify-center transition shadow-sm">
+                <i data-lucide="check" class="w-4 h-4"></i>
+              </span>
             </button>
 
+            <!-- Título e Responsável com Largura Fluida e Leitura Limpa -->
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <p class="text-xs sm:text-sm font-semibold leading-snug flex-1 ${isDone ? 'line-through text-slate-500' : 'text-slate-100'}">
+                  ${escapeHtml(task.title)}
+                </p>
                 ${customBadge}
-                ${assigneeBadge}
-
-                <select onchange="updateTaskAssignee('${task.id}', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-0.5 text-[10px] text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer ml-auto" title="Reatribuir responsável para este cliente">
-                  <option value="">👤 Não atribuído</option>
-                  ${state.users.map(u => `
-                    <option value="${escapeHtml(u.email)}" ${task.assignee === u.email ? 'selected' : ''}>${escapeHtml(u.nome || u.email.split('@')[0])} (${escapeHtml(u.cargo || 'Membro')})</option>
-                  `).join("")}
-                </select>
                 ${task.isCustom ? `
-                  <button type="button" onclick="removeCustomSubtask('${task.id}')" title="Excluir subtarefa personalizada" class="p-1 text-slate-500 hover:text-rose-400 transition cursor-pointer shrink-0 ml-1">
+                  <button type="button" onclick="removeCustomSubtask('${task.id}')" title="Excluir subtarefa personalizada" class="p-1 text-slate-500 hover:text-rose-400 transition cursor-pointer shrink-0">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                   </button>
                 ` : ''}
               </div>
 
-              <p class="text-xs font-semibold ${isDone ? 'line-through text-slate-400' : 'text-slate-100'}">${escapeHtml(task.title)}</p>
+              <!-- Seletor de Responsável da tarefa em estilo compacto e alinhado -->
+              <div class="mt-1.5 flex items-center gap-2 flex-wrap">
+                ${assigneeBadge}
+                <select onchange="updateTaskAssignee('${task.id}', this.value)" class="text-xs bg-slate-950 border border-slate-700 text-slate-300 rounded px-2 py-1 mt-1 focus:outline-none focus:border-sky-500 cursor-pointer" title="Reatribuir responsável para este cliente">
+                  <option value="">👤 Não atribuído</option>
+                  ${state.users.map(u => `
+                    <option value="${escapeHtml(u.email)}" ${task.assignee === u.email ? 'selected' : ''}>
+                      ${escapeHtml(u.nome || u.email.split('@')[0])} (${escapeHtml(u.cargo || 'Membro')})
+                    </option>
+                  `).join("")}
+                </select>
+              </div>
             </div>
           </div>
         `;
@@ -3931,7 +4014,6 @@
       lucide.createIcons();
     }
 
-    
     function openAddCustomSubtaskModal() {
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) {
@@ -6083,10 +6165,7 @@ lucide.createIcons();
       }
 
       editingPipeline = JSON.parse(JSON.stringify(getPipelineStages()));
-      expandedStageIds.clear();
-      if (editingPipeline.length > 0) {
-        expandedStageIds.add(editingPipeline[0].id);
-      }
+      expandedStageIds.clear(); // Inicia com todas as fases recolhidas por padrão
 
       renderPipelineEditor();
       document.getElementById("modalPipelineSettings").classList.remove("hidden");
@@ -6120,13 +6199,14 @@ lucide.createIcons();
         const stageColor = stage.cor || "#3b82f6";
 
         return `
-          <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-sm transition">
+          <div class="bg-slate-950 border ${isExpanded ? 'border-sky-500/60 shadow-lg ring-1 ring-sky-500/20' : 'border-slate-800'} rounded-2xl overflow-hidden transition-all duration-200">
             
-            <!-- Barra Superior da Etapa -->
-            <div class="p-3.5 bg-slate-950 flex items-center justify-between gap-2.5 flex-wrap sm:flex-nowrap">
+            <!-- Barra Superior da Etapa (Acordeão Moderno e Clicável) -->
+            <div onclick="toggleExpandStage('${stage.id}')"
+                 class="p-3.5 bg-slate-950 hover:bg-slate-900/70 transition cursor-pointer flex items-center justify-between gap-2.5 flex-wrap sm:flex-nowrap select-none">
               
-              <!-- Controles de Reordenação e Identificador -->
-              <div class="flex items-center gap-1.5 shrink-0">
+              <!-- Controles de Reordenação e Identificador Numerado -->
+              <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
                 <button type="button" onclick="moveStageUp(${sIdx})" ${isFirst ? 'disabled class="p-1 rounded text-slate-700 cursor-not-allowed"' : 'class="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"'} title="Mover para Cima">
                   <i data-lucide="chevron-up" class="w-4 h-4"></i>
                 </button>
@@ -6134,32 +6214,34 @@ lucide.createIcons();
                   <i data-lucide="chevron-down" class="w-4 h-4"></i>
                 </button>
                 
-                <span class="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 flex items-center justify-center font-bold text-xs">
+                <span class="w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs shadow-sm" style="background-color: ${stageColor}25; border: 1px solid ${stageColor}80; color: ${stageColor};">
                   ${sIdx + 1}
                 </span>
               </div>
 
               <!-- Seletor de Cor da Etapa -->
-              <div class="flex items-center gap-1.5 shrink-0" title="Cor da Etapa">
+              <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()" title="Alterar Cor da Etapa">
                 <input type="color" value="${stageColor}" onchange="updateStageColor(${sIdx}, this.value)" class="w-7 h-7 rounded-lg border border-slate-700 bg-transparent cursor-pointer p-0.5" />
               </div>
 
               <!-- Input Editável do Nome da Etapa -->
-              <div class="flex-1 min-w-[160px]">
+              <div class="flex-1 min-w-[170px]" onclick="event.stopPropagation()">
                 <input type="text" value="${escapeHtml(stage.nome || '')}" oninput="updateStageName(${sIdx}, this.value)" placeholder="Nome da Etapa..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white font-semibold focus:outline-none focus:border-sky-500 shadow-inner" />
               </div>
 
-              <!-- Contagem de Subtarefas & Botões de Ação -->
+              <!-- Contagem de Subtarefas, Indicador Acordeão (▼ / ▶) & Ações -->
               <div class="flex items-center gap-2 shrink-0">
-                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-900 text-slate-300 border border-slate-800">
-                  ${subtarefas.length} subtarefas
+                <span class="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-slate-900 text-slate-300 border border-slate-800 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${stageColor};"></span>
+                  <span>${subtarefas.length} subtarefas</span>
                 </span>
 
-                <button type="button" onclick="toggleExpandStage('${stage.id}')" class="p-1.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:border-slate-700 transition cursor-pointer" title="${isExpanded ? 'Recolher Subtarefas' : 'Expandir Subtarefas'}">
-                  <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4"></i>
-                </button>
+                <!-- Indicador Visual do Acordeão (▼ / ▶) -->
+                <div class="p-1.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-700 transition" title="${isExpanded ? 'Recolher Etapa' : 'Expandir Etapa'}">
+                  <i data-lucide="${isExpanded ? 'chevron-down' : 'chevron-right'}" class="w-4 h-4 text-sky-400"></i>
+                </div>
 
-                <button type="button" onclick="handleDeleteStage(${sIdx})" class="p-1.5 rounded-xl border border-rose-900/60 bg-rose-950/40 text-rose-400 hover:text-rose-300 hover:bg-rose-900/60 transition cursor-pointer" title="Excluir Etapa">
+                <button type="button" onclick="event.stopPropagation(); handleDeleteStage(${sIdx})" class="p-1.5 rounded-xl border border-rose-900/60 bg-rose-950/40 text-rose-400 hover:text-rose-300 hover:bg-rose-900/60 transition cursor-pointer" title="Excluir Etapa">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
               </div>
@@ -6168,17 +6250,19 @@ lucide.createIcons();
 
             <!-- Área Expansível: Gerenciamento de Subtarefas com Responsável Padrão -->
             ${isExpanded ? `
-              <div class="border-t border-slate-800/80 bg-slate-900/60 p-4 space-y-2.5">
-                <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
-                  <span>Subtarefas e Responsáveis Padrão:</span>
-                  <span class="text-[11px] text-slate-500">Defina o título e quem executará por padrão</span>
+              <div class="border-t border-slate-800/80 bg-slate-900/60 p-4 space-y-3">
+                <div class="flex items-center justify-between text-xs text-slate-400 font-medium pb-1">
+                  <span class="font-bold text-slate-300 flex items-center gap-1.5">
+                    <i data-lucide="list-checks" class="w-4 h-4 text-sky-400"></i> Subtarefas Padrão da Etapa
+                  </span>
+                  <span class="text-[11px] text-slate-500">Defina os títulos e responsáveis padrão da equipe</span>
                 </div>
 
-                <!-- Lista de Subtarefas da Etapa -->
+                <!-- Lista Vertical Limpa de Subtarefas da Etapa -->
                 <div class="space-y-2">
                   ${subtarefas.length === 0 ? `
                     <div class="text-[11px] text-slate-500 italic p-3 bg-slate-950/40 rounded-xl border border-dashed border-slate-800 text-center">
-                      Nenhuma subtarefa adicionada. Adicione uma subtarefa abaixo.
+                      Nenhuma subtarefa adicionada. Digite uma ação abaixo para adicionar.
                     </div>
                   ` : subtarefas.map((sub, subIdx) => {
                     const normSub = normalizeSubtaskItem(sub, subIdx, stage.id);
@@ -6187,14 +6271,14 @@ lucide.createIcons();
 
                     return `
                       <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800/80 text-xs">
-                        <span class="text-[10px] text-slate-500 font-bold w-4 text-right shrink-0">${subIdx + 1}.</span>
+                        <span class="text-[11px] text-slate-500 font-bold w-5 text-right shrink-0">${subIdx + 1}.</span>
                         
-                        <!-- Título da Subtarefa -->
-                        <input type="text" value="${escapeHtml(normSub.titulo)}" oninput="updateSubtaskTitle(${sIdx}, ${subIdx}, this.value)" placeholder="Título da subtarefa..." class="flex-1 min-w-[180px] bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500" />
+                        <!-- Título da Subtarefa em input estilizado -->
+                        <input type="text" value="${escapeHtml(normSub.titulo)}" oninput="updateSubtaskTitle(${sIdx}, ${subIdx}, this.value)" placeholder="Título da subtarefa..." class="flex-1 min-w-[200px] bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-sky-500" />
                         
                         <!-- Dropdown de Responsável Padrão da Equipe -->
                         <div class="flex items-center gap-1 shrink-0">
-                          <select onchange="updateSubtaskDefaultAssignee(${sIdx}, ${subIdx}, this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-[11px] text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer max-w-[190px]" title="Responsável Padrão da Subtarefa">
+                          <select onchange="updateSubtaskDefaultAssignee(${sIdx}, ${subIdx}, this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer max-w-[220px]" title="Responsável Padrão da Subtarefa">
                             <option value="">👤 Sem responsável padrão</option>
                             ${activeUsers.map(u => `
                               <option value="${u.email}" ${normSub.responsavelPadrao === u.email ? 'selected' : ''}>
@@ -6214,17 +6298,17 @@ lucide.createIcons();
                           </button>
                         </div>
 
-                        <!-- Excluir Subtarefa -->
+                        <!-- Excluir Subtarefa com Confirmação Segura -->
                         ${(pendingSubtaskDelete && pendingSubtaskDelete.sIdx === sIdx && pendingSubtaskDelete.subIdx === subIdx) ? `
-                          <button type="button" onclick="deleteSubtask(${sIdx}, ${subIdx})" class="px-2 py-0.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] transition cursor-pointer shadow-sm animate-pulse shrink-0" title="Clique novamente para confirmar a exclusão">
+                          <button type="button" onclick="deleteSubtask(${sIdx}, ${subIdx})" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] transition cursor-pointer shadow-sm animate-pulse shrink-0" title="Clique novamente para confirmar a exclusão">
                             Confirmar?
                           </button>
-                          <button type="button" onclick="pendingSubtaskDelete = null; renderPipelineEditor();" class="p-1 text-slate-400 hover:text-white text-[10px] cursor-pointer shrink-0" title="Cancelar">
+                          <button type="button" onclick="pendingSubtaskDelete = null; renderPipelineEditor();" class="p-1 text-slate-400 hover:text-white text-xs cursor-pointer shrink-0" title="Cancelar">
                             ✕
                           </button>
                         ` : `
-                          <button type="button" onclick="deleteSubtask(${sIdx}, ${subIdx})" class="p-1 text-slate-500 hover:text-rose-400 transition cursor-pointer shrink-0" title="Excluir subtarefa (requer confirmação)">
-                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                          <button type="button" onclick="deleteSubtask(${sIdx}, ${subIdx})" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition cursor-pointer shrink-0" title="Excluir subtarefa (requer confirmação)">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
                           </button>
                         `}
                       </div>
@@ -6232,20 +6316,20 @@ lucide.createIcons();
                   }).join("")}
                 </div>
 
-                <!-- Formulário de Adição de Nova Subtarefa -->
-                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 pt-2 border-t border-slate-800/60">
-                  <input type="text" id="inputNewSubtask_${sIdx}" placeholder="Nova subtarefa para esta etapa..." class="flex-1 min-w-[180px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); addSubtaskToStage(${sIdx}); }" />
+                <!-- Formulário no Rodapé da Etapa: + Adicionar Subtarefa com Input Direto -->
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 pt-2.5 border-t border-slate-800/80">
+                  <input type="text" id="inputNewSubtask_${sIdx}" placeholder="+ Adicionar subtarefa a esta etapa..." class="flex-1 min-w-[200px] bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); addSubtaskToStage(${sIdx}); }" />
                   
-                  <select id="selectNewSubtaskAssignee_${sIdx}" class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer max-w-[190px]">
+                  <select id="selectNewSubtaskAssignee_${sIdx}" class="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-300 focus:outline-none focus:border-sky-500 cursor-pointer max-w-[200px]">
                     <option value="">👤 Responsável padrão...</option>
                     ${activeUsers.map(u => `
                       <option value="${u.email}">${escapeHtml(u.nome || u.email)} (${escapeHtml(u.cargo || 'Membro')})</option>
                     `).join("")}
                   </select>
 
-                  <button type="button" onclick="addSubtaskToStage(${sIdx})" class="px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer shrink-0">
-                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                    <span>Adicionar</span>
+                  <button type="button" onclick="addSubtaskToStage(${sIdx})" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer shrink-0">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span>Adicionar Subtarefa</span>
                   </button>
                 </div>
 
@@ -6259,9 +6343,6 @@ lucide.createIcons();
       lucide.createIcons();
     }
 
-    /**
-     * MÉTODOS DE MANIPULAÇÃO DE ETAPAS E SUBTAREFAS NO EDITOR
-     */
     function toggleExpandStage(stageId) {
       if (expandedStageIds.has(stageId)) {
         expandedStageIds.delete(stageId);
@@ -6459,10 +6540,7 @@ lucide.createIcons();
       if (!confirmed) return;
 
       editingPipeline = JSON.parse(JSON.stringify(DEFAULT_PIPELINE_STAGES));
-      expandedStageIds.clear();
-      if (editingPipeline.length > 0) {
-        expandedStageIds.add(editingPipeline[0].id);
-      }
+      expandedStageIds.clear(); // Redefinição mantém todas as etapas recolhidas
       renderPipelineEditor();
       showToast("Padrão oficial das 9 fases carregado no editor.");
     }
