@@ -374,7 +374,7 @@
     </div>
 
     <!-- Navegação de Visualizações -->
-    <div class="flex items-center justify-between border-t border-slate-800/60 pt-2">
+    <div class="hidden md:flex items-center justify-between border-t border-slate-800/60 pt-2">
       <nav class="flex items-center overflow-x-auto no-scrollbar gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800/80 text-xs w-full sm:w-auto">
         <button onclick="switchView('kanban')" id="tab-kanban" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-sky-600 text-white shadow-sm shrink-0 cursor-pointer">
           <i data-lucide="columns-3" class="w-3.5 h-3.5"></i> Kanban
@@ -461,15 +461,38 @@
        ========================================================================= -->
   <main class="flex-1 flex flex-col min-h-0">
     <!-- VIEW: KANBAN -->
-    <div id="view-kanban" class="flex-1 overflow-x-auto overflow-y-hidden p-3 sm:p-6">
-      <div id="kanbanContainer" class="flex gap-4 h-full items-start">
+    <div id="view-kanban" class="flex-1 overflow-y-auto md:overflow-x-auto md:overflow-y-hidden p-3 sm:p-6 pb-24 md:pb-6">
+      
+      <!-- KANBAN MOBILE EXCLUSIVO (< 768px): SELETOR DE FASES DESLIZANTE + LISTA VERTICAL DE CARDS -->
+      <div id="kanbanMobileView" class="md:hidden flex flex-col space-y-3.5 mb-4">
+        <!-- Top Sliding Phase Tabs (Carrossel Horizontal com Arraste Suave) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between text-slate-400 text-[11px] px-1">
+            <span class="font-semibold text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="layers" class="w-3.5 h-3.5 text-sky-400"></i> Etapas da Esteira
+            </span>
+            <span id="mobileActivePhaseSubtitle" class="text-[10px] text-slate-400 font-medium truncate max-w-[200px]"></span>
+          </div>
+          <div id="kanbanMobilePhaseTabs" class="overflow-x-auto whitespace-nowrap flex gap-2 p-1.5 scrollbar-none no-scrollbar touch-pan-x" style="-webkit-overflow-scrolling: touch;">
+            <!-- Gerado dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- Corpo da Fase Ativa (Vertical List) -->
+        <div id="kanbanMobileStageContent" class="space-y-3">
+          <!-- Cards verticais renderizados aqui -->
+        </div>
+      </div>
+
+      <!-- KANBAN DESKTOP (≥ 768px): ESTEIRA HORIZONTAL DE 9 COLUNAS COM DRAG & DROP -->
+      <div id="kanbanContainer" class="hidden md:flex gap-4 h-full items-start">
         <!-- Colunas geradas dinamicamente via JS -->
       </div>
     </div>
 
     <!-- VIEW: TABELA GERAL -->
     <!-- VIEW: TABELA GERAL (COM FILTROS COMBINADOS & ORDENAÇÃO) -->
-    <div id="view-table" class="hidden flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+    <div id="view-table" class="hidden flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 pb-24 md:pb-6">
       
       <!-- Barra de Filtros Reativos da Tabela -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md space-y-3 text-xs">
@@ -648,7 +671,7 @@
     </div>
 
     <!-- VIEW: MÉTRICAS OPERACIONAIS (FOCO EM TEMPOS & GARGALOS) -->
-    <div id="view-metrics" class="hidden flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+    <div id="view-metrics" class="hidden flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 pb-24 md:pb-6">
       
       <!-- Top KPIs em Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -764,7 +787,7 @@
     <!-- =========================================================================
          VISUALIZAÇÃO 4: HISTÓRICO GERAL (FEED DE AUDITORIA CONSOLIDADO)
          ========================================================================= -->
-    <div id="view-history" class="hidden flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+    <div id="view-history" class="hidden flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 pb-24 md:pb-6">
       <!-- Barra Superior de Controles e Filtros -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
         <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -827,7 +850,9 @@
        GAVETA LATERAL DO CLIENTE (DRAWER DE OPERAÇÃO & SUBTAREFAS)
        ========================================================================= -->
   <div id="clientDrawerBackdrop" onclick="closeClientDrawer()" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm transition-opacity"></div>
-  <aside id="clientDrawer" class="fixed top-0 right-0 bottom-0 z-50 w-full max-w-2xl bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col transform translate-x-full transition-transform duration-300 ease-in-out">
+  <aside id="clientDrawer" class="fixed inset-x-0 bottom-0 md:inset-auto md:top-0 md:right-0 md:bottom-0 z-50 w-full md:max-w-2xl max-h-[90vh] md:max-h-full rounded-t-2xl md:rounded-none bg-slate-900 border-t md:border-t-0 md:border-l border-slate-700 md:border-slate-800 shadow-2xl flex flex-col transform translate-y-full md:translate-y-0 md:translate-x-full transition-transform duration-300 ease-in-out">
+    <!-- Barra de tração superior ("drag handle") decorativo exclusivo no mobile -->
+    <div class="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto my-2.5 md:hidden shrink-0"></div>
     <!-- Cabeçalho da Gaveta -->
     <div class="p-4 sm:p-5 border-b border-slate-800 bg-slate-950/80 flex items-start justify-between gap-3">
       <div class="min-w-0 flex-1">
@@ -1003,8 +1028,10 @@
   <!-- =========================================================================
        MODAL DE CADASTRO: + NOVO CLIENTE (HÍBRIDO COM SUBTAREFAS AUTOMÁTICAS)
        ========================================================================= -->
-  <div id="modalNewClient" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto">
+  <div id="modalNewClient" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+    <div class="bg-slate-900 border-t md:border border-slate-700 md:border-slate-800 rounded-t-2xl md:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
+      <!-- Drag handle mobile -->
+      <div class="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto mb-3 md:hidden shrink-0"></div>
       <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
         <h3 class="text-base font-bold text-white flex items-center gap-2">
           <i data-lucide="user-plus" class="w-5 h-5 text-sky-400"></i>
@@ -1203,8 +1230,10 @@
        ========================================================================= -->
   <!-- MODAL DE EXCLUSÃO DE CLIENTE COM DUPLA CONFIRMAÇÃO POR DIGITAÇÃO -->
   <!-- Modal: Adicionar Subtarefa Personalizada ao Cliente -->
-  <div id="modalAddCustomSubtask" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto">
+  <div id="modalAddCustomSubtask" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+    <div class="bg-slate-900 border-t md:border border-slate-700 md:border-slate-800 rounded-t-2xl md:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
+      <!-- Drag handle mobile -->
+      <div class="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto mb-3 md:hidden shrink-0"></div>
       <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
         <div class="w-10 h-10 rounded-2xl bg-sky-950/80 border border-sky-800/80 text-sky-400 flex items-center justify-center shrink-0">
           <i data-lucide="plus-circle" class="w-5 h-5"></i>
@@ -1260,8 +1289,10 @@
     </div>
   </div>
 
-  <div id="modalDeleteClient" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-rose-900/50 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto">
+  <div id="modalDeleteClient" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+    <div class="bg-slate-900 border-t md:border border-rose-900/50 rounded-t-2xl md:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
+      <!-- Drag handle mobile -->
+      <div class="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto mb-3 md:hidden shrink-0"></div>
       <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
         <div class="w-10 h-10 rounded-2xl bg-rose-950/80 border border-rose-800/80 text-rose-400 flex items-center justify-center shrink-0">
           <i data-lucide="alert-triangle" class="w-5 h-5"></i>
@@ -2049,7 +2080,8 @@
       kanbanFilterAging: "all",
       tableSortColumn: "name",
       tableSortOrder: "asc",
-      pipeline: null
+      pipeline: null,
+      mobileActiveStageId: "etapa_1"
     };
 
     // 4. CONTROLE RÍGIDO DE ACESSOS (RBAC - ZERO TRUST)
@@ -2726,50 +2758,396 @@
         return true;
       });
 
-      container.innerHTML = stages.map((stage, stageIndex) => {
-        const colClients = filtered.filter(c => isClientInStage(c, stage, stageIndex, stages));
-        const stageColor = stage.cor || "#3b82f6";
+      // 1. RENDERIZAÇÃO DESKTOP: 9 Colunas intactas no #kanbanContainer (≥ 768px)
+      if (container) {
+        container.innerHTML = stages.map((stage, stageIndex) => {
+          const colClients = filtered.filter(c => isClientInStage(c, stage, stageIndex, stages));
+          const stageColor = stage.cor || "#3b82f6";
 
-        return `
-          <div class="kanban-col flex-shrink-0 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-col max-h-[calc(100vh-140px)] shadow-lg snap-start"
-               style="scroll-snap-align: start;"
-               ondragover="handleDragOver(event)"
-               ondragleave="handleDragLeave(event)"
-               ondrop="handleDrop(event, '${stage.id}')">
-            
-            <div class="p-3.5 border-b border-slate-800 bg-slate-950/70 rounded-t-2xl flex items-center justify-between gap-2 shrink-0">
-              <div class="flex items-center gap-2 min-w-0">
-                <span class="w-6 h-6 rounded-lg text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm" style="background-color: ${stageColor}33; border: 1px solid ${stageColor}88; color: ${stageColor}">
-                  ${stageIndex + 1}
-                </span>
-                <div class="min-w-0">
-                  <h3 class="font-bold text-xs text-white leading-tight truncate max-w-[170px]" title="${escapeHtml(stage.nome)}">
-                    ${stageIndex + 1}. ${escapeHtml(stage.nome)} <span class="text-sky-400 font-mono text-[11px] font-bold">(${colClients.length})</span>
-                  </h3>
-                  <p class="text-[10px] text-slate-400 truncate max-w-[170px] font-normal" title="${escapeHtml(stage.subtitulo || '')}">
-                    ${stage.subtitulo ? escapeHtml(stage.subtitulo) : (stage.subtarefas || []).length + ' subtarefas'}
-                  </p>
+          return `
+            <div class="kanban-col flex-shrink-0 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-col max-h-[calc(100vh-140px)] shadow-lg snap-start"
+                 style="scroll-snap-align: start;"
+                 ondragover="handleDragOver(event)"
+                 ondragleave="handleDragLeave(event)"
+                 ondrop="handleDrop(event, '${stage.id}')">
+              
+              <div class="p-3.5 border-b border-slate-800 bg-slate-950/70 rounded-t-2xl flex items-center justify-between gap-2 shrink-0">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="w-6 h-6 rounded-lg text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm" style="background-color: ${stageColor}33; border: 1px solid ${stageColor}88; color: ${stageColor}">
+                    ${stageIndex + 1}
+                  </span>
+                  <div class="min-w-0">
+                    <h3 class="font-bold text-xs text-white leading-tight truncate max-w-[170px]" title="${escapeHtml(stage.nome)}">
+                      ${stageIndex + 1}. ${escapeHtml(stage.nome)} <span class="text-sky-400 font-mono text-[11px] font-bold">(${colClients.length})</span>
+                    </h3>
+                    <p class="text-[10px] text-slate-400 truncate max-w-[170px] font-normal" title="${escapeHtml(stage.subtitulo || '')}">
+                      ${stage.subtitulo ? escapeHtml(stage.subtitulo) : (stage.subtarefas || []).length + ' subtarefas'}
+                    </p>
+                  </div>
                 </div>
+                <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700/60 shrink-0" title="Total visível nesta coluna">
+                  ${colClients.length}
+                </span>
               </div>
-              <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-slate-800/80 text-slate-300 border border-slate-700/60 shrink-0" title="Total visível nesta coluna">
+
+              <div id="col-${stage.id}" class="flex-1 p-2 sm:p-2.5 overflow-y-auto space-y-2.5 min-h-[150px]">
+                ${colClients.map(c => renderClientCard(c, canDrag, stage, stageIndex)).join("")}
+                ${colClients.length === 0 ? `
+                  <div class="h-28 border border-dashed border-slate-800/80 rounded-xl flex items-center justify-center text-slate-600 text-xs italic">
+                    Nenhum cliente
+                  </div>
+                ` : ''}
+              </div>
+
+            </div>
+          `;
+        }).join("");
+      }
+
+      // 2. RENDERIZAÇÃO MOBILE: Seletor Deslizante + Lista Vertical de Cards (< 768px)
+      const mobileTabs = document.getElementById("kanbanMobilePhaseTabs");
+      const mobileContent = document.getElementById("kanbanMobileStageContent");
+
+      if (mobileTabs && mobileContent) {
+        if (!state.mobileActiveStageId && stages.length > 0) {
+          state.mobileActiveStageId = stages[0].id;
+        } else if (!stages.some(s => s.id === state.mobileActiveStageId) && stages.length > 0) {
+          state.mobileActiveStageId = stages[0].id;
+        }
+
+        // Top Sliding Phase Tabs
+        mobileTabs.innerHTML = stages.map((stage, stageIndex) => {
+          const colClients = filtered.filter(c => isClientInStage(c, stage, stageIndex, stages));
+          const isActive = stage.id === state.mobileActiveStageId;
+          const stageColor = stage.cor || "#0ea5e9";
+          const shortName = getShortStageName(stage.nome, stageIndex);
+
+          return `
+            <button type="button"
+                    data-stage-tab="${stage.id}"
+                    onclick="selectMobileStage('${stage.id}')"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0 transition-all cursor-pointer border ${isActive ? 'bg-sky-600 text-white border-sky-400 shadow-md ring-1 ring-sky-400/40' : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:text-white hover:bg-slate-800'}"
+                    ${isActive ? `style="border-color: ${stageColor}; background: linear-gradient(135deg, ${stageColor}33 0%, ${stageColor}11 100%); box-shadow: 0 0 10px ${stageColor}33;"` : ''}>
+              <span class="w-4 h-4 rounded-md text-[10px] font-bold flex items-center justify-center shrink-0 ${isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}" ${isActive ? `style="background-color: ${stageColor}; color: #ffffff;"` : ''}>
+                ${stageIndex + 1}
+              </span>
+              <span class="truncate max-w-[120px]">${escapeHtml(shortName)}</span>
+              <span class="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${isActive ? 'bg-white/25 text-white' : 'bg-slate-800 text-sky-400 border border-slate-700/60'}" ${isActive ? `style="background-color: ${stageColor}33; color: ${stageColor}; border: 1px solid ${stageColor}88;"` : ''}>
                 ${colClients.length}
               </span>
+            </button>
+          `;
+        }).join("");
+
+        // Active Stage Body
+        const activeStageIndex = stages.findIndex(s => s.id === state.mobileActiveStageId);
+        const activeStage = stages[activeStageIndex >= 0 ? activeStageIndex : 0];
+        const stageSubtitleEl = document.getElementById("mobileActivePhaseSubtitle");
+        if (stageSubtitleEl && activeStage) {
+          stageSubtitleEl.textContent = activeStage.subtitulo || activeStage.nome;
+        }
+
+        if (activeStage) {
+          const activeClients = filtered.filter(c => isClientInStage(c, activeStage, activeStageIndex >= 0 ? activeStageIndex : 0, stages));
+          
+          if (activeClients.length === 0) {
+            mobileContent.innerHTML = `
+              <div class="py-12 px-4 border border-dashed border-slate-800/80 rounded-2xl flex flex-col items-center justify-center text-center text-slate-500 bg-slate-950/40">
+                <i data-lucide="inbox" class="w-10 h-10 mb-2 opacity-40 text-slate-400"></i>
+                <p class="text-sm font-semibold text-slate-300">Nenhum cliente nesta etapa</p>
+                <span class="text-xs text-slate-500 mt-1">Selecione outra fase acima ou cadastre um novo cliente.</span>
+              </div>
+            `;
+          } else {
+            mobileContent.innerHTML = activeClients.map(c => renderMobileClientCard(c, activeStage, activeStageIndex >= 0 ? activeStageIndex : 0, stages)).join("");
+          }
+        }
+      }
+
+      lucide.createIcons();
+    }
+
+    function getShortStageName(name, index) {
+      if (!name) return "Fase " + (index + 1);
+      const shortMap = {
+        0: "Questionário",
+        1: "Onboarding",
+        2: "Fotos",
+        3: "Plan. Site",
+        4: "Intermediária",
+        5: "Site",
+        6: "Campanha",
+        7: "Acompanhamento",
+        8: "Concluído"
+      };
+      if (shortMap[index]) return shortMap[index];
+      return name.split("(")[0].trim();
+    }
+
+    function selectMobileStage(stageId) {
+      state.mobileActiveStageId = stageId;
+      renderKanban();
+      try {
+        const activeBtn = document.querySelector(`button[data-stage-tab="${stageId}"]`);
+        if (activeBtn) {
+          activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+        }
+      } catch (e) {}
+    }
+
+    async function advanceClientPhase(clientId) {
+      if (!state.currentUser?.permissions?.canAdvancePhases) {
+        showToast("Seu cargo não possui permissão para avançar etapas.");
+        return;
+      }
+      const id = clientId || state.selectedClientId;
+      const client = state.clients.find(c => c.id === id);
+      if (!client) return;
+
+      const stages = getPipelineStages();
+      const currentIdx = stages.findIndex((s, idx) => isClientInStage(client, s, idx, stages));
+      if (currentIdx === -1 || currentIdx >= stages.length - 1) {
+        showToast("O cliente já está na última etapa da esteira.");
+        return;
+      }
+
+      const nextStage = stages[currentIdx + 1];
+      const nowIso = new Date().toISOString();
+
+      try {
+        await db.collection("clients").doc(client.id).update({
+          fase: nextStage.id,
+          status: nextStage.id,
+          dataEntradaFase: nowIso,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          historico: firebase.firestore.FieldValue.arrayUnion({
+            data: nowIso,
+            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+            acao: 'Avançou fase para "' + nextStage.nome + '"'
+          })
+        });
+
+        try {
+          if (typeof confetti === "function") {
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+          }
+        } catch (e) {}
+
+        showToast('Cliente avançado para a etapa "' + nextStage.nome + '"!');
+      } catch (err) {
+        console.error("Erro ao avançar etapa:", err);
+        showToast("Falha ao atualizar etapa no Firestore.");
+      }
+    }
+
+    async function moveClientToStage(clientId, targetStageId) {
+      if (!state.currentUser?.permissions?.canAdvancePhases) {
+        showToast("Seu cargo não possui permissão para transferir etapas.");
+        return;
+      }
+      const id = clientId || state.selectedClientId;
+      const client = state.clients.find(c => c.id === id);
+      if (!client) return;
+
+      const stages = getPipelineStages();
+      const targetStage = stages.find(s => s.id === targetStageId);
+      if (!targetStage) return;
+
+      const currentIdx = stages.findIndex((s, idx) => isClientInStage(client, s, idx, stages));
+      if (currentIdx !== -1 && stages[currentIdx].id === targetStageId) {
+        return; // Já está nesta fase
+      }
+
+      const nowIso = new Date().toISOString();
+
+      try {
+        await db.collection("clients").doc(client.id).update({
+          fase: targetStage.id,
+          status: targetStage.id,
+          dataEntradaFase: nowIso,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          historico: firebase.firestore.FieldValue.arrayUnion({
+            data: nowIso,
+            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+            acao: 'Moveu para a fase "' + targetStage.nome + '"'
+          })
+        });
+
+        const isLast = stages[stages.length - 1].id === targetStage.id;
+        if (isLast) {
+          try {
+            if (typeof confetti === "function") {
+              confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+          } catch (e) {}
+        }
+
+        showToast('Cliente movido para a etapa "' + targetStage.nome + '"!');
+      } catch (err) {
+        console.error("Erro ao mover etapa:", err);
+        showToast("Falha ao transferir etapa no Firestore.");
+      }
+    }
+
+    function renderMobileClientCard(client, currentStage, stageIndex, stages) {
+      const aging = getClientAgingInfo(client);
+      const daysInfo = getClientStageAndTotalDays(client);
+      const isPriority = !!client.priority;
+      const allTasks = getClientMergedTasks(client);
+      const stage = currentStage || getClientCurrentStage(client);
+      const phaseTasks = allTasks.filter(t => t.stageId === stage.id);
+      const donePhaseTasks = phaseTasks.filter(t => t.status === "Concluída");
+      const nextTask = getNextPendingTask(client);
+      const canAdvance = state.currentUser?.permissions?.canAdvancePhases;
+      const isLastStage = stageIndex >= stages.length - 1;
+
+      const pct = phaseTasks.length > 0 ? Math.round((donePhaseTasks.length / phaseTasks.length) * 100) : 100;
+
+      const waLink = client.whatsappGroup && client.whatsappGroup.trim()
+        ? client.whatsappGroup.trim()
+        : (client.phone ? ("https://wa.me/55" + client.phone.replace(/\D/g, '')) : '');
+
+      let nextTaskAssigneeName = "";
+      let nextTaskAssigneeInitials = "";
+      if (nextTask && nextTask.assignee) {
+        const member = state.users.find(u => (u.email || "").toLowerCase() === nextTask.assignee.toLowerCase());
+        nextTaskAssigneeName = member?.nome || nextTask.assignee.split("@")[0];
+        nextTaskAssigneeInitials = getInitials(nextTaskAssigneeName);
+      }
+
+      return `
+        <div class="w-full bg-slate-900/95 border ${isPriority ? 'priority-card border-rose-500/60 bg-rose-950/10' : 'border-slate-800/90'} rounded-2xl p-4 shadow-md space-y-3 text-left transition"
+             draggable="false"
+             onclick="openClientDrawer('${client.id}')">
+          
+          <!-- Topo do Card: Nome, Prioridade e Especialidade/Nicho -->
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1" onclick="event.stopPropagation(); openClientDrawer('${client.id}')">
+              <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                <h4 class="font-bold text-sm text-white truncate max-w-[210px]" title="${escapeHtml(client.name)}">
+                  ${escapeHtml(client.name)}
+                </h4>
+                ${isPriority ? `
+                  <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800/80 priority-badge-blink shrink-0 flex items-center gap-1">
+                    ⭐ PRIORITÁRIO
+                  </span>
+                ` : ''}
+              </div>
+              <p class="text-xs text-slate-400 truncate font-normal">
+                ${escapeHtml(client.specialty || client.niche || client.phone || 'Geral')}
+              </p>
             </div>
 
-            <div id="col-${stage.id}" class="flex-1 p-2 sm:p-2.5 overflow-y-auto space-y-2.5 min-h-[150px]">
-              ${colClients.map(c => renderClientCard(c, canDrag, stage, stageIndex)).join("")}
-              ${colClients.length === 0 ? `
-                <div class="h-28 border border-dashed border-slate-800/80 rounded-xl flex items-center justify-center text-slate-600 text-xs italic">
-                  Nenhum cliente
-                </div>
-              ` : ''}
+            <!-- Badges de Tempo: Esteira & Fase -->
+            <div class="flex flex-col items-end gap-1 shrink-0">
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border ${aging.badgeClass} flex items-center gap-1 shadow-sm">
+                <span>${aging.dotEmoji}</span>
+                <span>⏱️ ${daysInfo.diasTotais}d esteira</span>
+              </span>
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-amber-950/70 border-amber-800/80 text-amber-300 flex items-center gap-1">
+                📍 ${daysInfo.diasNaFase}d fase
+              </span>
+            </div>
+          </div>
+
+          <!-- Barra de Progresso da Fase -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-[10px] text-slate-400">
+              <span>Progresso da etapa</span>
+              <span class="font-mono font-semibold">${donePhaseTasks.length}/${phaseTasks.length} (${pct}%)</span>
+            </div>
+            <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800">
+              <div class="bg-sky-500 h-1.5 rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+            </div>
+          </div>
+
+          <!-- Bloco: Próxima Ação com Responsável -->
+          <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800/80 text-xs shadow-inner space-y-1.5">
+            <div class="flex items-center justify-between text-slate-400 text-[10px]">
+              <span class="font-bold text-sky-400 uppercase tracking-wider text-[9px] flex items-center gap-1">
+                <i data-lucide="arrow-right-circle" class="w-3.5 h-3.5"></i> Próxima Ação
+              </span>
+              <span class="font-mono text-slate-400 font-semibold">${donePhaseTasks.length}/${phaseTasks.length}</span>
+            </div>
+            
+            <p class="text-slate-100 font-semibold text-xs leading-snug line-clamp-2" title="${nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas'}">
+              ${nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas nesta etapa 🎉'}
+            </p>
+
+            ${nextTask ? `
+              <div class="pt-1 flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${nextTaskAssigneeName ? 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80 shadow-sm' : 'bg-slate-900 text-slate-400 border-slate-800'}" title="${nextTaskAssigneeName ? 'Responsável: ' + escapeHtml(nextTaskAssigneeName) : 'Nenhum responsável atribuído'}">
+                  <span class="w-3.5 h-3.5 rounded-full bg-indigo-900 text-indigo-200 text-[8px] font-bold flex items-center justify-center shrink-0">
+                    ${nextTaskAssigneeInitials ? nextTaskAssigneeInitials : '👤'}
+                  </span>
+                  <span class="truncate max-w-[170px]">${nextTaskAssigneeName ? escapeHtml(nextTaskAssigneeName) : 'Sem responsável'}</span>
+                </span>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Rodapé de Ações do Card no Mobile -->
+          <div class="pt-2 border-t border-slate-800/80 flex flex-col gap-2.5">
+            
+            <!-- Linha 1 de Ações: Avançar Fase + Mover Para... -->
+            <div class="flex items-center gap-2">
+              <!-- Botão Avançar Fase -->
+              <button type="button"
+                      onclick="event.stopPropagation(); advanceClientPhase('${client.id}')"
+                      ${!canAdvance || isLastStage ? 'disabled' : ''}
+                      class="flex-1 min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer ${!canAdvance || isLastStage ? 'bg-slate-800/60 text-slate-500 border border-slate-700/40 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-[0.98]'}">
+                <i data-lucide="${isLastStage ? 'check-circle-2' : 'arrow-right'}" class="w-4 h-4"></i>
+                <span>${isLastStage ? 'Última Etapa' : 'Avançar Fase'}</span>
+              </button>
+
+              <!-- Dropdown Mover Para... -->
+              <div class="relative flex-1">
+                <select onclick="event.stopPropagation()"
+                        onchange="event.stopPropagation(); if (this.value) { moveClientToStage('${client.id}', this.value); this.value = ''; }"
+                        ${!canAdvance ? 'disabled' : ''}
+                        class="w-full min-h-[44px] bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-sky-500 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  <option value="">📂 Mover para...</option>
+                  ${stages.map((s, idx) => `
+                    <option value="${s.id}" ${s.id === stage.id ? 'disabled' : ''}>
+                      ${idx + 1}. ${escapeHtml(s.nome)} ${s.id === stage.id ? '(atual)' : ''}
+                    </option>
+                  `).join("")}
+                </select>
+              </div>
+            </div>
+
+            <!-- Linha 2 de Ações: WhatsApp, Prioridade & Detalhes -->
+            <div class="flex items-center justify-between pt-0.5">
+              <div class="flex items-center gap-1.5">
+                ${waLink ? `
+                  <button type="button"
+                          onclick="event.stopPropagation(); window.open('${waLink}', '_blank')"
+                          title="Abrir WhatsApp"
+                          class="touch-target min-w-[44px] min-h-[44px] p-2 rounded-xl text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 hover:bg-emerald-900/60 transition cursor-pointer flex items-center justify-center">
+                    <i data-lucide="message-circle" class="w-4 h-4"></i>
+                  </button>
+                ` : ''}
+                
+                <button type="button"
+                        onclick="event.stopPropagation(); toggleClientPriority('${client.id}', event)"
+                        title="Alternar Prioridade"
+                        class="touch-target min-w-[44px] min-h-[44px] p-2 rounded-xl transition cursor-pointer flex items-center justify-center border ${isPriority ? 'text-amber-300 bg-amber-950/50 border-amber-800/50' : 'text-slate-400 bg-slate-950 border-slate-800 hover:text-amber-400'}">
+                  <i data-lucide="star" class="w-4 h-4 ${isPriority ? 'fill-amber-400 text-amber-400' : ''}"></i>
+                </button>
+              </div>
+
+              <button type="button"
+                      onclick="event.stopPropagation(); openClientDrawer('${client.id}')"
+                      class="touch-target min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-bold text-sky-400 bg-sky-950/40 border border-sky-800/40 hover:bg-sky-900/60 transition flex items-center gap-1 cursor-pointer">
+                <span>Detalhes</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
             </div>
 
           </div>
-        `;
-      }).join("");
 
-      lucide.createIcons();
+        </div>
+      `;
     }
 
     function renderClientCard(client, canDrag, currentStage, stageIndex) {
@@ -3064,7 +3442,7 @@
         const backdrop = document.getElementById("clientDrawerBackdrop");
         if (backdrop) backdrop.classList.remove("hidden");
         const drawer = document.getElementById("clientDrawer");
-        if (drawer) drawer.classList.remove("translate-x-full");
+        if (drawer) drawer.classList.remove("translate-x-full", "translate-y-full");
 
         if (window.lucide && typeof lucide.createIcons === "function") {
           lucide.createIcons();
@@ -3074,7 +3452,7 @@
         const backdrop = document.getElementById("clientDrawerBackdrop");
         if (backdrop) backdrop.classList.remove("hidden");
         const drawer = document.getElementById("clientDrawer");
-        if (drawer) drawer.classList.remove("translate-x-full");
+        if (drawer) drawer.classList.remove("translate-x-full", "translate-y-full");
       }
     }
 
@@ -3082,7 +3460,7 @@
       const backdrop = document.getElementById("clientDrawerBackdrop");
       if (backdrop) backdrop.classList.add("hidden");
       const drawer = document.getElementById("clientDrawer");
-      if (drawer) drawer.classList.add("translate-x-full");
+      if (drawer) drawer.classList.add("translate-x-full", "translate-y-full");
       state.selectedClientId = null;
     }
 
@@ -3789,48 +4167,7 @@
     }
 
     async function advanceClientPhaseDrawer() {
-      if (!state.currentUser?.permissions?.canAdvancePhases) {
-        showToast("Seu cargo não possui permissão para avançar etapas.");
-        return;
-      }
-      const client = state.clients.find(c => c.id === state.selectedClientId);
-      if (!client) return;
-
-      const stages = getPipelineStages();
-      const currentIdx = stages.findIndex((s, idx) => isClientInStage(client, s, idx, stages));
-      if (currentIdx === -1 || currentIdx >= stages.length - 1) {
-        showToast("O cliente já está na última etapa da esteira.");
-        return;
-      }
-
-      const nextStage = stages[currentIdx + 1];
-      const nowIso = new Date().toISOString();
-
-      try {
-        await db.collection("clients").doc(client.id).update({
-          fase: nextStage.id,
-          status: nextStage.id,
-          dataEntradaFase: nowIso,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          historico: firebase.firestore.FieldValue.arrayUnion({
-            data: nowIso,
-            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
-            acao: 'Avançou fase para "' + nextStage.nome + '"'
-          })
-        });
-
-        // Celebração confetti
-        try {
-          if (typeof confetti === "function") {
-            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-          }
-        } catch (e) {}
-
-        showToast('Cliente avançado para a etapa "' + nextStage.nome + '"!');
-      } catch (err) {
-        console.error("Erro ao avançar etapa:", err);
-        showToast("Falha ao atualizar etapa no Firestore.");
-      }
+      await advanceClientPhase(state.selectedClientId);
     }
 
     let notesDebounceTimer = null;
@@ -4912,21 +5249,40 @@
       ["kanban", "table", "metrics", "history"].forEach(v => {
         const viewEl = document.getElementById("view-" + v);
         if (viewEl) viewEl.classList.add("hidden");
+        
+        // Desktop top nav
         const tab = document.getElementById("tab-" + v);
         if (tab) {
           tab.classList.remove("bg-sky-600", "text-white");
           tab.classList.add("text-slate-400");
         }
+
+        // Mobile bottom nav
+        const mTab = document.getElementById("mobile-tab-" + v);
+        if (mTab) {
+          mTab.classList.remove("text-sky-400", "bg-sky-950/60", "border", "border-sky-800/40", "font-semibold");
+          mTab.classList.add("text-slate-400", "font-medium");
+        }
       });
 
       const activeView = document.getElementById("view-" + view);
       if (activeView) activeView.classList.remove("hidden");
+      
+      // Desktop active tab
       const activeTab = document.getElementById("tab-" + view);
       if (activeTab) {
         activeTab.classList.add("bg-sky-600", "text-white");
         activeTab.classList.remove("text-slate-400");
       }
 
+      // Mobile active tab
+      const activeMTab = document.getElementById("mobile-tab-" + view);
+      if (activeMTab) {
+        activeMTab.classList.add("text-sky-400", "bg-sky-950/60", "border", "border-sky-800/40", "font-semibold");
+        activeMTab.classList.remove("text-slate-400", "font-medium");
+      }
+
+      if (view === "kanban") renderKanban();
       if (view === "table") renderTable();
       if (view === "metrics") renderMetrics();
       if (view === "history") renderGlobalHistory();
@@ -5478,5 +5834,30 @@
       lucide.createIcons();
     });
   </script>
+
+  <!-- =========================================================================
+       BARRA DE NAVEGAÇÃO INFERIOR FIXA EXCLUSIVA PARA MOBILE (< 768px)
+       ========================================================================= -->
+  <nav id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-3 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]" style="padding-bottom: max(10px, env(safe-area-inset-bottom, 12px));">
+    <div class="grid grid-cols-4 gap-1 max-w-md mx-auto">
+      <button onclick="switchView('kanban')" id="mobile-tab-kanban" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] font-semibold transition cursor-pointer text-sky-400 bg-sky-950/60 border border-sky-800/40 min-h-[44px]">
+        <i data-lucide="columns-3" class="w-5 h-5 mb-0.5"></i>
+        <span>Kanban</span>
+      </button>
+      <button onclick="switchView('table')" id="mobile-tab-table" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] font-medium transition cursor-pointer text-slate-400 hover:text-white min-h-[44px]">
+        <i data-lucide="table" class="w-5 h-5 mb-0.5"></i>
+        <span>Tabela</span>
+      </button>
+      <button onclick="switchView('metrics')" id="mobile-tab-metrics" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] font-medium transition cursor-pointer text-slate-400 hover:text-white min-h-[44px]">
+        <i data-lucide="bar-chart-2" class="w-5 h-5 mb-0.5"></i>
+        <span>Métricas</span>
+      </button>
+      <button onclick="switchView('history')" id="mobile-tab-history" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] font-medium transition cursor-pointer text-slate-400 hover:text-white min-h-[44px]">
+        <i data-lucide="history" class="w-5 h-5 mb-0.5"></i>
+        <span>Histórico</span>
+      </button>
+    </div>
+  </nav>
+
 </body>
 </html>
