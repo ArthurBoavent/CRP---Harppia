@@ -988,10 +988,16 @@
         <span id="drawerClientStageDaysBadge" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-amber-950/70 border-amber-800/80 text-amber-300">
           📍 0d fase
         </span>
+        <span id="drawerClientContractBadge" class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-slate-900 border-slate-700 text-slate-300 shadow-sm">
+          ⏳ Pacote 3m
+        </span>
         <button id="drawerBtnPriority" onclick="toggleDrawerPriority()" title="Alternar Prioridade" class="touch-target text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer">
           ⭐ Prioridade
         </button>
       </div>
+
+      <!-- Container Dinâmico de Ações de Vigência / Pós-Venda no Cabeçalho da Gaveta -->
+      <div id="drawerLifecycleActionsBox" class="hidden mt-2.5 pt-2 border-t border-slate-800/80"></div>
 
       <!-- Linha 4: Barra de Progresso Geral e Contador de Tarefas no Cabeçalho -->
       <div class="mt-3 pt-2.5 border-t border-slate-800/80">
@@ -1037,7 +1043,7 @@
           <label for="drawerTasksFilter" class="block text-xs text-slate-400 font-medium mb-1">Lista de Execução:</label>
           <select id="drawerTasksFilter" onchange="renderDrawerTasks()" class="w-full h-10 px-3 bg-slate-950 border border-slate-700 text-white rounded-lg text-sm focus:outline-none focus:border-sky-500 cursor-pointer font-medium">
             <option value="current">Apenas Fase Atual (Padrão)</option>
-            <option value="all">Todas as 54 Subtarefas</option>
+            <option value="all">Todas as Subtarefas</option>
             <option value="etapa_1">Fase 1: Questionário</option>
             <option value="etapa_2">Fase 2: Reunião Onboarding</option>
             <option value="etapa_3">Fase 3: Fotos</option>
@@ -1045,8 +1051,9 @@
             <option value="etapa_5">Fase 5: Intermediária</option>
             <option value="etapa_6">Fase 6: Site</option>
             <option value="etapa_7">Fase 7: Campanha</option>
-            <option value="etapa_8">Fase 8: Acompanhamento</option>
-            <option value="etapa_9">Fase 9: Concluído</option>
+            <option value="etapa_9">Fase 8: Concluído</option>
+            <option value="etapa_8">Fase 9: Acompanhamento</option>
+            <option value="etapa_10">Fase 10: Finalizado</option>
           </select>
         </div>
 
@@ -1124,6 +1131,17 @@
           </div>
         </div>
 
+        <div>
+          <label class="block text-slate-400 mb-1 font-medium">Pacote Contratado</label>
+          <select id="drawerInputPacoteMeses"
+                  onchange="handleDrawerPacoteChange(this.value)"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-sky-500 cursor-pointer text-xs shadow-inner">
+            <option value="3">3 Meses (90 dias)</option>
+            <option value="6">6 Meses (180 dias)</option>
+            <option value="12">12 Meses / 1 Ano (365 dias)</option>
+          </select>
+        </div>
+
         <div class="pt-2 flex justify-between items-center">
           <button type="submit" id="btnSaveDrawerInfo" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-xl transition cursor-pointer">
             Salvar Alterações
@@ -1180,8 +1198,6 @@
           <input type="text" id="newClientName" required placeholder="Ex: Dr. Roberto Alencar" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500">
         </div>
 
-
-
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block font-medium text-slate-300 mb-1">Telefone / WhatsApp</label>
@@ -1219,6 +1235,26 @@
           </div>
         </div>
 
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">Pacote Contratado *</label>
+          <select id="newClientPacoteMeses" required onchange="selectNewClientPacoteChip(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-sky-500 cursor-pointer text-xs shadow-inner mb-2">
+            <option value="3" selected>3 Meses (90 dias)</option>
+            <option value="6">6 Meses (180 dias)</option>
+            <option value="12">12 Meses / 1 Ano (365 dias)</option>
+          </select>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" data-pacote-chip="3" onclick="selectNewClientPacoteChip(3)" class="new-client-pacote-chip py-2 px-2 rounded-xl border text-[11px] font-bold transition cursor-pointer bg-sky-600/20 border-sky-500 text-sky-300">
+              3 Meses (90d)
+            </button>
+            <button type="button" data-pacote-chip="6" onclick="selectNewClientPacoteChip(6)" class="new-client-pacote-chip py-2 px-2 rounded-xl border text-[11px] font-medium transition cursor-pointer bg-slate-950 border-slate-800 text-slate-400 hover:text-white">
+              6 Meses (180d)
+            </button>
+            <button type="button" data-pacote-chip="12" onclick="selectNewClientPacoteChip(12)" class="new-client-pacote-chip py-2 px-2 rounded-xl border text-[11px] font-medium transition cursor-pointer bg-slate-950 border-slate-800 text-slate-400 hover:text-white">
+              12 Meses (1 Ano)
+            </button>
+          </div>
+        </div>
+
         <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
           <button type="button" onclick="closeNewClientModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition cursor-pointer">
             Cancelar
@@ -1228,6 +1264,71 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL COMPACTO: RENOVAÇÃO DE PACOTE CONTRATUAL (ETAPA ACOMPANHAMENTO)
+       ========================================================================= -->
+  <div id="modalRenewPackage" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+    <div class="bg-slate-900 border-t md:border border-slate-700 md:border-slate-800 rounded-t-2xl md:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative text-left max-h-[90vh] overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
+      <div class="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto mb-3 md:hidden shrink-0"></div>
+      <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <span>🔄 Renovar Pacote</span>
+          </h3>
+          <p id="renewPackageClientName" class="text-[11px] text-slate-400 mt-0.5 truncate">Cliente</p>
+        </div>
+        <button type="button" onclick="closeRenewPackageModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-200 mb-2">Selecione o novo pacote:</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button"
+                    data-renew-chip="3"
+                    onclick="selectRenewPackageMonths(3)"
+                    class="renew-pacote-chip min-h-[44px] py-2.5 px-2 rounded-xl border text-xs font-bold transition cursor-pointer bg-sky-600/20 border-sky-500 text-sky-300">
+              3 Meses
+            </button>
+            <button type="button"
+                    data-renew-chip="6"
+                    onclick="selectRenewPackageMonths(6)"
+                    class="renew-pacote-chip min-h-[44px] py-2.5 px-2 rounded-xl border text-xs font-semibold transition cursor-pointer bg-slate-950 border-slate-800 text-slate-300 hover:text-white">
+              6 Meses
+            </button>
+            <button type="button"
+                    data-renew-chip="12"
+                    onclick="selectRenewPackageMonths(12)"
+                    class="renew-pacote-chip min-h-[44px] py-2.5 px-2 rounded-xl border text-xs font-semibold transition cursor-pointer bg-slate-950 border-slate-800 text-slate-300 hover:text-white">
+              12 Meses
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1.5">Transferir cliente para a fase:</label>
+          <select id="renewPackageTargetStage" class="w-full min-h-[42px] bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-sky-500 cursor-pointer text-xs">
+            <!-- Preenchido via JS com as etapas da esteira -->
+          </select>
+          <p class="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+            A nova data base de vigência será definida a partir de hoje e registrada no histórico do cliente.
+          </p>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeRenewPackageModal()" class="min-h-[44px] px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition cursor-pointer">
+            Cancelar
+          </button>
+          <button type="button" id="btnConfirmRenewPackage" onclick="confirmRenewPackage()" class="min-h-[44px] px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold transition shadow-lg shadow-sky-600/30 cursor-pointer">
+            Confirmar Renovação
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1286,7 +1387,7 @@
       </div>
 
     </div>
-  </div>>
+  </div>
 
   <div id="modalTeam" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative text-left flex flex-col max-h-[90vh]">
@@ -1974,9 +2075,27 @@
     ]
   },
   {
+    "id": "etapa_9",
+    "nome": "Concluído",
+    "subtitulo": "Entrega Oficial & Vigência do Contrato",
+    "cor": "#22c55e",
+    "subtarefas": [
+      {
+        "id": "sub_9_1",
+        "titulo": "Coletar depoimento / avaliação de satisfação",
+        "responsavelPadrao": ""
+      },
+      {
+        "id": "sub_9_2",
+        "titulo": "Apresentar proposta de renovação/manutenção",
+        "responsavelPadrao": ""
+      }
+    ]
+  },
+  {
     "id": "etapa_8",
     "nome": "Acompanhamento",
-    "subtitulo": "Acompanhamento 4/7 Meses",
+    "subtitulo": "Pós-Venda & Decisão de Renovação",
     "cor": "#06b6d4",
     "subtarefas": [
       {
@@ -1997,22 +2116,11 @@
     ]
   },
   {
-    "id": "etapa_9",
-    "nome": "Concluído",
-    "subtitulo": "Sucesso & Renovação",
-    "cor": "#22c55e",
-    "subtarefas": [
-      {
-        "id": "sub_9_1",
-        "titulo": "Coletar depoimento / avaliação de satisfação",
-        "responsavelPadrao": ""
-      },
-      {
-        "id": "sub_9_2",
-        "titulo": "Apresentar proposta de renovação/manutenção",
-        "responsavelPadrao": ""
-      }
-    ]
+    "id": "etapa_10",
+    "nome": "Finalizado",
+    "subtitulo": "Ciclo Encerrado & Arquivado",
+    "cor": "#64748b",
+    "subtarefas": []
   }
 ];
 
@@ -2031,31 +2139,99 @@
       };
     }
 
+    function normalizePipelineStage(stage, idx) {
+      const id = String(stage?.id ?? ("etapa_" + (idx + 1)));
+      const nome = String(stage?.nome || stage?.name || ("Etapa " + (idx + 1))).trim();
+      const cor = stage?.cor || stage?.color || "#3b82f6";
+      const rawSubs = Array.isArray(stage?.subtarefas)
+        ? stage.subtarefas
+        : (Array.isArray(stage?.subtasks) ? stage.subtasks : []);
+      const subtarefas = rawSubs.map((s, sIdx) => normalizeSubtaskItem(s, sIdx, id));
+      const order = typeof stage?.order === "number" ? stage.order : (typeof stage?.ordem === "number" ? stage.ordem : (idx + 1));
+
+      return {
+        ...stage,
+        id,
+        nome,
+        name: nome,
+        subtitulo: stage?.subtitulo || stage?.subtitle || "",
+        cor,
+        color: cor,
+        order,
+        ordem: order,
+        subtarefas,
+        subtasks: subtarefas
+      };
+    }
+
     function getPipelineStages() {
-      if (state.pipeline && Array.isArray(state.pipeline.etapas) && state.pipeline.etapas.length === 9) {
-        const count = state.pipeline.etapas.reduce((acc, s) => acc + (Array.isArray(s.subtarefas) ? s.subtarefas.length : 0), 0);
-        if (count === 54) {
-          return state.pipeline.etapas;
-        }
-      }
-      return DEFAULT_PIPELINE_STAGES;
+      const rawStages = (state.pipeline && Array.isArray(state.pipeline.stages) && state.pipeline.stages.length > 0)
+        ? state.pipeline.stages
+        : ((state.pipeline && Array.isArray(state.pipeline.etapas) && state.pipeline.etapas.length > 0)
+            ? state.pipeline.etapas
+            : DEFAULT_PIPELINE_STAGES);
+      return rawStages.map((s, idx) => normalizePipelineStage(s, idx));
+    }
+
+    function isStageRoleConcluido(stage) {
+      if (!stage) return false;
+      const n = String(stage.nome || stage.name || "").trim().toLowerCase();
+      return n === "concluído" || n === "concluido" || n.includes("concluído") || n.includes("concluido");
+    }
+
+    function isStageRoleAcompanhamento(stage) {
+      if (!stage) return false;
+      const n = String(stage.nome || stage.name || "").trim().toLowerCase();
+      return n.includes("acompanhamento");
+    }
+
+    function isStageRoleFinalizado(stage) {
+      if (!stage) return false;
+      const n = String(stage.nome || stage.name || "").trim().toLowerCase();
+      return n.includes("finalizado") || n.includes("arquivado") || n.includes("encerrado");
+    }
+
+    function isStageRoleCampanha(stage) {
+      if (!stage) return false;
+      const n = String(stage.nome || stage.name || "").trim().toLowerCase();
+      return n.includes("campanha");
+    }
+
+    function findPipelineStageByRole(role, customStages) {
+      const stages = Array.isArray(customStages) ? customStages : getPipelineStages();
+      if (role === "concluido") return stages.find(isStageRoleConcluido) || null;
+      if (role === "acompanhamento") return stages.find(isStageRoleAcompanhamento) || null;
+      if (role === "finalizado") return stages.find(isStageRoleFinalizado) || null;
+      if (role === "campanha") return stages.find(isStageRoleCampanha) || null;
+      return null;
     }
 
     function isClientInStage(client, stage, stageIndex, allStages) {
-      if (!client) return false;
+      if (!client || !stage) return false;
       const statusStr = String(client.fase ?? client.status ?? "").trim();
-      
-      if (statusStr === String(stage.id)) return true;
-      if (statusStr === ("etapa_" + (stageIndex + 1))) return true;
-      if (statusStr === String(stageIndex + 1)) return true;
-      if (stage.nome && statusStr.toLowerCase() === stage.nome.toLowerCase()) return true;
+      const stageIdStr = String(stage.id ?? "").trim();
+      const stageNameStr = String(stage.nome || stage.name || "").trim().toLowerCase();
 
-      if (stageIndex === 0) {
-        const matchesAny = (allStages || []).some((s, idx) => {
-          const sid = String(s.id);
-          return statusStr === sid || statusStr === ("etapa_" + (idx + 1)) || statusStr === String(idx + 1) || (s.nome && statusStr.toLowerCase() === s.nome.toLowerCase());
-        });
-        if (!matchesAny) return true;
+      if (statusStr === stageIdStr) return true;
+      if (stageNameStr && statusStr.toLowerCase() === stageNameStr) return true;
+
+      const list = Array.isArray(allStages) ? allStages : [];
+      const matchesAnyDirect = list.some(s => {
+        const sid = String(s.id ?? "").trim();
+        const sname = String(s.nome || s.name || "").trim().toLowerCase();
+        return statusStr === sid || (sname && statusStr.toLowerCase() === sname);
+      });
+
+      if (!matchesAnyDirect) {
+        if (statusStr === ("etapa_" + (stageIndex + 1))) return true;
+        if (statusStr === String(stageIndex + 1)) return true;
+
+        if (stageIndex === 0) {
+          const matchesAnyIndexed = list.some((s, idx) => {
+            return statusStr === ("etapa_" + (idx + 1)) || statusStr === String(idx + 1);
+          });
+          if (!matchesAnyIndexed) return true;
+        }
       }
 
       return false;
@@ -2210,6 +2386,8 @@
       }
 
       const now = new Date();
+      const currentStage = getClientCurrentStage(client);
+      const isPostProduction = isStageRoleConcluido(currentStage) || isStageRoleAcompanhamento(currentStage) || isStageRoleFinalizado(currentStage);
 
       // Data de entrada na fase atual com fallback seguro
       const rawDataFase = client.dataEntradaFase || client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt;
@@ -2219,7 +2397,15 @@
       // Data de início total com fallback seguro
       const rawDataTotal = client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt || client.dataEntradaFase;
       const dateTotalObj = parseSafeDate(rawDataTotal) || dateFaseObj || now;
-      const diasTotais = Math.max(0, Math.floor((now.getTime() - dateTotalObj.getTime()) / 86400000));
+
+      // Congelamento do Tempo de Produção em "Concluído", "Acompanhamento" ou "Finalizado"
+      let endProductionObj = now;
+      if (client.dataConclusao) {
+        endProductionObj = parseSafeDate(client.dataConclusao) || now;
+      } else if (isPostProduction) {
+        endProductionObj = parseSafeDate(client.dataEntradaFase) || now;
+      }
+      const diasTotais = Math.max(0, Math.floor((endProductionObj.getTime() - dateTotalObj.getTime()) / 86400000));
 
       const formatDateDMY = (d) => {
         if (!d || isNaN(d.getTime())) return "-";
@@ -2229,13 +2415,60 @@
         return day + "/" + month + "/" + year;
       };
 
+      const isProductionFrozen = !!(client.dataConclusao || isPostProduction);
+
       return {
         diasNaFase,
         diasTotais,
+        diasProducao: diasTotais,
+        isProductionFrozen,
         dataInicioFormatada: formatDateDMY(dateTotalObj),
         dataFaseFormatada: formatDateDMY(dateFaseObj),
         dateTotalObj,
         dateFaseObj
+      };
+    }
+
+    // Cálculo completo de ciclo de vida, congelamento de produção e vigência do pacote (3, 6 ou 12 meses)
+    function getClientContractAndLifecycleInfo(client) {
+      const stages = getPipelineStages();
+      const currentStage = getClientCurrentStage(client);
+      const daysInfo = getClientStageAndTotalDays(client);
+      const isConcluido = isStageRoleConcluido(currentStage);
+      const isAcompanhamento = isStageRoleAcompanhamento(currentStage);
+      const isFinalizado = isStageRoleFinalizado(currentStage);
+      const isProductionFrozen = !!(client?.dataConclusao || isConcluido || isAcompanhamento || isFinalizado);
+
+      const pacoteMeses = [3, 6, 12].includes(Number(client?.pacoteMeses)) ? Number(client.pacoteMeses) : 3;
+
+      const rawInicio = client?.dataInicioVigencia || client?.paymentDate || client?.dataPagamento || client?.entryDate || client?.dataEntrada || client?.createdAt;
+      const dataInicio = new Date(rawInicio || Date.now());
+      const safeInicio = isNaN(dataInicio.getTime()) ? (parseSafeDate(rawInicio) || new Date()) : dataInicio;
+      const dataVencimento = new Date(safeInicio);
+      dataVencimento.setMonth(dataVencimento.getMonth() + Number(client?.pacoteMeses || 3));
+
+      const hoje = new Date();
+      const isPacoteVencido = hoje > dataVencimento;
+      const diasRestantes = isPacoteVencido
+        ? 0
+        : Math.max(0, Math.ceil((dataVencimento.getTime() - hoje.getTime()) / 86400000));
+
+      return {
+        pacoteMeses,
+        dataInicio: safeInicio,
+        dataVencimento,
+        isPacoteVencido,
+        isContractExpired: isPacoteVencido,
+        diasRestantes,
+        diasRestantesPacote: diasRestantes,
+        diasProducao: daysInfo.diasTotais,
+        diasNaFase: daysInfo.diasNaFase,
+        isConcluido,
+        isAcompanhamento,
+        isFinalizado,
+        isProductionFrozen,
+        currentStage,
+        stages
       };
     }
 
@@ -2267,8 +2500,16 @@
         dateObj = new Date();
       }
 
-      const now = new Date();
-      const diffMs = Math.max(0, now.getTime() - dateObj.getTime());
+      const currentStage = getClientCurrentStage(client);
+      const isPostProduction = isStageRoleConcluido(currentStage) || isStageRoleAcompanhamento(currentStage) || isStageRoleFinalizado(currentStage);
+      let endObj = new Date();
+      if (client.dataConclusao) {
+        endObj = parseSafeDate(client.dataConclusao) || endObj;
+      } else if (isPostProduction) {
+        endObj = parseSafeDate(client.dataEntradaFase) || endObj;
+      }
+
+      const diffMs = Math.max(0, endObj.getTime() - dateObj.getTime());
       const dias = Math.floor(diffMs / 86400000);
 
       let category = "0-15";
@@ -2748,51 +2989,91 @@
       }, err => console.error("Erro no listener da equipe:", err));
     }
 
+    function populateDrawerTasksFilterOptions() {
+      const select = document.getElementById("drawerTasksFilter");
+      if (!select) return;
+      const prevVal = select.value || "current";
+      const stages = getPipelineStages();
+      const totalSubtasks = stages.reduce((acc, s) => acc + (Array.isArray(s.subtarefas) ? s.subtarefas.length : 0), 0);
+
+      let currentLabel = "Apenas Fase Atual (Padrão)";
+      if (state.selectedClientId) {
+        const client = state.clients.find(c => c.id === state.selectedClientId);
+        if (client) {
+          const curStage = getClientCurrentStage(client);
+          currentLabel = "Apenas Fase Atual: " + curStage.nome;
+        }
+      }
+
+      select.innerHTML = [
+        `<option value="current">${escapeHtml(currentLabel)}</option>`,
+        `<option value="all">Todas as ${totalSubtasks} Subtarefas</option>`,
+        ...stages.map((st, idx) => `<option value="${escapeHtml(st.id)}">Fase ${idx + 1}: ${escapeHtml(st.nome)}</option>`)
+      ].join("");
+
+      const hasPrev = Array.from(select.options).some(o => o.value === prevVal);
+      select.value = hasPrev ? prevVal : "current";
+    }
+
     function setupPipelineListener() {
       if (unsubscribePipeline) return;
 
       unsubscribePipeline = db.collection("settings").doc("pipeline").onSnapshot(async (doc) => {
         const docData = doc.exists ? doc.data() : null;
-        const currentEtapas = (docData && Array.isArray(docData.etapas)) ? docData.etapas : [];
-        const subCount = currentEtapas.reduce((acc, s) => acc + (Array.isArray(s.subtarefas) ? s.subtarefas.length : 0), 0);
+        const rawList = (docData && Array.isArray(docData.stages) && docData.stages.length > 0)
+          ? docData.stages
+          : ((docData && Array.isArray(docData.etapas) && docData.etapas.length > 0) ? docData.etapas : []);
 
         const isMaster = PRIMARY_ADMIN_EMAILS.includes((state.currentUser?.email || "").toLowerCase().trim());
         const canSeed = state.currentUser?.permissions?.isAdmin || isMaster;
 
-        if ((!doc.exists || currentEtapas.length !== 9 || subCount !== 54) && canSeed) {
+        const isLegacyUnmigratedNine = doc.exists && !docData?.pipelineVersion && !docData?.stages && rawList.length === 9 &&
+          String(rawList[7]?.nome || "").toLowerCase().includes("acompanhamento") &&
+          String(rawList[8]?.nome || "").toLowerCase().includes("conclu");
+
+        if ((!doc.exists || rawList.length === 0 || isLegacyUnmigratedNine) && canSeed) {
           try {
             const updatedEtapas = DEFAULT_PIPELINE_STAGES.map((defStage, sIdx) => {
-              const matchStage = currentEtapas[sIdx];
-              return {
+              const matchStage = rawList.find(rs => String(rs.id) === String(defStage.id) || String(rs.nome || rs.name || "").trim().toLowerCase() === defStage.nome.toLowerCase());
+              const mergedSubs = defStage.subtarefas.map((defSub) => {
+                let assigned = "";
+                if (matchStage && Array.isArray(matchStage.subtarefas || matchStage.subtasks)) {
+                  const listSubs = matchStage.subtarefas || matchStage.subtasks;
+                  const found = listSubs.find(ms => (ms.titulo || ms.title || "").trim().toLowerCase() === defSub.titulo.trim().toLowerCase());
+                  if (found) assigned = found.responsavelPadrao || found.assignee || "";
+                }
+                return { ...defSub, responsavelPadrao: assigned };
+              });
+              return normalizePipelineStage({
                 ...defStage,
-                cor: matchStage?.cor || defStage.cor,
-                subtarefas: defStage.subtarefas.map((defSub) => {
-                  let assigned = "";
-                  if (matchStage && Array.isArray(matchStage.subtarefas)) {
-                    const found = matchStage.subtarefas.find(ms => (ms.titulo || ms.title || "").trim().toLowerCase() === defSub.titulo.trim().toLowerCase());
-                    if (found) assigned = found.responsavelPadrao || found.assignee || "";
-                  }
-                  return { ...defSub, responsavelPadrao: assigned };
-                })
-              };
+                cor: matchStage?.cor || matchStage?.color || defStage.cor,
+                order: sIdx + 1,
+                subtarefas: mergedSubs
+              }, sIdx);
             });
 
             const initialDoc = {
+              stages: updatedEtapas,
               etapas: updatedEtapas,
+              pipelineVersion: 2,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            await db.collection("settings").doc("pipeline").set(initialDoc);
+            await db.collection("settings").doc("pipeline").set(initialDoc, { merge: true });
             state.pipeline = initialDoc;
           } catch (err) {
             console.error("Erro ao atualizar seed em settings/pipeline:", err.message || err);
-            state.pipeline = { etapas: DEFAULT_PIPELINE_STAGES };
+            const fallbackStages = DEFAULT_PIPELINE_STAGES.map((s, i) => normalizePipelineStage(s, i));
+            state.pipeline = { stages: fallbackStages, etapas: fallbackStages };
           }
-        } else if (!doc.exists) {
-          state.pipeline = { etapas: DEFAULT_PIPELINE_STAGES };
+        } else if (!doc.exists || rawList.length === 0) {
+          const fallbackStages = DEFAULT_PIPELINE_STAGES.map((s, i) => normalizePipelineStage(s, i));
+          state.pipeline = { stages: fallbackStages, etapas: fallbackStages };
         } else {
-          state.pipeline = docData;
+          const normalized = rawList.map((s, i) => normalizePipelineStage(s, i));
+          state.pipeline = { ...docData, stages: normalized, etapas: normalized };
         }
 
+        populateDrawerTasksFilterOptions();
         renderKanban();
         renderTable();
         renderMetrics();
@@ -2807,7 +3088,8 @@
         }
       }, err => {
         console.error("Erro no listener de pipeline:", err);
-        state.pipeline = { etapas: DEFAULT_PIPELINE_STAGES };
+        const fallbackStages = DEFAULT_PIPELINE_STAGES.map((s, i) => normalizePipelineStage(s, i));
+        state.pipeline = { stages: fallbackStages, etapas: fallbackStages };
         renderKanban();
       });
     }
@@ -3262,8 +3544,8 @@
       }
 
       // Garantia de cursor pointer e listeners nos cards Desktop
-      if (kanbanContainer) {
-        kanbanContainer.querySelectorAll(".kanban-card").forEach(card => {
+      if (container && typeof container.querySelectorAll === "function") {
+        container.querySelectorAll(".kanban-card").forEach(card => {
           card.style.cursor = "pointer";
         });
       }
@@ -3355,19 +3637,11 @@
 
     function getShortStageName(name, index) {
       if (!name) return "Fase " + (index + 1);
-      const shortMap = {
-        0: "Questionário",
-        1: "Onboarding",
-        2: "Fotos",
-        3: "Plan. Site",
-        4: "Intermediária",
-        5: "Site",
-        6: "Campanha",
-        7: "Acompanhamento",
-        8: "Concluído"
-      };
-      if (shortMap[index]) return shortMap[index];
-      return name.split("(")[0].trim();
+      const clean = String(name).trim();
+      const lower = clean.toLowerCase();
+      if (lower.includes("reunião onboarding")) return "Onboarding";
+      if (lower.includes("planejamento site")) return "Plan. Site";
+      return clean.split("(")[0].trim();
     }
 
     function selectMobileStage(stageId) {
@@ -3401,25 +3675,42 @@
       const nextStage = stages[currentIdx + 1];
       const nowIso = new Date().toISOString();
       const updatedFasesHistory = buildUpdatedFasesHistory(client, currentStage, nextStage, nowIso);
+      const enteringConcluido = isStageRoleConcluido(nextStage);
+      const enteringPostProd = enteringConcluido || isStageRoleAcompanhamento(nextStage) || isStageRoleFinalizado(nextStage);
+
+      const updateData = {
+        fase: nextStage.id,
+        status: nextStage.id,
+        dataEntradaFase: nowIso,
+        fasesHistory: updatedFasesHistory,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        historico: firebase.firestore.FieldValue.arrayUnion({
+          data: nowIso,
+          autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+          acao: 'Avançou fase para "' + nextStage.nome + '"'
+        })
+      };
+
+      if (enteringConcluido || (enteringPostProd && !client.dataConclusao)) {
+        updateData.dataConclusao = nowIso;
+      }
 
       try {
-        await db.collection("clients").doc(client.id).update({
-          fase: nextStage.id,
-          status: nextStage.id,
-          dataEntradaFase: nowIso,
-          fasesHistory: updatedFasesHistory,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          historico: firebase.firestore.FieldValue.arrayUnion({
-            data: nowIso,
-            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
-            acao: 'Avançou fase para "' + nextStage.nome + '"'
-          })
-        });
+        await db.collection("clients").doc(client.id).update(updateData);
 
         client.fase = nextStage.id;
         client.status = nextStage.id;
         client.dataEntradaFase = nowIso;
         client.fasesHistory = updatedFasesHistory;
+        if (updateData.dataConclusao) {
+          client.dataConclusao = updateData.dataConclusao;
+        }
+
+        if (state.selectedClientId === client.id) {
+          updateDrawerHeaderPhase(client);
+          renderDrawerHistory();
+        }
+        renderKanban();
 
         try {
           if (typeof confetti === "function") {
@@ -3434,8 +3725,8 @@
       }
     }
 
-    async function moveClientToStage(clientId, targetStageId) {
-      if (!state.currentUser?.permissions?.canAdvancePhases) {
+    async function moveClientToStage(clientId, targetStageId, customHistoryAction) {
+      if (!state.currentUser?.permissions?.canAdvancePhases && !state.currentUser?.permissions?.canAdvancePhase && !state.currentUser?.permissions?.isAdmin) {
         showToast("Seu cargo não possui permissão para transferir etapas.");
         return;
       }
@@ -3444,38 +3735,59 @@
       if (!client) return;
 
       const stages = getPipelineStages();
-      const targetStage = stages.find(s => s.id === targetStageId);
+      const targetStage = stages.find(s => String(s.id) === String(targetStageId));
       if (!targetStage) return;
 
       const currentIdx = stages.findIndex((s, idx) => isClientInStage(client, s, idx, stages));
-      if (currentIdx !== -1 && stages[currentIdx].id === targetStageId) {
+      if (currentIdx !== -1 && String(stages[currentIdx].id) === String(targetStageId)) {
         return; // Já está nesta fase
       }
 
       const currentStage = currentIdx !== -1 ? stages[currentIdx] : getClientCurrentStage(client);
       const nowIso = new Date().toISOString();
       const updatedFasesHistory = buildUpdatedFasesHistory(client, currentStage, targetStage, nowIso);
+      const enteringConcluido = isStageRoleConcluido(targetStage);
+      const enteringPostProd = enteringConcluido || isStageRoleAcompanhamento(targetStage) || isStageRoleFinalizado(targetStage);
+
+      const historyEntry = {
+        data: nowIso,
+        autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+        acao: customHistoryAction || ('Moveu para a fase "' + targetStage.nome + '"')
+      };
+
+      const updateData = {
+        fase: targetStage.id,
+        status: targetStage.id,
+        dataEntradaFase: nowIso,
+        fasesHistory: updatedFasesHistory,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        historico: firebase.firestore.FieldValue.arrayUnion(historyEntry)
+      };
+
+      if (enteringConcluido || (enteringPostProd && !client.dataConclusao)) {
+        updateData.dataConclusao = nowIso;
+      }
 
       try {
-        await db.collection("clients").doc(client.id).update({
-          fase: targetStage.id,
-          status: targetStage.id,
-          dataEntradaFase: nowIso,
-          fasesHistory: updatedFasesHistory,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          historico: firebase.firestore.FieldValue.arrayUnion({
-            data: nowIso,
-            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
-            acao: 'Moveu para a fase "' + targetStage.nome + '"'
-          })
-        });
+        await db.collection("clients").doc(client.id).update(updateData);
 
         client.fase = targetStage.id;
         client.status = targetStage.id;
         client.dataEntradaFase = nowIso;
         client.fasesHistory = updatedFasesHistory;
+        if (updateData.dataConclusao) {
+          client.dataConclusao = updateData.dataConclusao;
+        }
+        if (!Array.isArray(client.historico)) client.historico = [];
+        client.historico.push(historyEntry);
 
-        const isLast = stages[stages.length - 1].id === targetStage.id;
+        if (state.selectedClientId === client.id) {
+          updateDrawerHeaderPhase(client);
+          renderDrawerHistory();
+        }
+        renderKanban();
+
+        const isLast = stages[stages.length - 1].id === targetStage.id || enteringConcluido;
         if (isLast) {
           try {
             if (typeof confetti === "function") {
@@ -3491,9 +3803,239 @@
       }
     }
 
+    async function moveClientToAcompanhamento(clientId) {
+      const id = clientId || state.selectedClientId;
+      const client = state.clients.find(c => c.id === id);
+      if (!client) return;
+
+      const stages = getPipelineStages();
+      const targetStage = findPipelineStageByRole("acompanhamento", stages) || stages.find(s => String(s.id) === "etapa_8");
+      if (!targetStage) {
+        showToast("Etapa 'Acompanhamento' não encontrada no pipeline.");
+        return;
+      }
+      const pacoteMeses = Number(client.pacoteMeses || 3);
+      await moveClientToStage(
+        client.id,
+        targetStage.id,
+        'Moveu para "Acompanhamento" após vencimento do pacote de ' + pacoteMeses + ' meses'
+      );
+    }
+
+    let renewPackageClientId = null;
+    let selectedRenewPackageMonths = 3;
+
+    function selectRenewPackageMonths(months) {
+      selectedRenewPackageMonths = Number(months) || 3;
+      document.querySelectorAll(".renew-pacote-chip").forEach(btn => {
+        const val = Number(btn.getAttribute("data-renew-chip"));
+        if (val === selectedRenewPackageMonths) {
+          btn.className = "renew-pacote-chip min-h-[44px] py-2.5 px-2 rounded-xl border text-xs font-bold transition cursor-pointer bg-sky-600/20 border-sky-500 text-sky-300 shadow-sm";
+        } else {
+          btn.className = "renew-pacote-chip min-h-[44px] py-2.5 px-2 rounded-xl border text-xs font-semibold transition cursor-pointer bg-slate-950 border-slate-800 text-slate-300 hover:text-white";
+        }
+      });
+    }
+
+    function openRenewPackageModal(clientId) {
+      if (!state.currentUser?.permissions?.canEditClients && !state.currentUser?.permissions?.canAdvancePhases && !state.currentUser?.permissions?.isAdmin) {
+        showToast("Seu cargo não possui permissão para renovar pacotes.");
+        return;
+      }
+      const id = clientId || state.selectedClientId;
+      const client = state.clients.find(c => c.id === id);
+      if (!client) return;
+
+      renewPackageClientId = client.id;
+      const nameEl = document.getElementById("renewPackageClientName");
+      if (nameEl) nameEl.textContent = client.name || "Cliente";
+
+      selectRenewPackageMonths(Number(client.pacoteMeses) || 3);
+
+      const stages = getPipelineStages();
+      const campanhaStage = findPipelineStageByRole("campanha", stages) || stages.find(s => String(s.id) === "etapa_7");
+      const concluidoStage = findPipelineStageByRole("concluido", stages) || stages.find(s => String(s.id) === "etapa_9");
+      const defaultTargetId = campanhaStage?.id || concluidoStage?.id || stages[0]?.id;
+
+      const stageSelect = document.getElementById("renewPackageTargetStage");
+      if (stageSelect) {
+        stageSelect.innerHTML = stages.map((st, idx) => `
+          <option value="${escapeHtml(st.id)}" ${String(st.id) === String(defaultTargetId) ? 'selected' : ''}>
+            Fase ${idx + 1}: ${escapeHtml(st.nome)}
+          </option>
+        `).join("");
+        stageSelect.value = String(defaultTargetId);
+      }
+
+      const modal = document.getElementById("modalRenewPackage");
+      if (modal) modal.classList.remove("hidden");
+      lucide.createIcons();
+    }
+
+    function closeRenewPackageModal() {
+      const modal = document.getElementById("modalRenewPackage");
+      if (modal) modal.classList.add("hidden");
+      renewPackageClientId = null;
+    }
+
+    async function confirmRenewPackage() {
+      const id = renewPackageClientId || state.selectedClientId;
+      const client = state.clients.find(c => c.id === id);
+      if (!client) return;
+
+      const newPacote = [3, 6, 12].includes(Number(selectedRenewPackageMonths)) ? Number(selectedRenewPackageMonths) : 3;
+      const stages = getPipelineStages();
+      const currentStage = getClientCurrentStage(client);
+      const targetStageId = document.getElementById("renewPackageTargetStage")?.value || currentStage.id;
+      const targetStage = stages.find(s => String(s.id) === String(targetStageId)) || currentStage;
+
+      const nowIso = new Date().toISOString();
+      const todayYMD = nowIso.split("T")[0];
+      const updatedFasesHistory = String(targetStage.id) !== String(currentStage.id)
+        ? buildUpdatedFasesHistory(client, currentStage, targetStage, nowIso)
+        : (Array.isArray(client.fasesHistory) ? client.fasesHistory : []);
+
+      const historyEntry = {
+        data: nowIso,
+        autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+        acao: "Contrato renovado por mais " + newPacote + " meses"
+      };
+
+      const updateData = {
+        pacoteMeses: newPacote,
+        dataInicioVigencia: nowIso,
+        paymentDate: todayYMD,
+        dataPagamento: todayYMD,
+        entryDate: todayYMD,
+        dataEntrada: todayYMD,
+        fase: targetStage.id,
+        status: targetStage.id,
+        dataEntradaFase: nowIso,
+        fasesHistory: updatedFasesHistory,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        historico: firebase.firestore.FieldValue.arrayUnion(historyEntry)
+      };
+
+      if (isStageRoleConcluido(targetStage)) {
+        updateData.dataConclusao = nowIso;
+      }
+
+      const btn = document.getElementById("btnConfirmRenewPackage");
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Renovando...";
+      }
+
+      try {
+        await db.collection("clients").doc(client.id).update(updateData);
+
+        client.pacoteMeses = newPacote;
+        client.dataInicioVigencia = nowIso;
+        client.paymentDate = todayYMD;
+        client.dataPagamento = todayYMD;
+        client.entryDate = todayYMD;
+        client.dataEntrada = todayYMD;
+        client.fase = targetStage.id;
+        client.status = targetStage.id;
+        client.dataEntradaFase = nowIso;
+        client.fasesHistory = updatedFasesHistory;
+        if (updateData.dataConclusao) client.dataConclusao = updateData.dataConclusao;
+        if (!Array.isArray(client.historico)) client.historico = [];
+        client.historico.push(historyEntry);
+
+        closeRenewPackageModal();
+        renderKanban();
+        renderTable();
+        if (state.selectedClientId === client.id) {
+          const pacoteSelect = document.getElementById("drawerInputPacoteMeses");
+          if (pacoteSelect) pacoteSelect.value = String(newPacote);
+          updateDrawerHeaderPhase(client);
+          renderDrawerHistory();
+        }
+
+        try {
+          if (typeof confetti === "function") {
+            confetti({ particleCount: 110, spread: 75, origin: { y: 0.6 } });
+          }
+        } catch (e) {}
+
+        showToast("Contrato renovado por mais " + newPacote + " meses!");
+      } catch (err) {
+        console.error("Erro ao renovar pacote:", err);
+        showToast("Falha ao gravar renovação no Firestore.");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Confirmar Renovação";
+        }
+      }
+    }
+
+    async function finishClientCycle(clientId) {
+      if (!state.currentUser?.permissions?.canAdvancePhases && !state.currentUser?.permissions?.canEditClients && !state.currentUser?.permissions?.isAdmin) {
+        showToast("Seu cargo não possui permissão para encerrar ciclos.");
+        return;
+      }
+      const id = clientId || state.selectedClientId;
+      const client = state.clients.find(c => c.id === id);
+      if (!client) return;
+
+      const stages = getPipelineStages();
+      const currentStage = getClientCurrentStage(client);
+      let finalizadoStage = findPipelineStageByRole("finalizado", stages) || stages.find(s => String(s.id) === "etapa_10");
+      if (!finalizadoStage) {
+        finalizadoStage = { id: "etapa_10", nome: "Finalizado", name: "Finalizado", cor: "#64748b", color: "#64748b", subtarefas: [], subtasks: [] };
+      }
+
+      const nowIso = new Date().toISOString();
+      const updatedFasesHistory = buildUpdatedFasesHistory(client, currentStage, finalizadoStage, nowIso);
+      const historyEntry = {
+        data: nowIso,
+        autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+        acao: "Ciclo de contrato encerrado após o período de acompanhamento"
+      };
+
+      const updateData = {
+        fase: finalizadoStage.id,
+        status: finalizadoStage.id,
+        dataEntradaFase: nowIso,
+        dataConclusao: client.dataConclusao || nowIso,
+        dataFinalizacao: nowIso,
+        fasesHistory: updatedFasesHistory,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        historico: firebase.firestore.FieldValue.arrayUnion(historyEntry)
+      };
+
+      try {
+        await db.collection("clients").doc(client.id).update(updateData);
+
+        client.fase = finalizadoStage.id;
+        client.status = finalizadoStage.id;
+        client.dataEntradaFase = nowIso;
+        client.dataConclusao = updateData.dataConclusao;
+        client.dataFinalizacao = nowIso;
+        client.fasesHistory = updatedFasesHistory;
+        if (!Array.isArray(client.historico)) client.historico = [];
+        client.historico.push(historyEntry);
+
+        renderKanban();
+        renderTable();
+        if (state.selectedClientId === client.id) {
+          updateDrawerHeaderPhase(client);
+          renderDrawerHistory();
+        }
+
+        showToast("Ciclo de contrato encerrado! Cliente movido para Finalizado.");
+      } catch (err) {
+        console.error("Erro ao encerrar ciclo:", err);
+        showToast("Falha ao encerrar ciclo no Firestore.");
+      }
+    }
+
     function renderMobileClientCard(client, currentStage, stageIndex, stages) {
       const aging = getClientAgingInfo(client);
       const daysInfo = getClientStageAndTotalDays(client);
+      const lifecycle = getClientContractAndLifecycleInfo(client);
       const isPriority = !!client.priority;
       const allTasks = getClientMergedTasks(client);
       const stage = currentStage || getClientCurrentStage(client);
@@ -3517,16 +4059,66 @@
         nextTaskAssigneeInitials = getInitials(nextTaskAssigneeName);
       }
 
+      let badgesHtml = "";
+      if (lifecycle.isConcluido) {
+        badgesHtml = `
+          <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-950/80 border-emerald-700/80 text-emerald-300 flex items-center gap-1 shadow-sm">
+            <span>🏁 Produção: Entregue em ${lifecycle.diasProducao}d</span>
+          </span>
+          ${lifecycle.isPacoteVencido ? `
+            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/20 border-amber-400/80 text-amber-300 flex items-center gap-1 shadow-sm animate-pulse">
+              <span>🔔 Pacote Vencido (${lifecycle.pacoteMeses}m atingido)</span>
+            </span>
+          ` : `
+            <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-sky-950/70 border-sky-800/80 text-sky-300 flex items-center gap-1 shadow-sm">
+              <span>⏳ Pacote ${lifecycle.pacoteMeses}m (restam ${lifecycle.diasRestantes} dias)</span>
+            </span>
+          `}
+        `;
+      } else if (lifecycle.isAcompanhamento) {
+        badgesHtml = `
+          <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-cyan-950/80 border-cyan-700/80 text-cyan-300 flex items-center gap-1 shadow-sm">
+            <span>🛡️ ${lifecycle.diasNaFase}d em Acompanhamento</span>
+          </span>
+          <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-950/80 border-emerald-700/80 text-emerald-300 flex items-center gap-1 shadow-sm">
+            <span>🏁 Produção: ${lifecycle.diasProducao}d</span>
+          </span>
+        `;
+      } else if (lifecycle.isFinalizado) {
+        badgesHtml = `
+          <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-slate-900 border-slate-700 text-slate-300 flex items-center gap-1">
+            <span>📦 Finalizado / Arquivado</span>
+          </span>
+          <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-slate-900 border-slate-800 text-slate-400 flex items-center gap-1">
+            <span>🏁 Produção: ${lifecycle.diasProducao}d • Pacote ${lifecycle.pacoteMeses}m</span>
+          </span>
+        `;
+      } else {
+        badgesHtml = `
+          <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border ${aging.badgeClass} flex items-center gap-1 shadow-sm">
+            <span>${aging.dotEmoji}</span>
+            <span>⏱️ ${daysInfo.diasTotais}d esteira</span>
+          </span>
+          <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-amber-950/70 border-amber-800/80 text-amber-300 flex items-center gap-1">
+            📍 ${daysInfo.diasNaFase}d fase
+          </span>
+        `;
+      }
+
+      const cardContainerClasses = lifecycle.isFinalizado
+        ? "w-full bg-slate-950/90 border border-slate-800/70 opacity-85 hover:opacity-100 rounded-2xl p-4 shadow-sm space-y-3 text-left transition cursor-pointer"
+        : `w-full bg-slate-900/95 border ${isPriority ? 'priority-card border-rose-500/60 bg-rose-950/10' : 'border-slate-800/90'} rounded-2xl p-4 shadow-md space-y-3 text-left transition cursor-pointer`;
+
       return `
-        <div class="w-full bg-slate-900/95 border ${isPriority ? 'priority-card border-rose-500/60 bg-rose-950/10' : 'border-slate-800/90'} rounded-2xl p-4 shadow-md space-y-3 text-left transition cursor-pointer"
+        <div class="${cardContainerClasses}"
              draggable="false"
              onclick="openClientDrawer('${client.id}')">
           
           <!-- Topo do Card: Nome, Prioridade e Especialidade/Nicho -->
-          <div class="flex items-start justify-between gap-2">
+          <div class="flex items-start justify-between gap-2 flex-wrap">
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5 flex-wrap mb-1">
-                <h4 class="font-bold text-sm text-white truncate max-w-[210px]" title="${escapeHtml(client.name)}">
+                <h4 class="font-bold text-sm ${lifecycle.isFinalizado ? 'text-slate-300' : 'text-white'} truncate max-w-[210px]" title="${escapeHtml(client.name)}">
                   ${escapeHtml(client.name)}
                 </h4>
                 ${isPriority ? `
@@ -3540,17 +4132,36 @@
               </p>
             </div>
 
-            <!-- Badges de Tempo: Esteira & Fase -->
-            <div class="flex flex-col items-end gap-1 shrink-0">
-              <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border ${aging.badgeClass} flex items-center gap-1 shadow-sm">
-                <span>${aging.dotEmoji}</span>
-                <span>⏱️ ${daysInfo.diasTotais}d esteira</span>
-              </span>
-              <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-amber-950/70 border-amber-800/80 text-amber-300 flex items-center gap-1">
-                📍 ${daysInfo.diasNaFase}d fase
-              </span>
+            <!-- Badges de Tempo: Esteira, Vigência & Fase -->
+            <div class="flex flex-col items-end gap-1 shrink-0 max-w-full">
+              ${badgesHtml}
             </div>
           </div>
+
+          ${lifecycle.isConcluido && lifecycle.isPacoteVencido ? `
+            <div class="pt-1" onclick="event.stopPropagation()">
+              <button type="button"
+                      onclick="event.stopPropagation(); moveClientToAcompanhamento('${client.id}')"
+                      class="w-full min-h-[44px] px-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-950/50 transition cursor-pointer">
+                <span>➡️ Mover para Acompanhamento</span>
+              </button>
+            </div>
+          ` : ''}
+
+          ${lifecycle.isAcompanhamento ? `
+            <div class="grid grid-cols-2 gap-2 pt-1" onclick="event.stopPropagation()">
+              <button type="button"
+                      onclick="event.stopPropagation(); openRenewPackageModal('${client.id}')"
+                      class="min-h-[44px] px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md transition cursor-pointer">
+                <span>🔄 Renovar Pacote</span>
+              </button>
+              <button type="button"
+                      onclick="event.stopPropagation(); finishClientCycle('${client.id}')"
+                      class="min-h-[44px] px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs flex items-center justify-center gap-1 shadow-md transition cursor-pointer">
+                <span>📦 Encerrar Ciclo</span>
+              </button>
+            </div>
+          ` : ''}
 
           <!-- Barra de Progresso da Fase -->
           <div class="space-y-1">
@@ -3559,24 +4170,24 @@
               <span class="font-mono font-semibold">${donePhaseTasks.length}/${phaseTasks.length} (${pct}%)</span>
             </div>
             <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800">
-              <div class="bg-sky-500 h-1.5 rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+              <div class="${lifecycle.isFinalizado ? 'bg-slate-500' : 'bg-sky-500'} h-1.5 rounded-full transition-all duration-300" style="width: ${pct}%"></div>
             </div>
           </div>
 
           <!-- Bloco: Próxima Ação com Responsável -->
           <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800/80 text-xs shadow-inner space-y-1.5">
             <div class="flex items-center justify-between text-slate-400 text-[10px]">
-              <span class="font-bold text-sky-400 uppercase tracking-wider text-[9px] flex items-center gap-1">
-                <i data-lucide="arrow-right-circle" class="w-3.5 h-3.5"></i> Próxima Ação
+              <span class="font-bold ${lifecycle.isFinalizado ? 'text-slate-400' : 'text-sky-400'} uppercase tracking-wider text-[9px] flex items-center gap-1">
+                <i data-lucide="arrow-right-circle" class="w-3.5 h-3.5"></i> ${lifecycle.isFinalizado ? 'Status do Ciclo' : 'Próxima Ação'}
               </span>
               <span class="font-mono text-slate-400 font-semibold">${donePhaseTasks.length}/${phaseTasks.length}</span>
             </div>
             
             <p class="text-slate-100 font-semibold text-xs leading-snug line-clamp-2" title="${nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas'}">
-              ${nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas nesta etapa 🎉'}
+              ${lifecycle.isFinalizado ? 'Projeto 100% concluído e arquivado 📦' : (nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas nesta etapa 🎉')}
             </p>
 
-            ${nextTask ? `
+            ${(!lifecycle.isFinalizado && nextTask) ? `
               <div class="pt-1 flex items-center justify-between">
                 <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${nextTaskAssigneeName ? 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80 shadow-sm' : 'bg-slate-900 text-slate-400 border-slate-800'}" title="${nextTaskAssigneeName ? 'Responsável: ' + escapeHtml(nextTaskAssigneeName) : 'Nenhum responsável atribuído'}">
                   <span class="w-3.5 h-3.5 rounded-full bg-indigo-900 text-indigo-200 text-[8px] font-bold flex items-center justify-center shrink-0">
@@ -3655,6 +4266,7 @@
     function renderClientCard(client, canDrag, currentStage, stageIndex) {
       const aging = getClientAgingInfo(client);
       const daysInfo = getClientStageAndTotalDays(client);
+      const lifecycle = getClientContractAndLifecycleInfo(client);
       const isPriority = !!client.priority;
       const allTasks = getClientMergedTasks(client);
       const stage = currentStage || getClientCurrentStage(client);
@@ -3674,10 +4286,62 @@
         nextTaskAssigneeInitials = getInitials(nextTaskAssigneeName);
       }
 
+      let desktopBadgesHtml = "";
+      if (lifecycle.isConcluido) {
+        desktopBadgesHtml = `
+          <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-950/80 border-emerald-700/80 text-emerald-300 flex items-center gap-1 shadow-sm">
+            <span>🏁 Produção: Entregue em ${lifecycle.diasProducao}d</span>
+          </span>
+          ${lifecycle.isPacoteVencido ? `
+            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/20 border-amber-400/80 text-amber-300 flex items-center gap-1 shadow-sm animate-pulse">
+              <span>🔔 Pacote Vencido (${lifecycle.pacoteMeses}m atingido)</span>
+            </span>
+          ` : `
+            <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-sky-950/70 border-sky-800/80 text-sky-300 flex items-center gap-1 shadow-sm">
+              <span>⏳ Pacote ${lifecycle.pacoteMeses}m (restam ${lifecycle.diasRestantes} dias)</span>
+            </span>
+          `}
+        `;
+      } else if (lifecycle.isAcompanhamento) {
+        desktopBadgesHtml = `
+          <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-cyan-950/80 border-cyan-700/80 text-cyan-300 flex items-center gap-1 shadow-sm">
+            <span>🛡️ ${lifecycle.diasNaFase}d em Acompanhamento</span>
+          </span>
+          <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-950/80 border-emerald-700/80 text-emerald-300 flex items-center gap-1 shadow-sm">
+            <span>🏁 Produção: ${lifecycle.diasProducao}d</span>
+          </span>
+        `;
+      } else if (lifecycle.isFinalizado) {
+        desktopBadgesHtml = `
+          <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-slate-900 border-slate-700 text-slate-300 flex items-center gap-1">
+            <span>📦 Finalizado</span>
+          </span>
+          <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-slate-900 border-slate-800 text-slate-400 flex items-center gap-1">
+            <span>🏁 Produção: ${lifecycle.diasProducao}d • ${lifecycle.pacoteMeses}m</span>
+          </span>
+        `;
+      } else {
+        desktopBadgesHtml = `
+          <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${aging.badgeClass} flex items-center gap-1 shadow-sm" title="${daysInfo.diasTotais} dias na esteira (${aging.statusText}) | ${daysInfo.diasNaFase} dias nesta fase">
+            <span>${aging.dotEmoji}</span>
+            <span>⏱️ ${daysInfo.diasTotais}d</span>
+            <span class="opacity-60 hidden sm:inline">|</span>
+            <span class="text-amber-300 font-bold hidden sm:inline">📍 ${daysInfo.diasNaFase}d fase</span>
+          </span>
+          <span class="text-[8px] font-semibold px-1.5 py-0.2 rounded-full border bg-amber-950/70 border-amber-800/80 text-amber-300 inline-flex sm:hidden items-center gap-0.5">
+            📍 ${daysInfo.diasNaFase}d fase
+          </span>
+        `;
+      }
+
+      const cardClasses = lifecycle.isFinalizado
+        ? `kanban-card p-3.5 bg-slate-950/90 border border-slate-800/70 opacity-85 hover:opacity-100 rounded-2xl shadow-sm transition cursor-pointer hover:border-slate-600 ${canDrag ? 'hover:scale-[1.01]' : ''} select-none relative overflow-hidden`
+        : `kanban-card p-3.5 bg-slate-950 border ${isPriority ? 'priority-card' : 'border-slate-800/80 hover:border-sky-500/60'} rounded-2xl shadow-sm transition cursor-pointer hover:border-sky-400/80 ${canDrag ? 'hover:scale-[1.01]' : ''} select-none relative overflow-hidden`;
+
       return `
         <div id="card-${client.id}"
              data-id="${client.id}"
-             class="kanban-card p-3.5 bg-slate-950 border ${isPriority ? 'priority-card' : 'border-slate-800/80 hover:border-sky-500/60'} rounded-2xl shadow-sm transition cursor-pointer hover:border-sky-400/80 ${canDrag ? 'hover:scale-[1.01]' : ''} select-none relative overflow-hidden"
+             class="${cardClasses}"
              draggable="${canDrag ? 'true' : 'false'}"
              ${canDrag ? `ondragstart="handleDragStart(event, '${client.id}')" ondragend="handleDragEnd(event, '${client.id}')"` : ''}
              onmousedown="handleCardMouseDown(event, '${client.id}')"
@@ -3693,39 +4357,56 @@
             </div>
           ` : ''}
 
-          <div class="flex items-start justify-between gap-2 mb-2">
-            <div class="min-w-0">
-              <h4 class="font-bold text-xs text-white truncate hover:text-sky-400 transition cursor-pointer" title="${escapeHtml(client.name)}">${escapeHtml(client.name)}</h4>
+          <div class="flex items-start justify-between gap-2 mb-2 flex-wrap">
+            <div class="min-w-0 flex-1">
+              <h4 class="font-bold text-xs ${lifecycle.isFinalizado ? 'text-slate-300' : 'text-white'} truncate hover:text-sky-400 transition cursor-pointer" title="${escapeHtml(client.name)}">${escapeHtml(client.name)}</h4>
               <p class="text-[11px] text-slate-400 truncate">${escapeHtml(client.specialty || client.niche || client.phone || '')}</p>
             </div>
             
-            <div class="shrink-0 flex flex-col items-end gap-1">
-              <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${aging.badgeClass} flex items-center gap-1 shadow-sm" title="${daysInfo.diasTotais} dias na esteira (${aging.statusText}) | ${daysInfo.diasNaFase} dias nesta fase">
-                <span>${aging.dotEmoji}</span>
-                <span>⏱️ ${daysInfo.diasTotais}d</span>
-                <span class="opacity-60 hidden sm:inline">|</span>
-                <span class="text-amber-300 font-bold hidden sm:inline">📍 ${daysInfo.diasNaFase}d fase</span>
-              </span>
-              <span class="text-[8px] font-semibold px-1.5 py-0.2 rounded-full border bg-amber-950/70 border-amber-800/80 text-amber-300 inline-flex sm:hidden items-center gap-0.5">
-                📍 ${daysInfo.diasNaFase}d fase
-              </span>
+            <div class="shrink-0 flex flex-col items-end gap-1 max-w-full">
+              ${desktopBadgesHtml}
             </div>
           </div>
+
+          ${lifecycle.isConcluido && lifecycle.isPacoteVencido ? `
+            <div class="mb-2.5" onclick="event.stopPropagation()">
+              <button type="button"
+                      onclick="event.stopPropagation(); moveClientToAcompanhamento('${client.id}')"
+                      class="w-full py-2 px-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-[11px] flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer">
+                <span>➡️ Mover para Acompanhamento</span>
+              </button>
+            </div>
+          ` : ''}
+
+          ${lifecycle.isAcompanhamento ? `
+            <div class="grid grid-cols-2 gap-1.5 mb-2.5" onclick="event.stopPropagation()">
+              <button type="button"
+                      onclick="event.stopPropagation(); openRenewPackageModal('${client.id}')"
+                      class="py-1.5 px-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-[11px] flex items-center justify-center gap-1 shadow-sm transition cursor-pointer">
+                <span>🔄 Renovar Pacote</span>
+              </button>
+              <button type="button"
+                      onclick="event.stopPropagation(); finishClientCycle('${client.id}')"
+                      class="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-[11px] flex items-center justify-center gap-1 shadow-sm transition cursor-pointer">
+                <span>📦 Encerrar Ciclo</span>
+              </button>
+            </div>
+          ` : ''}
 
           <!-- Bloco Visual: Próxima Ação com Responsável -->
           <div class="bg-slate-900/90 rounded-xl p-2.5 border border-slate-800/80 mb-2.5 text-[11px] shadow-inner space-y-1.5">
             <div class="flex items-center justify-between text-slate-400 text-[10px]">
-              <span class="font-bold text-sky-400 uppercase tracking-wider text-[9px] flex items-center gap-1">
-                <i data-lucide="arrow-right-circle" class="w-3 h-3"></i> Próxima Ação
+              <span class="font-bold ${lifecycle.isFinalizado ? 'text-slate-400' : 'text-sky-400'} uppercase tracking-wider text-[9px] flex items-center gap-1">
+                <i data-lucide="arrow-right-circle" class="w-3 h-3"></i> ${lifecycle.isFinalizado ? 'Status do Ciclo' : 'Próxima Ação'}
               </span>
               <span class="font-mono text-slate-400 font-semibold">${donePhaseTasks.length}/${phaseTasks.length}</span>
             </div>
             
-            <p class="text-slate-100 font-semibold text-xs leading-snug line-clamp-2" title="${nextTask ? escapeHtml(nextTask.title) : 'Todas subtarefas concluídas'}">
-              ${nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas nesta etapa 🎉'}
+            <p class="${lifecycle.isFinalizado ? 'text-slate-400' : 'text-slate-100'} font-semibold text-xs leading-snug line-clamp-2" title="${nextTask ? escapeHtml(nextTask.title) : 'Todas subtarefas concluídas'}">
+              ${lifecycle.isFinalizado ? 'Projeto 100% concluído e arquivado 📦' : (nextTask ? escapeHtml(nextTask.title) : 'Todas concluídas nesta etapa 🎉')}
             </p>
 
-            ${nextTask ? `
+            ${(!lifecycle.isFinalizado && nextTask) ? `
               <div class="pt-1 flex items-center justify-between">
                 <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${nextTaskAssigneeName ? 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80 shadow-sm' : 'bg-slate-950 text-slate-400 border-slate-800'}" title="${nextTaskAssigneeName ? 'Responsável: ' + escapeHtml(nextTaskAssigneeName) : 'Nenhum responsável atribuído'}">
                   <span class="w-3.5 h-3.5 rounded-full bg-indigo-900 text-indigo-200 text-[8px] font-bold flex items-center justify-center shrink-0">
@@ -3864,36 +4545,47 @@
       const stages = getPipelineStages();
       const currentStage = getClientCurrentStage(client);
 
-      if (currentStage.id === targetStageId) return;
+      if (String(currentStage.id) === String(targetStageId)) return;
 
       if (!state.currentUser?.permissions?.canAdvancePhases) {
         showToast("Seu cargo não possui permissão para mover clientes de fase.");
         return;
       }
 
-      const targetStage = stages.find(s => s.id === targetStageId);
+      const targetStage = stages.find(s => String(s.id) === String(targetStageId));
       const stageName = targetStage ? targetStage.nome : targetStageId;
       const nowIso = new Date().toISOString();
       const updatedFasesHistory = buildUpdatedFasesHistory(client, currentStage, targetStage || { id: targetStageId, nome: stageName }, nowIso);
+      const enteringConcluido = isStageRoleConcluido(targetStage);
+      const enteringPostProd = enteringConcluido || isStageRoleAcompanhamento(targetStage) || isStageRoleFinalizado(targetStage);
+
+      const updateData = {
+        fase: targetStageId,
+        status: targetStageId,
+        dataEntradaFase: nowIso,
+        fasesHistory: updatedFasesHistory,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        historico: firebase.firestore.FieldValue.arrayUnion({
+          data: nowIso,
+          autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
+          acao: 'Moveu cliente da etapa "' + currentStage.nome + '" para "' + stageName + '" (Drag-and-Drop)'
+        })
+      };
+
+      if (enteringConcluido || (enteringPostProd && !client.dataConclusao)) {
+        updateData.dataConclusao = nowIso;
+      }
 
       try {
-        await db.collection("clients").doc(clientId).update({
-          fase: targetStageId,
-          status: targetStageId,
-          dataEntradaFase: nowIso,
-          fasesHistory: updatedFasesHistory,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          historico: firebase.firestore.FieldValue.arrayUnion({
-            data: nowIso,
-            autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
-            acao: 'Moveu cliente da etapa "' + currentStage.nome + '" para "' + stageName + '" (Drag-and-Drop)'
-          })
-        });
+        await db.collection("clients").doc(clientId).update(updateData);
 
         client.fase = targetStageId;
         client.status = targetStageId;
         client.dataEntradaFase = nowIso;
         client.fasesHistory = updatedFasesHistory;
+        if (updateData.dataConclusao) {
+          client.dataConclusao = updateData.dataConclusao;
+        }
 
         showToast('Cliente movido para "' + stageName + '"!');
       } catch (err) {
@@ -3931,7 +4623,7 @@
       if (!client) return;
       const stages = getPipelineStages();
       const currentStage = getClientCurrentStage(client);
-      const stageIdx = stages.findIndex(s => s.id === currentStage.id);
+      const stageIdx = stages.findIndex(s => String(s.id) === String(currentStage.id));
       const stageNum = stageIdx >= 0 ? (stageIdx + 1) : 1;
       const stageFullName = "Fase " + stageNum + ": " + currentStage.nome;
       const stageColor = currentStage.cor || "#3b82f6";
@@ -3945,9 +4637,115 @@
       }
 
       const daysInfo = getClientStageAndTotalDays(client);
+      const aging = getClientAgingInfo(client);
+      const lifecycle = getClientContractAndLifecycleInfo(client);
+
+      const semaforoEl = document.getElementById("drawerClientSemaforo");
       const stageDaysEl = document.getElementById("drawerClientStageDaysBadge");
-      if (stageDaysEl) {
-        stageDaysEl.textContent = "📍 " + daysInfo.diasNaFase + "d fase";
+      const contractBadgeEl = document.getElementById("drawerClientContractBadge");
+      const actionsBoxEl = document.getElementById("drawerLifecycleActionsBox");
+
+      if (lifecycle.isConcluido) {
+        if (semaforoEl) {
+          semaforoEl.textContent = "🏁 Produção: Entregue em " + lifecycle.diasProducao + "d";
+          semaforoEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-emerald-950/80 border-emerald-700/80 text-emerald-300 shadow-sm";
+        }
+        if (stageDaysEl) {
+          stageDaysEl.textContent = "📍 " + daysInfo.diasNaFase + "d em Concluído";
+          stageDaysEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-emerald-950/50 border-emerald-800/60 text-emerald-300";
+        }
+        if (contractBadgeEl) {
+          contractBadgeEl.classList.remove("hidden");
+          if (lifecycle.isPacoteVencido) {
+            contractBadgeEl.textContent = "🔔 Pacote Vencido (" + lifecycle.pacoteMeses + "m atingido)";
+            contractBadgeEl.className = "text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-amber-500/20 border-amber-400/80 text-amber-300 shadow-sm animate-pulse";
+          } else {
+            contractBadgeEl.textContent = "⏳ Pacote " + lifecycle.pacoteMeses + "m (restam " + lifecycle.diasRestantes + " dias)";
+            contractBadgeEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-sky-950/70 border-sky-800/80 text-sky-300 shadow-sm";
+          }
+        }
+        if (actionsBoxEl) {
+          if (lifecycle.isPacoteVencido) {
+            actionsBoxEl.classList.remove("hidden");
+            actionsBoxEl.innerHTML = `
+              <button type="button"
+                      onclick="moveClientToAcompanhamento('${client.id}')"
+                      class="w-full min-h-[44px] px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-950/50 transition cursor-pointer">
+                <span>➡️ Mover para Acompanhamento</span>
+              </button>
+            `;
+          } else {
+            actionsBoxEl.classList.add("hidden");
+            actionsBoxEl.innerHTML = "";
+          }
+        }
+      } else if (lifecycle.isAcompanhamento) {
+        if (semaforoEl) {
+          semaforoEl.textContent = "🏁 Produção: " + lifecycle.diasProducao + "d";
+          semaforoEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-emerald-950/80 border-emerald-700/80 text-emerald-300 shadow-sm";
+        }
+        if (stageDaysEl) {
+          stageDaysEl.textContent = "🛡️ " + lifecycle.diasNaFase + "d em Acompanhamento";
+          stageDaysEl.className = "text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-cyan-950/80 border-cyan-700/80 text-cyan-300 shadow-sm";
+        }
+        if (contractBadgeEl) {
+          contractBadgeEl.classList.remove("hidden");
+          contractBadgeEl.textContent = "📦 Pacote " + lifecycle.pacoteMeses + "m";
+          contractBadgeEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-slate-900 border-slate-700 text-slate-300";
+        }
+        if (actionsBoxEl) {
+          actionsBoxEl.classList.remove("hidden");
+          actionsBoxEl.innerHTML = `
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button"
+                      onclick="openRenewPackageModal('${client.id}')"
+                      class="min-h-[44px] px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer">
+                <span>🔄 Renovar Pacote</span>
+              </button>
+              <button type="button"
+                      onclick="finishClientCycle('${client.id}')"
+                      class="min-h-[44px] px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition cursor-pointer">
+                <span>📦 Encerrar Ciclo</span>
+              </button>
+            </div>
+          `;
+        }
+      } else if (lifecycle.isFinalizado) {
+        if (semaforoEl) {
+          semaforoEl.textContent = "🏁 Produção: " + lifecycle.diasProducao + "d";
+          semaforoEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-slate-900 border-slate-700 text-slate-300";
+        }
+        if (stageDaysEl) {
+          stageDaysEl.textContent = "📦 Finalizado / Arquivado";
+          stageDaysEl.className = "text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-slate-900 border-slate-700 text-slate-400";
+        }
+        if (contractBadgeEl) {
+          contractBadgeEl.classList.remove("hidden");
+          contractBadgeEl.textContent = "Pacote: " + lifecycle.pacoteMeses + "m";
+          contractBadgeEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-slate-950 border-slate-800 text-slate-400";
+        }
+        if (actionsBoxEl) {
+          actionsBoxEl.classList.add("hidden");
+          actionsBoxEl.innerHTML = "";
+        }
+      } else {
+        if (semaforoEl) {
+          semaforoEl.textContent = aging.dotEmoji + " " + aging.days + "d esteira";
+          semaforoEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border shadow-sm " + aging.badgeClass;
+        }
+        if (stageDaysEl) {
+          stageDaysEl.textContent = "📍 " + daysInfo.diasNaFase + "d fase";
+          stageDaysEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-amber-950/70 border-amber-800/80 text-amber-300";
+        }
+        if (contractBadgeEl) {
+          contractBadgeEl.classList.remove("hidden");
+          contractBadgeEl.textContent = "⏳ Pacote " + lifecycle.pacoteMeses + "m";
+          contractBadgeEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-slate-900 border-slate-800 text-slate-300";
+        }
+        if (actionsBoxEl) {
+          actionsBoxEl.classList.add("hidden");
+          actionsBoxEl.innerHTML = "";
+        }
       }
 
       const tasksFilterSelect = document.getElementById("drawerTasksFilter");
@@ -3972,14 +4770,8 @@
         const elNiche = document.getElementById("drawerClientNiche") || document.getElementById("drawerClientSpecialty");
         if (elNiche) elNiche.textContent = client.specialty || client.niche || client.phone || "Geral";
         
+        populateDrawerTasksFilterOptions();
         updateDrawerHeaderPhase(client);
-
-        const aging = getClientAgingInfo(client);
-        const semaforoEl = document.getElementById("drawerClientSemaforo");
-        if (semaforoEl) {
-          semaforoEl.textContent = aging.dotEmoji + " " + aging.days + "d esteira";
-          semaforoEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border shadow-sm " + aging.badgeClass;
-        }
 
         const safeSetVal = (id, val) => {
           const el = document.getElementById(id);
@@ -3994,6 +4786,7 @@
         safeSetVal("drawerInputEntryDate", client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada);
         safeSetVal("drawerInputDeadline", client.deadline);
         safeSetVal("drawerInputNotes", client.notes);
+        safeSetVal("drawerInputPacoteMeses", String([3, 6, 12].includes(Number(client.pacoteMeses)) ? Number(client.pacoteMeses) : 3));
 
         updateDrawerPriorityUI(client);
 
@@ -4514,21 +5307,26 @@
         }
       }
 
-      // Auto-avanço de fase: ao marcar a última pendente da fase atual se todas da fase estiverem concluídas e fase < 9
+      // Auto-avanço de fase: ao marcar a última pendente da fase atual se todas da fase estiverem concluídas (nas etapas de produção)
       const stages = getPipelineStages();
       const currentStage = getClientCurrentStage(client);
       const currentIdx = stages.findIndex(s => s.id === currentStage.id);
+      const isPostProductionStage = isStageRoleConcluido(currentStage) || isStageRoleAcompanhamento(currentStage) || isStageRoleFinalizado(currentStage);
 
       const currentStageTasks = merged.map(t => t.id === taskId ? { ...t, status: newStatus, concluida: newConcluida } : t).filter(t => t.stageId === currentStage.id);
       const allDone = currentStageTasks.length > 0 && currentStageTasks.every(t => t.status === "Concluída" || t.concluida === true);
 
-      if (newConcluida && allDone && currentIdx !== -1 && currentIdx < 8) {
+      if (newConcluida && allDone && !isPostProductionStage && currentIdx !== -1 && currentIdx < stages.length - 1) {
         const nextStage = stages[currentIdx + 1];
         const updatedFasesHistory = buildUpdatedFasesHistory(client, currentStage, nextStage, nowIso);
         updatePayload.fase = nextStage.id;
         updatePayload.status = nextStage.id;
         updatePayload.dataEntradaFase = nowIso;
         updatePayload.fasesHistory = updatedFasesHistory;
+        if (isStageRoleConcluido(nextStage)) {
+          updatePayload.dataConclusao = nowIso;
+          client.dataConclusao = nowIso;
+        }
         updatePayload.historico = firebase.firestore.FieldValue.arrayUnion(
           {
             data: nowIso,
@@ -5267,6 +6065,46 @@
       showToast("Anotações salvas com sucesso!");
     }
 
+    async function handleDrawerPacoteChange(val) {
+      if (!state.currentUser?.permissions?.canEditClients && !state.currentUser?.permissions?.isAdmin) {
+        showToast("Seu cargo não possui permissão para editar o pacote contratado.");
+        return;
+      }
+      const client = state.clients.find(c => c.id === state.selectedClientId);
+      if (!client) return;
+
+      const parsedMonths = Number(val);
+      const pacoteMeses = [3, 6, 12].includes(parsedMonths) ? parsedMonths : 3;
+      const nowIso = new Date().toISOString();
+      const author = state.currentUser?.name || state.currentUser?.email || "Usuário";
+      const historyItem = {
+        data: nowIso,
+        autor: author,
+        acao: "Alterou o Pacote Contratado do cliente para " + pacoteMeses + " Meses"
+      };
+
+      try {
+        await db.collection("clients").doc(client.id).update({
+          pacoteMeses: pacoteMeses,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          historico: firebase.firestore.FieldValue.arrayUnion(historyItem)
+        });
+
+        client.pacoteMeses = pacoteMeses;
+        if (!Array.isArray(client.historico)) client.historico = [];
+        client.historico.push(historyItem);
+
+        updateDrawerHeaderPhase(client);
+        renderDrawerHistory();
+        renderKanban();
+        if (state.currentView === "table") renderTable();
+        showToast("Pacote contratual atualizado para " + pacoteMeses + " Meses!");
+      } catch (err) {
+        console.error("Erro ao atualizar pacote contratual:", err);
+        showToast("Erro ao atualizar pacote contratual no Firestore.");
+      }
+    }
+
     async function saveDrawerClientInfo(e) {
       e.preventDefault();
       if (!state.currentUser?.permissions?.canEditClients) {
@@ -5275,6 +6113,9 @@
       }
       const client = state.clients.find(c => c.id === state.selectedClientId);
       if (!client) return;
+
+      const rawPacote = Number(document.getElementById("drawerInputPacoteMeses")?.value);
+      const pacoteMeses = [3, 6, 12].includes(rawPacote) ? rawPacote : ([3, 6, 12].includes(Number(client.pacoteMeses)) ? Number(client.pacoteMeses) : 3);
 
       const updated = {
         name: document.getElementById("drawerInputName")?.value.trim() || client.name,
@@ -5286,6 +6127,7 @@
         entryDate: document.getElementById("drawerInputEntryDate")?.value || client.entryDate || client.dataEntrada || "",
         paymentDate: document.getElementById("drawerInputEntryDate")?.value || client.entryDate || client.dataEntrada || "",
         deadline: document.getElementById("drawerInputDeadline")?.value || "",
+        pacoteMeses: pacoteMeses,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
 
@@ -5297,10 +6139,14 @@
           historico: firebase.firestore.FieldValue.arrayUnion({
             data: nowIso,
             autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
-            acao: "Atualizou dados cadastrais e de contato do cliente"
+            acao: "Atualizou dados cadastrais, vigência (" + pacoteMeses + " Meses) e contato do cliente"
           })
         });
 
+        Object.assign(client, updated);
+        updateDrawerHeaderPhase(client);
+        renderKanban();
+        if (state.currentView === "table") renderTable();
         showToast("Dados do cliente atualizados com sucesso!");
       } catch (err) {
         console.error("Erro ao salvar dados do cliente:", err);
@@ -5909,11 +6755,68 @@
         const daysInfo = getClientStageAndTotalDays(c);
         const aging = getClientAgingInfo(c);
         const stage = getClientCurrentStage(c);
+        const contractInfo = getClientContractAndLifecycleInfo(c);
         const allTasks = getClientMergedTasks(c);
         const doneTasks = allTasks.filter(t => t.status === "Concluída").length;
         const percent = allTasks.length > 0 ? Math.round((doneTasks / allTasks.length) * 100) : 0;
         const stageColor = stage.cor || "#3b82f6";
         const nextTask = getNextPendingTask(c, stages);
+
+        let phaseDaysBadgeHtml = `
+          <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-amber-950/70 border-amber-800/80 text-amber-300 inline-flex items-center gap-1 shadow-sm">
+            <span>📍</span>
+            <span>${daysInfo.diasNaFase}d na fase</span>
+          </span>
+        `;
+        let totalDaysBadgeHtml = `
+          <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border ${aging.badgeClass} inline-flex items-center gap-1 shadow-sm">
+            <span>${aging.dotEmoji}</span>
+            <span>${daysInfo.diasTotais}d (${aging.statusText})</span>
+          </span>
+        `;
+
+        if (contractInfo.isConcluido) {
+          totalDaysBadgeHtml = `
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-emerald-950/90 border-emerald-700/80 text-emerald-300 inline-flex items-center gap-1 shadow-sm">
+              <span>🏁 Produção: Entregue em ${daysInfo.diasTotais}d</span>
+            </span>
+          `;
+          if (contractInfo.isContractExpired) {
+            phaseDaysBadgeHtml = `
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-amber-950/90 border-amber-500 text-amber-300 inline-flex items-center gap-1 shadow-sm animate-pulse">
+                <span>🔔 Pacote Vencido (${contractInfo.pacoteMeses}m atingido)</span>
+              </span>
+            `;
+          } else {
+            phaseDaysBadgeHtml = `
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border bg-sky-950/80 border-sky-800/80 text-sky-300 inline-flex items-center gap-1 shadow-sm">
+                <span>⏳ Pacote ${contractInfo.pacoteMeses}m (restam ${contractInfo.diasRestantesPacote} dias)</span>
+              </span>
+            `;
+          }
+        } else if (contractInfo.isAcompanhamento) {
+          totalDaysBadgeHtml = `
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-emerald-950/80 border-emerald-800/80 text-emerald-300 inline-flex items-center gap-1 shadow-sm">
+              <span>🏁 Produção: ${daysInfo.diasTotais}d</span>
+            </span>
+          `;
+          phaseDaysBadgeHtml = `
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-indigo-950/90 border-indigo-700/80 text-indigo-300 inline-flex items-center gap-1 shadow-sm">
+              <span>🛡️ ${daysInfo.diasNaFase}d em Acompanhamento</span>
+            </span>
+          `;
+        } else if (contractInfo.isFinalizado) {
+          totalDaysBadgeHtml = `
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border bg-slate-900 border-slate-700 text-slate-300 inline-flex items-center gap-1 shadow-sm">
+              <span>🏁 Produção: ${daysInfo.diasTotais}d</span>
+            </span>
+          `;
+          phaseDaysBadgeHtml = `
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border bg-slate-950 border-slate-800 text-slate-400 inline-flex items-center gap-1 shadow-sm">
+              <span>📦 Ciclo Encerrado (${contractInfo.pacoteMeses}m)</span>
+            </span>
+          `;
+        }
 
         let nextTaskAssigneeName = "";
         if (nextTask && nextTask.assignee) {
@@ -5955,18 +6858,12 @@
 
             <!-- Col 4: TEMPO NA FASE -->
             <td data-col="col_phaseDays" class="p-3.5 whitespace-nowrap">
-              <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-amber-950/70 border-amber-800/80 text-amber-300 inline-flex items-center gap-1 shadow-sm">
-                <span>📍</span>
-                <span>${daysInfo.diasNaFase}d na fase</span>
-              </span>
+              ${phaseDaysBadgeHtml}
             </td>
 
             <!-- Col 5: TEMPO TOTAL -->
             <td data-col="col_totalDays" class="p-3.5 whitespace-nowrap">
-              <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border ${aging.badgeClass} inline-flex items-center gap-1 shadow-sm">
-                <span>${aging.dotEmoji}</span>
-                <span>${daysInfo.diasTotais}d (${aging.statusText})</span>
-              </span>
+              ${totalDaysBadgeHtml}
             </td>
 
             <!-- Col 6: PRÓXIMA AÇÃO -->
@@ -6033,11 +6930,57 @@
           const daysInfo = getClientStageAndTotalDays(c);
           const aging = getClientAgingInfo(c);
           const stage = getClientCurrentStage(c);
+          const contractInfo = getClientContractAndLifecycleInfo(c);
           const allTasks = getClientMergedTasks(c);
           const doneTasks = allTasks.filter(t => t.status === "Concluída").length;
           const percent = allTasks.length > 0 ? Math.round((doneTasks / allTasks.length) * 100) : 0;
           const stageColor = stage.cor || "#3b82f6";
           const nextTask = getNextPendingTask(c, stages);
+
+          let mTotalBadgeHtml = `
+            <span data-col="col_totalDays" class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${aging.badgeClass} inline-flex items-center gap-1 shadow-sm">
+              <span>${aging.dotEmoji}</span>
+              <span>⏱️ ${daysInfo.diasTotais}d esteira</span>
+            </span>
+          `;
+          let mPhaseBadgeHtml = `
+            <span data-col="col_phaseDays" class="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-amber-950/70 border-amber-800/80 text-amber-300 inline-flex items-center gap-1 shadow-sm">
+              <span>📍 ${daysInfo.diasNaFase}d na fase</span>
+            </span>
+          `;
+
+          if (contractInfo.isConcluido) {
+            mTotalBadgeHtml = `
+              <span data-col="col_totalDays" class="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-950/90 border-emerald-700/80 text-emerald-300 inline-flex items-center gap-1 shadow-sm">
+                <span>🏁 Produção: Entregue em ${daysInfo.diasTotais}d</span>
+              </span>
+            `;
+            mPhaseBadgeHtml = contractInfo.isContractExpired
+              ? `<span data-col="col_phaseDays" class="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-amber-950/90 border-amber-500 text-amber-300 inline-flex items-center gap-1 shadow-sm animate-pulse"><span>🔔 Pacote Vencido (${contractInfo.pacoteMeses}m atingido)</span></span>`
+              : `<span data-col="col_phaseDays" class="px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-sky-950/80 border-sky-800/80 text-sky-300 inline-flex items-center gap-1 shadow-sm"><span>⏳ Pacote ${contractInfo.pacoteMeses}m (restam ${contractInfo.diasRestantesPacote} dias)</span></span>`;
+          } else if (contractInfo.isAcompanhamento) {
+            mTotalBadgeHtml = `
+              <span data-col="col_totalDays" class="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-950/80 border-emerald-800/80 text-emerald-300 inline-flex items-center gap-1 shadow-sm">
+                <span>🏁 Produção: ${daysInfo.diasTotais}d</span>
+              </span>
+            `;
+            mPhaseBadgeHtml = `
+              <span data-col="col_phaseDays" class="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-indigo-950/90 border-indigo-700/80 text-indigo-300 inline-flex items-center gap-1 shadow-sm">
+                <span>🛡️ ${daysInfo.diasNaFase}d em Acompanhamento</span>
+              </span>
+            `;
+          } else if (contractInfo.isFinalizado) {
+            mTotalBadgeHtml = `
+              <span data-col="col_totalDays" class="px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-900 border-slate-700 text-slate-300 inline-flex items-center gap-1 shadow-sm">
+                <span>🏁 Produção: ${daysInfo.diasTotais}d</span>
+              </span>
+            `;
+            mPhaseBadgeHtml = `
+              <span data-col="col_phaseDays" class="px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-950 border-slate-800 text-slate-400 inline-flex items-center gap-1 shadow-sm">
+                <span>📦 Ciclo Encerrado (${contractInfo.pacoteMeses}m)</span>
+              </span>
+            `;
+          }
 
           let nextTaskAssigneeName = "";
           if (nextTask && nextTask.assignee) {
@@ -6076,13 +7019,8 @@
               <!-- Linha 2 (Métricas e Prazos): Tempo Total + Tempo na Fase + Barra Fina de Progresso -->
               <div class="space-y-2 pt-1 border-t border-slate-800/60">
                 <div class="flex items-center justify-between gap-1 flex-wrap text-xs">
-                  <span data-col="col_totalDays" class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${aging.badgeClass} inline-flex items-center gap-1 shadow-sm">
-                    <span>${aging.dotEmoji}</span>
-                    <span>⏱️ ${daysInfo.diasTotais}d esteira</span>
-                  </span>
-                  <span data-col="col_phaseDays" class="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-amber-950/70 border-amber-800/80 text-amber-300 inline-flex items-center gap-1 shadow-sm">
-                    <span>📍 ${daysInfo.diasNaFase}d na fase</span>
-                  </span>
+                  ${mTotalBadgeHtml}
+                  ${mPhaseBadgeHtml}
                   <span data-col="col_progress" class="text-xs font-mono font-bold text-sky-400 ml-auto">
                     ${percent}%
                   </span>
@@ -6261,9 +7199,12 @@ lucide.createIcons();
       const totalEl = document.getElementById("metricTotalClients");
       if (totalEl) totalEl.textContent = totalClients;
 
-      // Entregas/Concluídos (Clientes na última etapa)
-      const lastStage = stages[stages.length - 1];
-      const completedCount = lastStage ? clients.filter(c => isClientInStage(c, lastStage, stages.length - 1, stages)).length : 0;
+      // Entregas/Concluídos (Clientes em Concluído, Acompanhamento, Finalizado ou última etapa)
+      const completedCount = clients.filter(c => {
+        const curStage = getClientCurrentStage(c);
+        const lastStage = stages[stages.length - 1];
+        return isStageRoleConcluido(curStage) || isStageRoleAcompanhamento(curStage) || isStageRoleFinalizado(curStage) || (lastStage && curStage.id === lastStage.id);
+      }).length;
       const completedEl = document.getElementById("metricCompletedClients");
       if (completedEl) completedEl.textContent = completedCount;
 
@@ -6419,6 +7360,23 @@ lucide.createIcons();
 
 
     // 8. CADASTRO DE NOVO CLIENTE & EXCLUSÃO
+    function selectNewClientPacoteChip(months) {
+      const m = [3, 6, 12].includes(Number(months)) ? Number(months) : 3;
+      const selectEl = document.getElementById("newClientPacoteMeses");
+      if (selectEl) {
+        selectEl.value = String(m);
+      }
+      [3, 6, 12].forEach(val => {
+        const chip = document.getElementById("chipNewClientPacote_" + val);
+        if (!chip) return;
+        if (val === m) {
+          chip.className = "min-h-[38px] py-1.5 px-2 rounded-lg text-xs font-bold border border-sky-500 bg-sky-600/30 text-sky-200 transition cursor-pointer";
+        } else {
+          chip.className = "min-h-[38px] py-1.5 px-2 rounded-lg text-xs font-semibold border border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-600 transition cursor-pointer";
+        }
+      });
+    }
+
     function openNewClientModal() {
       if (!state.currentUser?.permissions?.canCreateClients) {
         showToast("Seu cargo não possui permissão para cadastrar novos clientes.");
@@ -6426,6 +7384,7 @@ lucide.createIcons();
       }
       document.getElementById("formNewClient").reset();
       document.getElementById("newClientEntryDate").value = new Date().toISOString().split("T")[0];
+      selectNewClientPacoteChip(3);
       document.getElementById("modalNewClient").classList.remove("hidden");
     }
 
@@ -6478,6 +7437,8 @@ lucide.createIcons();
       const whatsappGroup = (document.getElementById("newClientWhatsappGroup")?.value || "").trim();
       const entryDate = document.getElementById("newClientEntryDate")?.value || new Date().toISOString().split("T")[0];
       const deadline = document.getElementById("newClientDeadline")?.value || "";
+      const rawPacote = Number(document.getElementById("newClientPacoteMeses")?.value);
+      const pacoteMeses = [3, 6, 12].includes(rawPacote) ? rawPacote : 3;
 
       const btnSubmit = document.getElementById("btnSubmitNewClient");
       const originalText = btnSubmit ? btnSubmit.innerHTML : "Salvar na Esteira";
@@ -6502,7 +7463,9 @@ lucide.createIcons();
           whatsappGroup,
           entryDate,
           dataEntrada: entryDate,
+          paymentDate: entryDate,
           deadline,
+          pacoteMeses: pacoteMeses,
           fase: initialStageId,
           status: initialStageId,
           dataEntradaFase: nowIso,
@@ -6522,7 +7485,7 @@ lucide.createIcons();
             {
               data: nowIso,
               autor: state.currentUser?.name || state.currentUser?.email || "Usuário",
-              acao: "Cadastro inicial do cliente no CRM"
+              acao: "Cadastro inicial do cliente no CRM (Pacote Contratado: " + pacoteMeses + " Meses)"
             }
           ],
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -6789,27 +7752,28 @@ lucide.createIcons();
       const activeUsers = (state.users || []).filter(u => (u.status || "Ativo") === "Ativo");
 
       container.innerHTML = editingPipeline.map((stage, sIdx) => {
-        const isExpanded = expandedStageIds.has(stage.id);
-        const subtarefas = Array.isArray(stage.subtarefas) ? stage.subtarefas : [];
+        const isExpanded = expandedStageIds.has(String(stage.id)) || expandedStageIds.has(stage.id);
+        const subtarefas = Array.isArray(stage.subtarefas) ? stage.subtarefas : (Array.isArray(stage.subtasks) ? stage.subtasks : []);
         const isFirst = sIdx === 0;
         const isLast = sIdx === editingPipeline.length - 1;
-        const stageColor = stage.cor || "#3b82f6";
+        const stageColor = stage.cor || stage.color || "#3b82f6";
+        const stageName = stage.nome || stage.name || "";
 
         return `
-          <div class="bg-slate-950 border ${isExpanded ? 'border-sky-500/60 shadow-lg ring-1 ring-sky-500/20' : 'border-slate-800'} rounded-2xl overflow-hidden transition-all duration-200">
+          <div id="pipelineStageRow_${sIdx}" data-stage-id="${escapeHtml(String(stage.id))}" class="bg-slate-950 border ${isExpanded ? 'border-sky-500/60 shadow-lg ring-1 ring-sky-500/20' : 'border-slate-800'} rounded-2xl overflow-hidden transition-all duration-200">
             
             <!-- Barra Superior da Etapa (Acordeão Moderno e Clicável, altura 44-48px) -->
-            <div onclick="toggleExpandStage('${stage.id}')"
+            <div onclick="toggleExpandStage('${escapeJsString(String(stage.id))}')"
                  class="h-11 sm:h-12 min-h-[44px] px-3 py-1 bg-slate-950 hover:bg-slate-900/70 transition cursor-pointer flex items-center justify-between gap-2 select-none">
               
-              <!-- Controles de Reordenação e Identificador Numerado Circular -->
+              <!-- Controles de Reordenação (▲ / ▼) e Identificador Numerado Circular -->
               <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
-                <div class="flex items-center">
-                  <button type="button" onclick="moveStageUp(${sIdx})" ${isFirst ? 'disabled class="p-0.5 rounded text-slate-700 cursor-not-allowed"' : 'class="p-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"'} title="Mover para Cima">
-                    <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
+                <div class="flex items-center gap-0.5">
+                  <button type="button" id="btnMoveStageUp_${sIdx}" onclick="event.stopPropagation(); moveStageUp(${sIdx})" ${isFirst ? 'disabled class="min-w-[26px] min-h-[26px] px-1 py-0.5 rounded-lg text-[10px] font-bold text-slate-700 bg-slate-900/40 border border-slate-800/40 cursor-not-allowed flex items-center justify-center"' : 'class="min-w-[26px] min-h-[26px] px-1 py-0.5 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 cursor-pointer flex items-center justify-center transition"'} title="Mover etapa para cima (▲)">
+                    ▲
                   </button>
-                  <button type="button" onclick="moveStageDown(${sIdx})" ${isLast ? 'disabled class="p-0.5 rounded text-slate-700 cursor-not-allowed"' : 'class="p-0.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"'} title="Mover para Baixo">
-                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                  <button type="button" id="btnMoveStageDown_${sIdx}" onclick="event.stopPropagation(); moveStageDown(${sIdx})" ${isLast ? 'disabled class="min-w-[26px] min-h-[26px] px-1 py-0.5 rounded-lg text-[10px] font-bold text-slate-700 bg-slate-900/40 border border-slate-800/40 cursor-not-allowed flex items-center justify-center"' : 'class="min-w-[26px] min-h-[26px] px-1 py-0.5 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 cursor-pointer flex items-center justify-center transition"'} title="Mover etapa para baixo (▼)">
+                    ▼
                   </button>
                 </div>
                 
@@ -6825,7 +7789,7 @@ lucide.createIcons();
 
               <!-- Input Editável do Nome da Etapa -->
               <div class="flex-1 min-w-[140px]" onclick="event.stopPropagation()">
-                <input type="text" value="${escapeHtml(stage.nome || '')}" oninput="updateStageName(${sIdx}, this.value)" placeholder="Nome da Etapa..." class="w-full h-8 bg-slate-900 border border-slate-800 rounded-lg px-2.5 text-xs text-white font-semibold focus:outline-none focus:border-sky-500 shadow-inner" />
+                <input type="text" id="pipelineStageNameInput_${sIdx}" value="${escapeHtml(stageName)}" oninput="updateStageName(${sIdx}, this.value)" placeholder="Nome da Etapa..." class="w-full h-8 bg-slate-900 border border-slate-800 rounded-lg px-2.5 text-xs text-white font-semibold focus:outline-none focus:border-sky-500 shadow-inner" />
               </div>
 
               <!-- Contagem de Subtarefas, Indicador Acordeão (▼ / ▶) & Ações -->
@@ -6943,57 +7907,87 @@ lucide.createIcons();
     }
 
     function toggleExpandStage(stageId) {
-      if (expandedStageIds.has(stageId)) {
+      const key = String(stageId);
+      if (expandedStageIds.has(key) || expandedStageIds.has(stageId)) {
+        expandedStageIds.delete(key);
         expandedStageIds.delete(stageId);
       } else {
-        expandedStageIds.add(stageId);
+        expandedStageIds.add(key);
       }
       renderPipelineEditor();
     }
 
     function addNewStage() {
+      if (!Array.isArray(editingPipeline)) {
+        editingPipeline = [];
+      }
       const newId = "etapa_" + Date.now();
-      const defaultColors = ["#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6", "#ec4899", "#10b981", "#f59e0b"];
-      const randomColor = defaultColors[editingPipeline.length % defaultColors.length];
-
-      editingPipeline.push({
+      const newStage = {
         id: newId,
-        nome: "Nova Etapa " + (editingPipeline.length + 1),
-        cor: randomColor,
-        subtarefas: [
-          { id: newId + "_sub_1", titulo: "Primeira ação desta etapa", responsavelPadrao: "" }
-        ]
+        name: "Nova Etapa",
+        nome: "Nova Etapa",
+        color: "#3b82f6",
+        cor: "#3b82f6",
+        subtasks: [],
+        subtarefas: [],
+        order: editingPipeline.length
+      };
+
+      editingPipeline.push(newStage);
+      editingPipeline.forEach((st, idx) => {
+        if (st) st.order = idx;
       });
 
-      expandedStageIds.add(newId);
+      // Mantém recolhida por padrão ao criar e foca/rola na nova etapa
+      expandedStageIds.delete(String(newId));
       renderPipelineEditor();
+
+      const newIndex = editingPipeline.length - 1;
+      setTimeout(() => {
+        const rowEl = document.getElementById("pipelineStageRow_" + newIndex);
+        if (rowEl && typeof rowEl.scrollIntoView === "function") {
+          rowEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+        const nameInput = document.getElementById("pipelineStageNameInput_" + newIndex);
+        if (nameInput && typeof nameInput.focus === "function") {
+          nameInput.focus();
+          if (typeof nameInput.select === "function") {
+            nameInput.select();
+          }
+        }
+      }, 30);
     }
 
     function updateStageName(stageIdx, val) {
       if (editingPipeline[stageIdx]) {
         editingPipeline[stageIdx].nome = val;
+        editingPipeline[stageIdx].name = val;
       }
     }
 
     function updateStageColor(stageIdx, val) {
       if (editingPipeline[stageIdx]) {
         editingPipeline[stageIdx].cor = val;
+        editingPipeline[stageIdx].color = val;
+        renderPipelineEditor();
       }
     }
 
-    function moveStageUp(stageIdx) {
-      if (stageIdx <= 0) return;
-      const temp = editingPipeline[stageIdx];
-      editingPipeline[stageIdx] = editingPipeline[stageIdx - 1];
-      editingPipeline[stageIdx - 1] = temp;
+    function moveStageUp(index) {
+      if (!Array.isArray(editingPipeline) || index <= 0 || index >= editingPipeline.length) return;
+      [editingPipeline[index], editingPipeline[index - 1]] = [editingPipeline[index - 1], editingPipeline[index]];
+      editingPipeline.forEach((st, idx) => {
+        if (st) st.order = idx;
+      });
       renderPipelineEditor();
     }
 
-    function moveStageDown(stageIdx) {
-      if (stageIdx >= editingPipeline.length - 1) return;
-      const temp = editingPipeline[stageIdx];
-      editingPipeline[stageIdx] = editingPipeline[stageIdx + 1];
-      editingPipeline[stageIdx + 1] = temp;
+    function moveStageDown(index) {
+      if (!Array.isArray(editingPipeline) || index < 0 || index >= editingPipeline.length - 1) return;
+      [editingPipeline[index], editingPipeline[index + 1]] = [editingPipeline[index + 1], editingPipeline[index]];
+      editingPipeline.forEach((st, idx) => {
+        if (st) st.order = idx;
+      });
       renderPipelineEditor();
     }
 
@@ -7005,7 +7999,7 @@ lucide.createIcons();
       stageToDeleteIdx = stageIdx;
 
       const targetNameEl = document.getElementById("deleteStageTargetName");
-      if (targetNameEl) targetNameEl.textContent = '"' + (stage.nome || "Etapa") + '"';
+      if (targetNameEl) targetNameEl.textContent = '"' + (stage.nome || stage.name || "Etapa") + '"';
 
       const modal = document.getElementById("modalDeleteStage");
       if (modal) modal.classList.remove("hidden");
@@ -7027,17 +8021,29 @@ lucide.createIcons();
       const stage = editingPipeline[stageIdx];
       if (!stage) return;
 
-      const removedName = stage.nome;
+      const removedName = stage.nome || stage.name || "Etapa";
       editingPipeline.splice(stageIdx, 1);
+      editingPipeline.forEach((st, idx) => {
+        if (st) st.order = idx;
+      });
+      expandedStageIds.delete(String(stage.id));
       expandedStageIds.delete(stage.id);
       closeDeleteStageModal();
       renderPipelineEditor();
 
       try {
+        const normalizedStages = editingPipeline.map((s, idx) => normalizePipelineStage(s, idx));
         await db.collection("settings").doc("pipeline").set({
-          etapas: editingPipeline,
+          stages: normalizedStages,
+          etapas: normalizedStages,
+          pipelineVersion: 2,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        }, { merge: true });
+        state.pipeline = { stages: normalizedStages, etapas: normalizedStages, pipelineVersion: 2 };
+        populateDrawerTasksFilterOptions();
+        renderKanban();
+        if (state.currentView === "table") renderTable();
+        if (state.currentView === "metrics") renderMetrics();
         showToast("Etapa '" + removedName + "' excluída e configurações salvas.");
       } catch (err) {
         console.error("Erro ao sincronizar exclusão de etapa:", err);
@@ -7067,6 +8073,7 @@ lucide.createIcons();
         titulo: title,
         responsavelPadrao: defaultAssignee
       });
+      stage.subtasks = stage.subtarefas;
 
       input.value = "";
       if (select) select.value = "";
@@ -7078,6 +8085,7 @@ lucide.createIcons();
         const cur = normalizeSubtaskItem(editingPipeline[stageIdx].subtarefas[subIdx], subIdx, editingPipeline[stageIdx].id);
         cur.titulo = val;
         editingPipeline[stageIdx].subtarefas[subIdx] = cur;
+        editingPipeline[stageIdx].subtasks = editingPipeline[stageIdx].subtarefas;
       }
     }
 
@@ -7086,6 +8094,7 @@ lucide.createIcons();
         const cur = normalizeSubtaskItem(editingPipeline[stageIdx].subtarefas[subIdx], subIdx, editingPipeline[stageIdx].id);
         cur.responsavelPadrao = email;
         editingPipeline[stageIdx].subtarefas[subIdx] = cur;
+        editingPipeline[stageIdx].subtasks = editingPipeline[stageIdx].subtarefas;
       }
     }
 
@@ -7100,14 +8109,19 @@ lucide.createIcons();
         // Segundo clique: executa e salva imediatamente no Firestore
         if (editingPipeline[stageIdx] && Array.isArray(editingPipeline[stageIdx].subtarefas)) {
           const removed = editingPipeline[stageIdx].subtarefas.splice(subIdx, 1);
+          editingPipeline[stageIdx].subtasks = editingPipeline[stageIdx].subtarefas;
           pendingSubtaskDelete = null;
           renderPipelineEditor();
 
           try {
+            const normalizedStages = editingPipeline.map((s, idx) => normalizePipelineStage(s, idx));
             await db.collection("settings").doc("pipeline").set({
-              etapas: editingPipeline,
+              stages: normalizedStages,
+              etapas: normalizedStages,
+              pipelineVersion: 2,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            }, { merge: true });
+            state.pipeline = { stages: normalizedStages, etapas: normalizedStages, pipelineVersion: 2 };
             showToast("Subtarefa '" + (removed[0]?.titulo || "selecionada") + "' removida e salva no Firestore.");
           } catch (err) {
             console.error("Erro ao salvar exclusão de subtarefa:", err);
@@ -7131,17 +8145,18 @@ lucide.createIcons();
       const temp = subtarefas[subIdx];
       subtarefas[subIdx] = subtarefas[targetIdx];
       subtarefas[targetIdx] = temp;
+      editingPipeline[stageIdx].subtasks = subtarefas;
       renderPipelineEditor();
     }
 
     function restoreDefaultPipeline() {
-      const confirmed = confirm("Deseja redefinir as etapas e subtarefas para o padrão oficial das 9 fases e 54 tarefas da Harppia?\n\nIsso substituirá suas edições no modal.");
+      const confirmed = confirm("Deseja redefinir as etapas e subtarefas para o padrão oficial da esteira Harppia ([Campanha] ➔ [Concluído] ➔ [Acompanhamento] ➔ [Finalizado])?\n\nIsso substituirá suas edições no modal.");
       if (!confirmed) return;
 
-      editingPipeline = JSON.parse(JSON.stringify(DEFAULT_PIPELINE_STAGES));
+      editingPipeline = JSON.parse(JSON.stringify(DEFAULT_PIPELINE_STAGES)).map((s, idx) => normalizePipelineStage(s, idx));
       expandedStageIds.clear(); // Redefinição mantém todas as etapas recolhidas
       renderPipelineEditor();
-      showToast("Padrão oficial das 9 fases carregado no editor.");
+      showToast("Padrão oficial da esteira carregado no editor.");
     }
 
     /**
@@ -7159,7 +8174,7 @@ lucide.createIcons();
       }
 
       for (let i = 0; i < editingPipeline.length; i++) {
-        const name = (editingPipeline[i].nome || "").trim();
+        const name = (editingPipeline[i].nome || editingPipeline[i].name || "").trim();
         if (!name) {
           alert("A etapa " + (i + 1) + " está sem nome. Preencha o nome de todas as etapas antes de salvar.");
           return;
@@ -7168,25 +8183,37 @@ lucide.createIcons();
 
       const btn = document.getElementById("btnSavePipeline");
       const btnText = document.getElementById("btnSavePipelineText");
-      btn.disabled = true;
-      btnText.textContent = "Salvando no Firestore...";
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.textContent = "Salvando no Firestore...";
 
       try {
+        const normalizedStages = editingPipeline.map((s, idx) => normalizePipelineStage(s, idx));
         const payload = {
-          etapas: editingPipeline,
+          stages: normalizedStages,
+          etapas: normalizedStages,
+          pipelineVersion: 2,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           updatedBy: state.currentUser?.email || "admin"
         };
 
-        await db.collection("settings").doc("pipeline").set(payload);
+        await db.collection("settings").doc("pipeline").set(payload, { merge: true });
+        state.pipeline = {
+          stages: normalizedStages,
+          etapas: normalizedStages,
+          pipelineVersion: 2
+        };
+        populateDrawerTasksFilterOptions();
+        renderKanban();
+        if (state.currentView === "table") renderTable();
+        if (state.currentView === "metrics") renderMetrics();
         showToast("Configurações do Pipeline salvas e sincronizadas!");
         closePipelineSettingsModal();
       } catch (err) {
         console.error("Erro ao gravar pipeline no Firestore:", err);
         showToast("Falha ao salvar configurações no Firestore.");
       } finally {
-        btn.disabled = false;
-        btnText.textContent = "Salvar Configurações";
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = "Salvar Configurações";
       }
     }
 
