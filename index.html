@@ -2373,11 +2373,44 @@
       return history;
     }
 
+    const retroactiveConclusaoSynced = new Set();
+
+    // Tratamento de Retroatividade: garante dataConclusao para clientes já em "Concluído" sem o campo gravado
+    function ensureRetroactiveDataConclusao(client) {
+      if (!client) return null;
+      if (client.dataConclusao) return client.dataConclusao;
+
+      const currentStage = getClientCurrentStage(client);
+      const isPostProduction = isStageRoleConcluido(currentStage) || isStageRoleAcompanhamento(currentStage) || isStageRoleFinalizado(currentStage);
+      if (!isPostProduction) return null;
+
+      const rawFallback = client.dataEntradaFase || client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt;
+      const parsedFallback = parseSafeDate(rawFallback) || new Date();
+      const fallbackIso = parsedFallback.toISOString();
+      client.dataConclusao = fallbackIso;
+
+      if (client.id && !retroactiveConclusaoSynced.has(String(client.id)) && typeof db !== "undefined" && db) {
+        retroactiveConclusaoSynced.add(String(client.id));
+        try {
+          const updatePromise = db.collection("clients").doc(client.id).update({
+            dataConclusao: fallbackIso
+          });
+          if (updatePromise && typeof updatePromise.catch === "function") {
+            updatePromise.catch(err => console.warn("Aviso ao estabilizar dataConclusao retroativa:", err));
+          }
+        } catch (e) {}
+      }
+
+      return fallbackIso;
+    }
+
     function getClientStageAndTotalDays(client) {
       if (!client) {
         return {
           diasNaFase: 0,
           diasTotais: 0,
+          diasProducao: 0,
+          isProductionFrozen: false,
           dataInicioFormatada: "-",
           dataFaseFormatada: "-",
           dateTotalObj: new Date(),
@@ -2389,23 +2422,30 @@
       const currentStage = getClientCurrentStage(client);
       const isPostProduction = isStageRoleConcluido(currentStage) || isStageRoleAcompanhamento(currentStage) || isStageRoleFinalizado(currentStage);
 
+      if (isPostProduction && !client.dataConclusao) {
+        ensureRetroactiveDataConclusao(client);
+      }
+
       // Data de entrada na fase atual com fallback seguro
-      const rawDataFase = client.dataEntradaFase || client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt;
+      const rawDataFase = client.dataEntradaFase || client.dataConclusao || client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt;
       const dateFaseObj = parseSafeDate(rawDataFase) || now;
       const diasNaFase = Math.max(0, Math.floor((now.getTime() - dateFaseObj.getTime()) / 86400000));
 
-      // Data de início total com fallback seguro
+      // Data de início total (criação/pagamento) com fallback seguro
       const rawDataTotal = client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt || client.dataEntradaFase;
       const dateTotalObj = parseSafeDate(rawDataTotal) || dateFaseObj || now;
 
-      // Congelamento do Tempo de Produção em "Concluído", "Acompanhamento" ou "Finalizado"
+      // Congelamento do Tempo de Produção: diferença fixa entre paymentDate/createdAt e dataConclusao
       let endProductionObj = now;
       if (client.dataConclusao) {
         endProductionObj = parseSafeDate(client.dataConclusao) || now;
       } else if (isPostProduction) {
         endProductionObj = parseSafeDate(client.dataEntradaFase) || now;
       }
-      const diasTotais = Math.max(0, Math.floor((endProductionObj.getTime() - dateTotalObj.getTime()) / 86400000));
+      const calculatedProdDays = Math.max(0, Math.floor((endProductionObj.getTime() - dateTotalObj.getTime()) / 86400000));
+      const diasTotais = (isPostProduction && typeof client.diasProducaoCongelado === "number" && !isNaN(client.diasProducaoCongelado))
+        ? client.diasProducaoCongelado
+        : calculatedProdDays;
 
       const formatDateDMY = (d) => {
         if (!d || isNaN(d.getTime())) return "-";
@@ -2429,36 +2469,45 @@
       };
     }
 
-    // Cálculo completo de ciclo de vida, congelamento de produção e vigência do pacote (3, 6 ou 12 meses)
+    // Cálculo completo de ciclo de vida, congelamento de produção e vigência do pacote a partir de dataConclusao (Marco Zero)
     function getClientContractAndLifecycleInfo(client) {
       const stages = getPipelineStages();
       const currentStage = getClientCurrentStage(client);
-      const daysInfo = getClientStageAndTotalDays(client);
       const isConcluido = isStageRoleConcluido(currentStage);
       const isAcompanhamento = isStageRoleAcompanhamento(currentStage);
       const isFinalizado = isStageRoleFinalizado(currentStage);
+
+      if (client && (isConcluido || isAcompanhamento || isFinalizado) && !client.dataConclusao) {
+        ensureRetroactiveDataConclusao(client);
+      }
+
+      const daysInfo = getClientStageAndTotalDays(client);
       const isProductionFrozen = !!(client?.dataConclusao || isConcluido || isAcompanhamento || isFinalizado);
 
       const pacoteMeses = [3, 6, 12].includes(Number(client?.pacoteMeses)) ? Number(client.pacoteMeses) : 3;
 
-      const rawInicio = client?.dataInicioVigencia || client?.paymentDate || client?.dataPagamento || client?.entryDate || client?.dataEntrada || client?.createdAt;
-      const dataInicio = new Date(rawInicio || Date.now());
-      const safeInicio = isNaN(dataInicio.getTime()) ? (parseSafeDate(rawInicio) || new Date()) : dataInicio;
-      const dataVencimento = new Date(safeInicio);
+      // Marco Zero da Vigência: estritamente a data de conclusão da entrega (client.dataConclusao)
+      const rawDataConclusao = client?.dataConclusao || client?.dataEntradaFase || client?.paymentDate || client?.dataPagamento || client?.entryDate || client?.dataEntrada || client?.createdAt;
+      const parsedConclusao = parseSafeDate(rawDataConclusao);
+      const dataConclusao = (parsedConclusao && !isNaN(parsedConclusao.getTime()))
+        ? new Date(parsedConclusao.getTime())
+        : new Date(client?.dataConclusao || new Date());
+      const dataVencimento = new Date(dataConclusao);
       dataVencimento.setMonth(dataVencimento.getMonth() + Number(client?.pacoteMeses || 3));
 
       const hoje = new Date();
+      const diasPosConclusao = Math.max(0, Math.floor((hoje - dataConclusao) / (1000 * 60 * 60 * 24)));
+      const diasRestantes = Math.max(0, Math.ceil((dataVencimento - hoje) / (1000 * 60 * 60 * 24)));
       const isPacoteVencido = hoje > dataVencimento;
-      const diasRestantes = isPacoteVencido
-        ? 0
-        : Math.max(0, Math.ceil((dataVencimento.getTime() - hoje.getTime()) / 86400000));
 
       return {
         pacoteMeses,
-        dataInicio: safeInicio,
+        dataConclusao,
+        dataInicio: dataConclusao,
         dataVencimento,
         isPacoteVencido,
         isContractExpired: isPacoteVencido,
+        diasPosConclusao,
         diasRestantes,
         diasRestantesPacote: diasRestantes,
         diasProducao: daysInfo.diasTotais,
@@ -3115,6 +3164,7 @@
         });
 
         state.clients = clientList;
+        state.clients.forEach(c => ensureRetroactiveDataConclusao(c));
         populateAssigneeFilterOptions();
 
         // Otimização de Performance: renderiza estritamente a view visível
@@ -3891,6 +3941,8 @@
 
       const nowIso = new Date().toISOString();
       const todayYMD = nowIso.split("T")[0];
+      const prevDaysInfo = getClientStageAndTotalDays(client);
+      const isTargetPostProd = isStageRoleConcluido(targetStage) || isStageRoleAcompanhamento(targetStage) || isStageRoleFinalizado(targetStage);
       const updatedFasesHistory = String(targetStage.id) !== String(currentStage.id)
         ? buildUpdatedFasesHistory(client, currentStage, targetStage, nowIso)
         : (Array.isArray(client.fasesHistory) ? client.fasesHistory : []);
@@ -3903,11 +3955,9 @@
 
       const updateData = {
         pacoteMeses: newPacote,
+        dataConclusao: nowIso,
         dataInicioVigencia: nowIso,
-        paymentDate: todayYMD,
-        dataPagamento: todayYMD,
-        entryDate: todayYMD,
-        dataEntrada: todayYMD,
+        diasProducaoCongelado: isTargetPostProd ? prevDaysInfo.diasTotais : null,
         fase: targetStage.id,
         status: targetStage.id,
         dataEntradaFase: nowIso,
@@ -3916,8 +3966,11 @@
         historico: firebase.firestore.FieldValue.arrayUnion(historyEntry)
       };
 
-      if (isStageRoleConcluido(targetStage)) {
-        updateData.dataConclusao = nowIso;
+      if (!isTargetPostProd) {
+        updateData.paymentDate = todayYMD;
+        updateData.dataPagamento = todayYMD;
+        updateData.entryDate = todayYMD;
+        updateData.dataEntrada = todayYMD;
       }
 
       const btn = document.getElementById("btnConfirmRenewPackage");
@@ -3930,16 +3983,19 @@
         await db.collection("clients").doc(client.id).update(updateData);
 
         client.pacoteMeses = newPacote;
+        client.dataConclusao = nowIso;
         client.dataInicioVigencia = nowIso;
-        client.paymentDate = todayYMD;
-        client.dataPagamento = todayYMD;
-        client.entryDate = todayYMD;
-        client.dataEntrada = todayYMD;
+        client.diasProducaoCongelado = updateData.diasProducaoCongelado;
+        if (!isTargetPostProd) {
+          client.paymentDate = todayYMD;
+          client.dataPagamento = todayYMD;
+          client.entryDate = todayYMD;
+          client.dataEntrada = todayYMD;
+        }
         client.fase = targetStage.id;
         client.status = targetStage.id;
         client.dataEntradaFase = nowIso;
         client.fasesHistory = updatedFasesHistory;
-        if (updateData.dataConclusao) client.dataConclusao = updateData.dataConclusao;
         if (!Array.isArray(client.historico)) client.historico = [];
         client.historico.push(historyEntry);
 
@@ -4063,15 +4119,15 @@
       if (lifecycle.isConcluido) {
         badgesHtml = `
           <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-950/80 border-emerald-700/80 text-emerald-300 flex items-center gap-1 shadow-sm">
-            <span>🏁 Produção: Entregue em ${lifecycle.diasProducao}d</span>
+            <span>🏁 Produção: entregue em ${lifecycle.diasProducao}d</span>
           </span>
           ${lifecycle.isPacoteVencido ? `
             <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/20 border-amber-400/80 text-amber-300 flex items-center gap-1 shadow-sm animate-pulse">
-              <span>🔔 Pacote Vencido (${lifecycle.pacoteMeses}m atingido)</span>
+              <span>🔔 Pacote Vencido (${lifecycle.pacoteMeses} meses pós-entrega atingidos)</span>
             </span>
           ` : `
-            <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-sky-950/70 border-sky-800/80 text-sky-300 flex items-center gap-1 shadow-sm">
-              <span>⏳ Pacote ${lifecycle.pacoteMeses}m (restam ${lifecycle.diasRestantes} dias)</span>
+            <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-sky-950/70 border-sky-800/80 text-sky-300 flex items-center gap-1 shadow-sm" title="⏳ Pacote ${lifecycle.pacoteMeses}m: restam ${lifecycle.diasRestantes}d pós-entrega">
+              <span>⏳ Vigência: ${lifecycle.diasPosConclusao}d decorridos (restam ${lifecycle.diasRestantes}d)</span>
             </span>
           `}
         `;
@@ -4290,15 +4346,15 @@
       if (lifecycle.isConcluido) {
         desktopBadgesHtml = `
           <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-950/80 border-emerald-700/80 text-emerald-300 flex items-center gap-1 shadow-sm">
-            <span>🏁 Produção: Entregue em ${lifecycle.diasProducao}d</span>
+            <span>🏁 Produção: entregue em ${lifecycle.diasProducao}d</span>
           </span>
           ${lifecycle.isPacoteVencido ? `
             <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/20 border-amber-400/80 text-amber-300 flex items-center gap-1 shadow-sm animate-pulse">
-              <span>🔔 Pacote Vencido (${lifecycle.pacoteMeses}m atingido)</span>
+              <span>🔔 Pacote Vencido (${lifecycle.pacoteMeses} meses pós-entrega atingidos)</span>
             </span>
           ` : `
-            <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-sky-950/70 border-sky-800/80 text-sky-300 flex items-center gap-1 shadow-sm">
-              <span>⏳ Pacote ${lifecycle.pacoteMeses}m (restam ${lifecycle.diasRestantes} dias)</span>
+            <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-sky-950/70 border-sky-800/80 text-sky-300 flex items-center gap-1 shadow-sm" title="⏳ Pacote ${lifecycle.pacoteMeses}m: restam ${lifecycle.diasRestantes}d pós-entrega">
+              <span>⏳ Vigência: ${lifecycle.diasPosConclusao}d decorridos (restam ${lifecycle.diasRestantes}d)</span>
             </span>
           `}
         `;
@@ -4647,20 +4703,20 @@
 
       if (lifecycle.isConcluido) {
         if (semaforoEl) {
-          semaforoEl.textContent = "🏁 Produção: Entregue em " + lifecycle.diasProducao + "d";
+          semaforoEl.textContent = "🏁 Produção: entregue em " + lifecycle.diasProducao + "d";
           semaforoEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-emerald-950/80 border-emerald-700/80 text-emerald-300 shadow-sm";
         }
         if (stageDaysEl) {
-          stageDaysEl.textContent = "📍 " + daysInfo.diasNaFase + "d em Concluído";
+          stageDaysEl.textContent = "📍 Pacote " + lifecycle.pacoteMeses + "m (" + lifecycle.diasPosConclusao + "d pós-entrega)";
           stageDaysEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-emerald-950/50 border-emerald-800/60 text-emerald-300";
         }
         if (contractBadgeEl) {
           contractBadgeEl.classList.remove("hidden");
           if (lifecycle.isPacoteVencido) {
-            contractBadgeEl.textContent = "🔔 Pacote Vencido (" + lifecycle.pacoteMeses + "m atingido)";
+            contractBadgeEl.textContent = "🔔 Pacote Vencido (" + lifecycle.pacoteMeses + " meses pós-entrega atingidos)";
             contractBadgeEl.className = "text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-amber-500/20 border-amber-400/80 text-amber-300 shadow-sm animate-pulse";
           } else {
-            contractBadgeEl.textContent = "⏳ Pacote " + lifecycle.pacoteMeses + "m (restam " + lifecycle.diasRestantes + " dias)";
+            contractBadgeEl.textContent = "⏳ Vigência: " + lifecycle.diasPosConclusao + "d decorridos (restam " + lifecycle.diasRestantes + "d)";
             contractBadgeEl.className = "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-sky-950/70 border-sky-800/80 text-sky-300 shadow-sm";
           }
         }
@@ -6778,19 +6834,19 @@
         if (contractInfo.isConcluido) {
           totalDaysBadgeHtml = `
             <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-emerald-950/90 border-emerald-700/80 text-emerald-300 inline-flex items-center gap-1 shadow-sm">
-              <span>🏁 Produção: Entregue em ${daysInfo.diasTotais}d</span>
+              <span>🏁 Produção: entregue em ${daysInfo.diasTotais}d</span>
             </span>
           `;
           if (contractInfo.isContractExpired) {
             phaseDaysBadgeHtml = `
               <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-amber-950/90 border-amber-500 text-amber-300 inline-flex items-center gap-1 shadow-sm animate-pulse">
-                <span>🔔 Pacote Vencido (${contractInfo.pacoteMeses}m atingido)</span>
+                <span>🔔 Pacote Vencido (${contractInfo.pacoteMeses} meses pós-entrega atingidos)</span>
               </span>
             `;
           } else {
             phaseDaysBadgeHtml = `
-              <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border bg-sky-950/80 border-sky-800/80 text-sky-300 inline-flex items-center gap-1 shadow-sm">
-                <span>⏳ Pacote ${contractInfo.pacoteMeses}m (restam ${contractInfo.diasRestantesPacote} dias)</span>
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold border bg-sky-950/80 border-sky-800/80 text-sky-300 inline-flex items-center gap-1 shadow-sm" title="⏳ Pacote ${contractInfo.pacoteMeses}m: restam ${contractInfo.diasRestantes}d pós-entrega">
+                <span>⏳ Vigência: ${contractInfo.diasPosConclusao}d decorridos (restam ${contractInfo.diasRestantes}d)</span>
               </span>
             `;
           }
@@ -6952,12 +7008,12 @@
           if (contractInfo.isConcluido) {
             mTotalBadgeHtml = `
               <span data-col="col_totalDays" class="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-950/90 border-emerald-700/80 text-emerald-300 inline-flex items-center gap-1 shadow-sm">
-                <span>🏁 Produção: Entregue em ${daysInfo.diasTotais}d</span>
+                <span>🏁 Produção: entregue em ${daysInfo.diasTotais}d</span>
               </span>
             `;
             mPhaseBadgeHtml = contractInfo.isContractExpired
-              ? `<span data-col="col_phaseDays" class="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-amber-950/90 border-amber-500 text-amber-300 inline-flex items-center gap-1 shadow-sm animate-pulse"><span>🔔 Pacote Vencido (${contractInfo.pacoteMeses}m atingido)</span></span>`
-              : `<span data-col="col_phaseDays" class="px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-sky-950/80 border-sky-800/80 text-sky-300 inline-flex items-center gap-1 shadow-sm"><span>⏳ Pacote ${contractInfo.pacoteMeses}m (restam ${contractInfo.diasRestantesPacote} dias)</span></span>`;
+              ? `<span data-col="col_phaseDays" class="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-amber-950/90 border-amber-500 text-amber-300 inline-flex items-center gap-1 shadow-sm animate-pulse"><span>🔔 Pacote Vencido (${contractInfo.pacoteMeses} meses pós-entrega atingidos)</span></span>`
+              : `<span data-col="col_phaseDays" class="px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-sky-950/80 border-sky-800/80 text-sky-300 inline-flex items-center gap-1 shadow-sm" title="⏳ Pacote ${contractInfo.pacoteMeses}m: restam ${contractInfo.diasRestantes}d pós-entrega"><span>⏳ Vigência: ${contractInfo.diasPosConclusao}d decorridos (restam ${contractInfo.diasRestantes}d)</span></span>`;
           } else if (contractInfo.isAcompanhamento) {
             mTotalBadgeHtml = `
               <span data-col="col_totalDays" class="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-950/80 border-emerald-800/80 text-emerald-300 inline-flex items-center gap-1 shadow-sm">
