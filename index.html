@@ -1168,12 +1168,15 @@
           <input type="hidden" id="drawerInputPacoteMeses" value="3">
         </div>
 
-        <div class="pt-2 pb-4 flex justify-between items-center gap-2 w-full">
-          <button type="button" id="btnSaveDrawerInfo" onclick="saveClientData(state.selectedClientId, event)" class="h-11 px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-xl transition cursor-pointer">
-            Salvar Alterações
+        <div class="pt-4 pb-6 space-y-2.5 w-full">
+          <button type="button" id="btnSaveDrawerInfo" onclick="saveClientData(state.selectedClientId, event)" class="w-full h-12 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white flex items-center justify-center text-center font-semibold text-sm leading-none gap-2 shadow-md transition-all active:scale-[0.99] cursor-pointer">
+            <i data-lucide="check" class="w-4 h-4 shrink-0"></i>
+            <span>Salvar Alterações</span>
           </button>
-          <button type="button" id="btnDeleteClientInfo" onclick="openDeleteClientModal()" class="h-11 px-3.5 py-2 rounded-xl text-rose-400 hover:bg-rose-950/40 border border-rose-900/60 font-medium transition cursor-pointer">
-            Excluir Cliente
+
+          <button type="button" id="btnDeleteClientInfo" onclick="openDeleteClientModal()" class="w-full h-12 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center text-center font-semibold text-sm leading-none gap-2 transition-all active:scale-[0.99] cursor-pointer">
+            <i data-lucide="trash-2" class="w-4 h-4 shrink-0"></i>
+            <span>Excluir Cliente</span>
           </button>
         </div>
       </form>
@@ -2282,6 +2285,10 @@
       if (typeof rawDate === "object" && typeof rawDate.seconds === "number") {
         return new Date(rawDate.seconds * 1000);
       }
+      if (typeof rawDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDate.trim())) {
+        const [y, m, day] = rawDate.trim().split("-").map(Number);
+        return new Date(y, m - 1, day, 12, 0, 0);
+      }
       const d = new Date(rawDate);
       return isNaN(d.getTime()) ? null : d;
     }
@@ -2445,6 +2452,7 @@
       }
 
       const now = new Date();
+      const stages = getPipelineStages();
       const currentStage = getClientCurrentStage(client);
       const isPostProduction = isStageRoleConcluido(currentStage) || isStageRoleAcompanhamento(currentStage) || isStageRoleFinalizado(currentStage);
 
@@ -2452,23 +2460,76 @@
         ensureRetroactiveDataConclusao(client);
       }
 
-      // Data de entrada na fase atual com fallback seguro
-      const rawDataFase = client.dataEntradaFase || client.dataConclusao || client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt;
-      const dateFaseObj = parseSafeDate(rawDataFase) || now;
-      const diasNaFase = Math.max(0, Math.floor((now.getTime() - dateFaseObj.getTime()) / 86400000));
-
-      // Data de início total (criação/pagamento) com fallback seguro
+      // 1. Data de início total da esteira (pagamento/cadastro)
       const rawDataTotal = client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt || client.dataEntradaFase;
-      const dateTotalObj = parseSafeDate(rawDataTotal) || dateFaseObj || now;
+      const dateTotalObj = parseSafeDate(rawDataTotal) || now;
 
-      // Congelamento do Tempo de Produção: diferença fixa entre paymentDate/createdAt e dataConclusao
+      // 2. Marco Inicial da Fase Atual (Regra Sequencial Inteligente):
+      // - Fase 1: Data de pagamento/cadastro
+      // - Fase 2+: Herda dinamicamente a maior data de conclusão (concluidaEm) entre as subtarefas da fase anterior (Fase N-1)
+      const currentIdx = stages.findIndex((s, idx) => isClientInStage(client, s, idx, stages));
+      let dateFaseObj = null;
+
+      if (currentIdx > 0) {
+        const allTasks = getClientMergedTasks(client, stages);
+        const prevStage = stages[currentIdx - 1];
+        if (prevStage) {
+          const prevTasks = allTasks.filter(t => t.stageId === prevStage.id);
+          const prevCompletionTimes = prevTasks
+            .filter(t => (t.concluida || t.completed || t.status === "Concluída") && (t.concluidaEm || t.completedAt))
+            .map(t => new Date(t.concluidaEm || t.completedAt).getTime())
+            .filter(t => !isNaN(t) && t > 0);
+
+          if (prevCompletionTimes.length > 0) {
+            dateFaseObj = new Date(Math.max(...prevCompletionTimes));
+          }
+        }
+      }
+
+      // Fallback seguro se não houver subtarefas concluídas na fase anterior ou se for a Fase 1:
+      if (!dateFaseObj) {
+        const rawDataFase = (currentIdx === 0)
+          ? (client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt || client.dataEntradaFase)
+          : (client.dataEntradaFase || client.dataConclusao || client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt);
+        dateFaseObj = parseSafeDate(rawDataFase) || now;
+      }
+
+      // 3. Conclusão da Fase e Cálculo de Permanência:
+      // Se todas as subtarefas da Fase N estiverem concluídas:
+      // data de término = Math.max(...concluidaEm) daquela fase, diasGastos = Math.max(0, Math.round((saiuEm - entrouEm) / 86400000))
+      // Se a Fase N ainda possui subtarefas pendentes (Fase Ativa):
+      // diasNaFase = Math.max(0, Math.round((now - entrouEm) / 86400000))
+      const allTasks = getClientMergedTasks(client, stages);
+      const currentStageTasks = allTasks.filter(t => t.stageId === currentStage.id);
+      const currentDoneTasks = currentStageTasks.filter(t => t.concluida || t.completed || t.status === "Concluída");
+      const hasCurrentTasks = currentStageTasks.length > 0;
+      const allCurrentDone = hasCurrentTasks && currentDoneTasks.length === currentStageTasks.length;
+
+      let diasNaFase = 0;
+      if (allCurrentDone) {
+        const currentDoneTimes = currentDoneTasks
+          .map(t => new Date(t.concluidaEm || t.completedAt).getTime())
+          .filter(t => !isNaN(t) && t > 0);
+
+        if (currentDoneTimes.length > 0) {
+          const maxCurrentDoneTime = Math.max(...currentDoneTimes);
+          diasNaFase = Math.max(0, Math.round((maxCurrentDoneTime - dateFaseObj.getTime()) / 86400000));
+        } else {
+          diasNaFase = Math.max(0, Math.round((now.getTime() - dateFaseObj.getTime()) / 86400000));
+        }
+      } else {
+        diasNaFase = Math.max(0, Math.round((now.getTime() - dateFaseObj.getTime()) / 86400000));
+      }
+
+      // 4. Tempo Total de Esteira (Encerramento/Congelamento Definitivo em "Concluído"):
+      // Inicia em paymentDate || createdAt e congela definitivamente assim que o cliente é movido para "Concluído" (dataConclusao)
       let endProductionObj = now;
       if (client.dataConclusao) {
         endProductionObj = parseSafeDate(client.dataConclusao) || now;
       } else if (isPostProduction) {
         endProductionObj = parseSafeDate(client.dataEntradaFase) || now;
       }
-      const calculatedProdDays = Math.max(0, Math.floor((endProductionObj.getTime() - dateTotalObj.getTime()) / 86400000));
+      const calculatedProdDays = Math.max(0, Math.round((endProductionObj.getTime() - dateTotalObj.getTime()) / 86400000));
       const diasTotais = (isPostProduction && typeof client.diasProducaoCongelado === "number" && !isNaN(client.diasProducaoCongelado))
         ? client.diasProducaoCongelado
         : calculatedProdDays;
@@ -3021,7 +3082,7 @@
       const btnDel1 = document.getElementById("btnDeleteClientHeader");
       if (btnDel1) btnDel1.style.display = perms.canDeleteClients ? "inline-flex" : "none";
       const btnDel2 = document.getElementById("btnDeleteClientInfo");
-      if (btnDel2) btnDel2.style.display = perms.canDeleteClients ? "inline-flex" : "none";
+      if (btnDel2) btnDel2.style.display = perms.canDeleteClients ? "flex" : "none";
 
       // Menu Configurações do CRM (Apenas Admin)
       const menuSettings = document.getElementById("menuItemSettings");
@@ -3053,7 +3114,7 @@
         }
       });
       const btnSaveInfo = document.getElementById("btnSaveDrawerInfo");
-      if (btnSaveInfo) btnSaveInfo.style.display = canEdit ? "inline-flex" : "none";
+      if (btnSaveInfo) btnSaveInfo.style.display = canEdit ? "flex" : "none";
 
       const btnAdv = document.getElementById("btnAdvancePhaseDrawer");
       if (btnAdv) btnAdv.style.display = perms.canAdvancePhases ? "inline-flex" : "none";
@@ -6083,7 +6144,9 @@
 
       const activeEnteredIso = activeEntryFromHistory?.entrouEm || client.dataEntradaFase || client.paymentDate || client.dataPagamento || client.entryDate || client.dataEntrada || client.createdAt || new Date().toISOString();
       const activeEnteredDate = parseSafeDate(activeEnteredIso) || new Date();
-      const activeDays = Math.max(0, Math.floor((new Date().getTime() - activeEnteredDate.getTime()) / 86400000));
+      const activeDays = (typeof daysInfo.diasNaFase === "number" && !isNaN(daysInfo.diasNaFase))
+        ? daysInfo.diasNaFase
+        : Math.max(0, Math.floor((new Date().getTime() - activeEnteredDate.getTime()) / 86400000));
       const activeStageName = activeEntryFromHistory?.faseNome || currentStage.nome;
 
       const completedStepsHtml = completedEntries.map(item => {
@@ -6568,7 +6631,13 @@
       const btnSave = document.getElementById("btnSaveDrawerInfo");
       if (btnSave) {
         btnSave.disabled = true;
-        btnSave.textContent = "Salvando...";
+        btnSave.innerHTML = `
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>Salvando...</span>
+        `;
       }
 
       try {
@@ -6598,7 +6667,13 @@
       } finally {
         if (btnSave) {
           btnSave.disabled = false;
-          btnSave.textContent = "Salvar Alterações";
+          btnSave.innerHTML = `
+            <i data-lucide="check" class="w-4 h-4 shrink-0"></i>
+            <span>Salvar Alterações</span>
+          `;
+          if (typeof lucide !== "undefined" && lucide.createIcons) {
+            lucide.createIcons();
+          }
         }
       }
     }
@@ -8102,8 +8177,8 @@ lucide.createIcons();
         // Mobile bottom nav
         const mTab = document.getElementById("mobile-tab-" + v);
         if (mTab) {
-          mTab.classList.remove("text-sky-400", "bg-sky-950/60", "border", "border-sky-800/40", "font-semibold");
-          mTab.classList.add("text-slate-400", "font-medium");
+          mTab.classList.remove("text-cyan-600", "font-semibold", "text-sky-400");
+          mTab.classList.add("text-slate-500", "font-medium");
         }
       });
 
@@ -8120,8 +8195,8 @@ lucide.createIcons();
       // Mobile active tab
       const activeMTab = document.getElementById("mobile-tab-" + view);
       if (activeMTab) {
-        activeMTab.classList.add("text-sky-400", "bg-sky-950/60", "border", "border-sky-800/40", "font-semibold");
-        activeMTab.classList.remove("text-slate-400", "font-medium");
+        activeMTab.classList.remove("text-slate-500", "font-medium");
+        activeMTab.classList.add("text-cyan-600", "font-semibold");
       }
 
       if (view === "kanban") renderKanban();
@@ -8898,20 +8973,20 @@ lucide.createIcons();
        BARRA DE NAVEGAÇÃO INFERIOR FIXA EXCLUSIVA PARA MOBILE (< 768px)
        ========================================================================= -->
   <nav id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-3 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]" style="padding-bottom: max(10px, env(safe-area-inset-bottom, 12px));">
-    <div class="grid grid-cols-4 gap-1 max-w-md mx-auto">
-      <button onclick="switchView('kanban')" id="mobile-tab-kanban" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] font-semibold transition cursor-pointer text-sky-400 bg-sky-950/60 border border-sky-800/40 min-h-[44px]">
+    <div class="grid grid-cols-4 gap-1.5 max-w-md mx-auto">
+      <button onclick="switchView('kanban')" id="mobile-tab-kanban" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] transition cursor-pointer bg-white border border-slate-200 shadow-sm min-h-[44px] text-cyan-600 font-semibold">
         <i data-lucide="columns-3" class="w-5 h-5 mb-0.5"></i>
         <span>Kanban</span>
       </button>
-      <button onclick="switchView('table')" id="mobile-tab-table" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] font-medium transition cursor-pointer text-slate-400 hover:text-white min-h-[44px]">
+      <button onclick="switchView('table')" id="mobile-tab-table" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] transition cursor-pointer bg-white border border-slate-200 shadow-sm min-h-[44px] text-slate-500 font-medium hover:text-slate-700">
         <i data-lucide="table" class="w-5 h-5 mb-0.5"></i>
         <span>Tabela</span>
       </button>
-      <button onclick="switchView('metrics')" id="mobile-tab-metrics" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] font-medium transition cursor-pointer text-slate-400 hover:text-white min-h-[44px]">
+      <button onclick="switchView('metrics')" id="mobile-tab-metrics" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] transition cursor-pointer bg-white border border-slate-200 shadow-sm min-h-[44px] text-slate-500 font-medium hover:text-slate-700">
         <i data-lucide="bar-chart-2" class="w-5 h-5 mb-0.5"></i>
         <span>Métricas</span>
       </button>
-      <button onclick="switchView('history')" id="mobile-tab-history" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] font-medium transition cursor-pointer text-slate-400 hover:text-white min-h-[44px]">
+      <button onclick="switchView('history')" id="mobile-tab-history" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-[10px] transition cursor-pointer bg-white border border-slate-200 shadow-sm min-h-[44px] text-slate-500 font-medium hover:text-slate-700">
         <i data-lucide="history" class="w-5 h-5 mb-0.5"></i>
         <span>Histórico</span>
       </button>
