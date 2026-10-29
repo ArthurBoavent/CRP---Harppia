@@ -35,6 +35,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <style>
+    html {
+      scrollbar-gutter: stable;
+    }
     body {
       font-family: 'Inter', sans-serif;
       -webkit-tap-highlight-color: transparent;
@@ -8151,18 +8154,17 @@ lucide.createIcons();
           tab.classList.add("text-slate-400");
         }
 
-        // Mobile bottom nav (inativo)
+        // Mobile bottom nav (inativo - dimensões estritamente idênticas e borda transparente)
         const mTab = document.getElementById("mobile-tab-" + v);
         if (mTab) {
-          mTab.className = "flex flex-col items-center justify-center py-1.5 px-3 rounded-xl text-slate-400 hover:text-slate-200 min-w-[64px] transition-colors cursor-pointer";
+          mTab.className = "flex-1 h-12 w-full max-w-[80px] mx-auto flex flex-col items-center justify-center rounded-xl border border-transparent bg-transparent text-slate-400 hover:text-slate-200 transition-all duration-200 ease-out active:scale-95 active:duration-75 cursor-pointer";
           const icon = mTab.querySelector("svg, i");
           if (icon) {
-            icon.classList.remove("text-white");
-            icon.classList.add("text-slate-400");
+            icon.setAttribute("class", "w-5 h-5 mb-0.5 text-slate-400 transition-transform duration-200");
           }
           const span = mTab.querySelector("span");
           if (span) {
-            span.className = "text-[11px] font-medium tracking-wide";
+            span.className = "text-[11px] font-medium tracking-wide text-slate-400";
           }
         }
       });
@@ -8177,14 +8179,13 @@ lucide.createIcons();
         activeTab.classList.remove("text-slate-400");
       }
 
-      // Mobile active tab (ativo destacado)
+      // Mobile active tab (ativo destacado - borda sky-500/40, fundo dark e ícone elevado)
       const activeMTab = document.getElementById("mobile-tab-" + view);
       if (activeMTab) {
-        activeMTab.className = "flex flex-col items-center justify-center py-1.5 px-4 rounded-xl bg-[#0d1f36] border border-sky-500/30 text-white min-w-[72px] transition-colors cursor-pointer";
+        activeMTab.className = "flex-1 h-12 w-full max-w-[80px] mx-auto flex flex-col items-center justify-center rounded-xl border border-sky-500/40 bg-[#0d1f36] text-white shadow-[0_0_15px_rgba(14,165,233,0.18)] transition-all duration-200 ease-out active:scale-95 active:duration-75 cursor-pointer";
         const icon = activeMTab.querySelector("svg, i");
         if (icon) {
-          icon.classList.remove("text-slate-400");
-          icon.classList.add("text-white");
+          icon.setAttribute("class", "w-5 h-5 mb-0.5 text-sky-400 -translate-y-0.5 transition-transform duration-200");
         }
         const span = activeMTab.querySelector("span");
         if (span) {
@@ -8965,38 +8966,38 @@ lucide.createIcons();
   <!-- =========================================================================
        BARRA DE NAVEGAÇÃO INFERIOR FIXA EXCLUSIVA PARA MOBILE (< 768px)
        ========================================================================= -->
-  <nav id="mobileBottomNav" class="fixed bottom-0 inset-x-0 z-40 bg-[#070d18]/95 backdrop-blur-md border-t border-slate-800/80 px-2 py-1.5 flex items-center justify-around md:hidden pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-    <button type="button" onclick="switchView('kanban')" id="mobile-tab-kanban" class="flex flex-col items-center justify-center py-1.5 px-4 rounded-xl bg-[#0d1f36] border border-sky-500/30 text-white min-w-[72px] transition-colors cursor-pointer">
-      <svg class="w-5 h-5 mb-0.5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+  <nav id="mobileBottomNav" class="fixed bottom-0 inset-x-0 z-40 bg-[#070d18]/95 backdrop-blur-md border-t border-slate-800/80 px-3 py-1.5 flex items-center justify-between md:hidden pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <button type="button" onclick="switchView('kanban')" id="mobile-tab-kanban" class="flex-1 h-12 w-full max-w-[80px] mx-auto flex flex-col items-center justify-center rounded-xl border border-sky-500/40 bg-[#0d1f36] text-white shadow-[0_0_15px_rgba(14,165,233,0.18)] transition-all duration-200 ease-out active:scale-95 active:duration-75 cursor-pointer">
+      <svg class="w-5 h-5 mb-0.5 text-sky-400 -translate-y-0.5 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <rect width="18" height="18" x="3" y="3" rx="2"/>
         <path d="M9 3v18M15 3v18"/>
       </svg>
       <span class="text-[11px] font-semibold tracking-wide text-white">Kanban</span>
     </button>
-    <button type="button" onclick="switchView('table')" id="mobile-tab-table" class="flex flex-col items-center justify-center py-1.5 px-3 rounded-xl text-slate-400 hover:text-slate-200 min-w-[64px] transition-colors cursor-pointer">
-      <svg class="w-5 h-5 mb-0.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <button type="button" onclick="switchView('table')" id="mobile-tab-table" class="flex-1 h-12 w-full max-w-[80px] mx-auto flex flex-col items-center justify-center rounded-xl border border-transparent bg-transparent text-slate-400 hover:text-slate-200 transition-all duration-200 ease-out active:scale-95 active:duration-75 cursor-pointer">
+      <svg class="w-5 h-5 mb-0.5 text-slate-400 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M12 3v18"/>
         <rect width="18" height="18" x="3" y="3" rx="2"/>
         <path d="M3 9h18"/>
         <path d="M3 15h18"/>
       </svg>
-      <span class="text-[11px] font-medium tracking-wide">Tabela</span>
+      <span class="text-[11px] font-medium tracking-wide text-slate-400">Tabela</span>
     </button>
-    <button type="button" onclick="switchView('metrics')" id="mobile-tab-metrics" class="flex flex-col items-center justify-center py-1.5 px-3 rounded-xl text-slate-400 hover:text-slate-200 min-w-[64px] transition-colors cursor-pointer">
-      <svg class="w-5 h-5 mb-0.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <button type="button" onclick="switchView('metrics')" id="mobile-tab-metrics" class="flex-1 h-12 w-full max-w-[80px] mx-auto flex flex-col items-center justify-center rounded-xl border border-transparent bg-transparent text-slate-400 hover:text-slate-200 transition-all duration-200 ease-out active:scale-95 active:duration-75 cursor-pointer">
+      <svg class="w-5 h-5 mb-0.5 text-slate-400 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M18 20V10"/>
         <path d="M12 20V4"/>
         <path d="M6 20v-6"/>
       </svg>
-      <span class="text-[11px] font-medium tracking-wide">Métricas</span>
+      <span class="text-[11px] font-medium tracking-wide text-slate-400">Métricas</span>
     </button>
-    <button type="button" onclick="switchView('history')" id="mobile-tab-history" class="flex flex-col items-center justify-center py-1.5 px-3 rounded-xl text-slate-400 hover:text-slate-200 min-w-[64px] transition-colors cursor-pointer">
-      <svg class="w-5 h-5 mb-0.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <button type="button" onclick="switchView('history')" id="mobile-tab-history" class="flex-1 h-12 w-full max-w-[80px] mx-auto flex flex-col items-center justify-center rounded-xl border border-transparent bg-transparent text-slate-400 hover:text-slate-200 transition-all duration-200 ease-out active:scale-95 active:duration-75 cursor-pointer">
+      <svg class="w-5 h-5 mb-0.5 text-slate-400 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
         <path d="M3 3v5h5"/>
         <path d="M12 7v5l4 2"/>
       </svg>
-      <span class="text-[11px] font-medium tracking-wide">Histórico</span>
+      <span class="text-[11px] font-medium tracking-wide text-slate-400">Histórico</span>
     </button>
   </nav>
 
